@@ -1,20 +1,33 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { seo } from '@/lib/tools';
+import { useSeo } from '@/lib/tools';
 
 export const Route = createFileRoute('/policies/privacy')({
-  head: () => ({
-    meta: [
-      ...seo({
-        title: 'Privacy Policy',
-        description:
-          'Discover all of the latest market updates and the best places to eat in Seattle.',
-        keywords: ['privacy', 'policy', 'privacy policy', 'Seattle', 'Broker', 'Real Estate'].join(
-          ', ',
-        ),
-      }),
-    ],
-  }),
+  loader: async ({ context }) => {
+    return {
+      siteConfig: context.siteConfig,
+    };
+  },
+  head: ({ loaderData }) => {
+    const { seo } = useSeo(loaderData!.siteConfig);
+    return {
+      meta: [
+        ...seo({
+          title: 'Privacy Policy',
+          description:
+            'Discover all of the latest market updates and the best places to eat in Seattle.',
+          keywords: [
+            'privacy',
+            'policy',
+            'privacy policy',
+            'Seattle',
+            'Broker',
+            'Real Estate',
+          ].join(', '),
+        }),
+      ],
+    };
+  },
   component: RouteComponent,
 });
 

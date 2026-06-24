@@ -1,0 +1,38 @@
+import { createFileRoute } from '@tanstack/react-router';
+
+import { seo } from '@/lib/tools';
+
+export const Route = createFileRoute('/blog/$slug')({
+  loader: async () => {
+    const post = {} as any; // await fetchPost(params.slug)
+    return { post };
+  },
+  head: ({ loaderData }) => ({
+    meta: [
+      ...seo({
+        title: `${loaderData?.post.title} | KyleWeberSeattle.com`,
+        description:
+          loaderData?.post.excerpt ??
+          'Discover all of the latest market updates and the best places to eat in Seattle.',
+        keywords: [
+          'blog',
+          'travel',
+          'buying',
+          'selling',
+          'home',
+          'condominium',
+          'condo',
+          'seattle',
+          'real estate',
+          'broker',
+        ].join(', '),
+      }),
+    ],
+  }),
+  component: RouteComponent,
+});
+
+function RouteComponent() {
+  const { slug } = Route.useParams();
+  return <div>Hello "/_frontend/blog/{slug}"!</div>;
+}

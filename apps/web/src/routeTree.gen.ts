@@ -10,19 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SellingRouteImport } from './routes/selling'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as BuyingRouteImport } from './routes/buying'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as RobotsDotTxtRouteImport } from './routes/robots[.].txt'
 import { Route as PoliciesPrivacyRouteImport } from './routes/policies/privacy'
 import { Route as PoliciesDmcaRouteImport } from './routes/policies/dmca'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
+import { Route as BlogTagChar123TagChar125Char123SlugChar125RouteImport } from './routes/blog/tag.{-$tag}.{-$slug}'
+import { Route as BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport } from './routes/blog/category.{-$category}.{-$slug}'
+import { Route as BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport } from './routes/blog/archive/{-$year}/{-$month}/{-$day}'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SellingRoute = SellingRouteImport.update({
+  id: '/selling',
+  path: '/selling',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuyingRoute = BuyingRouteImport.update({
+  id: '/buying',
+  path: '/buying',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDotTxtRoute = RobotsDotTxtRouteImport.update({
@@ -40,59 +74,147 @@ const PoliciesDmcaRoute = PoliciesDmcaRouteImport.update({
   path: '/policies/dmca',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogTagChar123TagChar125Char123SlugChar125Route =
+  BlogTagChar123TagChar125Char123SlugChar125RouteImport.update({
+    id: '/blog/tag/{-$tag}/{-$slug}',
+    path: '/blog/tag/{-$tag}/{-$slug}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const BlogCategoryChar123CategoryChar125Char123SlugChar125Route =
+  BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport.update({
+    id: '/blog/category/{-$category}/{-$slug}',
+    path: '/blog/category/{-$category}/{-$slug}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route =
+  BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport.update(
+    {
+      id: '/blog/archive/{-$year}/{-$month}/{-$day}',
+      path: '/blog/archive/{-$year}/{-$month}/{-$day}',
+      getParentRoute: () => rootRouteImport,
+    } as any,
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/buying': typeof BuyingRoute
+  '/contact': typeof ContactRoute
+  '/selling': typeof SellingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/policies/dmca': typeof PoliciesDmcaRoute
   '/policies/privacy': typeof PoliciesPrivacyRoute
   '/robots./txt': typeof RobotsDotTxtRoute
+  '/blog/': typeof BlogIndexRoute
+  '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
+  '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
+  '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/buying': typeof BuyingRoute
+  '/contact': typeof ContactRoute
+  '/selling': typeof SellingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/policies/dmca': typeof PoliciesDmcaRoute
   '/policies/privacy': typeof PoliciesPrivacyRoute
   '/robots./txt': typeof RobotsDotTxtRoute
+  '/blog': typeof BlogIndexRoute
+  '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
+  '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
+  '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/buying': typeof BuyingRoute
+  '/contact': typeof ContactRoute
+  '/selling': typeof SellingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/policies/dmca': typeof PoliciesDmcaRoute
   '/policies/privacy': typeof PoliciesPrivacyRoute
   '/robots./txt': typeof RobotsDotTxtRoute
+  '/blog/': typeof BlogIndexRoute
+  '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
+  '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
+  '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
+    | '/buying'
+    | '/contact'
+    | '/selling'
     | '/sitemap.xml'
+    | '/blog/$slug'
     | '/policies/dmca'
     | '/policies/privacy'
     | '/robots./txt'
+    | '/blog/'
+    | '/blog/category/{-$category}/{-$slug}'
+    | '/blog/tag/{-$tag}/{-$slug}'
+    | '/blog/archive/{-$year}/{-$month}/{-$day}'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/buying'
+    | '/contact'
+    | '/selling'
     | '/sitemap.xml'
+    | '/blog/$slug'
     | '/policies/dmca'
     | '/policies/privacy'
     | '/robots./txt'
+    | '/blog'
+    | '/blog/category/{-$category}/{-$slug}'
+    | '/blog/tag/{-$tag}/{-$slug}'
+    | '/blog/archive/{-$year}/{-$month}/{-$day}'
   id:
     | '__root__'
     | '/'
+    | '/about'
+    | '/buying'
+    | '/contact'
+    | '/selling'
     | '/sitemap.xml'
+    | '/blog/$slug'
     | '/policies/dmca'
     | '/policies/privacy'
     | '/robots./txt'
+    | '/blog/'
+    | '/blog/category/{-$category}/{-$slug}'
+    | '/blog/tag/{-$tag}/{-$slug}'
+    | '/blog/archive/{-$year}/{-$month}/{-$day}'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  BuyingRoute: typeof BuyingRoute
+  ContactRoute: typeof ContactRoute
+  SellingRoute: typeof SellingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   PoliciesDmcaRoute: typeof PoliciesDmcaRoute
   PoliciesPrivacyRoute: typeof PoliciesPrivacyRoute
   RobotsDotTxtRoute: typeof RobotsDotTxtRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+  BlogCategoryChar123CategoryChar125Char123SlugChar125Route: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
+  BlogTagChar123TagChar125Char123SlugChar125Route: typeof BlogTagChar123TagChar125Char123SlugChar125Route
+  BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route: typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
 }
 
 declare module '@tanstack/react-router' {
@@ -104,11 +226,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/selling': {
+      id: '/selling'
+      path: '/selling'
+      fullPath: '/selling'
+      preLoaderRoute: typeof SellingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/buying': {
+      id: '/buying'
+      path: '/buying'
+      fullPath: '/buying'
+      preLoaderRoute: typeof BuyingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots./txt': {
@@ -132,15 +289,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PoliciesDmcaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/tag/{-$tag}/{-$slug}': {
+      id: '/blog/tag/{-$tag}/{-$slug}'
+      path: '/blog/tag/{-$tag}/{-$slug}'
+      fullPath: '/blog/tag/{-$tag}/{-$slug}'
+      preLoaderRoute: typeof BlogTagChar123TagChar125Char123SlugChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/category/{-$category}/{-$slug}': {
+      id: '/blog/category/{-$category}/{-$slug}'
+      path: '/blog/category/{-$category}/{-$slug}'
+      fullPath: '/blog/category/{-$category}/{-$slug}'
+      preLoaderRoute: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/archive/{-$year}/{-$month}/{-$day}': {
+      id: '/blog/archive/{-$year}/{-$month}/{-$day}'
+      path: '/blog/archive/{-$year}/{-$month}/{-$day}'
+      fullPath: '/blog/archive/{-$year}/{-$month}/{-$day}'
+      preLoaderRoute: typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  BuyingRoute: BuyingRoute,
+  ContactRoute: ContactRoute,
+  SellingRoute: SellingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  BlogSlugRoute: BlogSlugRoute,
   PoliciesDmcaRoute: PoliciesDmcaRoute,
   PoliciesPrivacyRoute: PoliciesPrivacyRoute,
   RobotsDotTxtRoute: RobotsDotTxtRoute,
+  BlogIndexRoute: BlogIndexRoute,
+  BlogCategoryChar123CategoryChar125Char123SlugChar125Route:
+    BlogCategoryChar123CategoryChar125Char123SlugChar125Route,
+  BlogTagChar123TagChar125Char123SlugChar125Route:
+    BlogTagChar123TagChar125Char123SlugChar125Route,
+  BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route:
+    BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

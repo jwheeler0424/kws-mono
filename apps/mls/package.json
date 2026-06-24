@@ -2,15 +2,25 @@
   "name": "mls",
   "private": true,
   "type": "module",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "scripts": {
-    "dev": "bun --bun --hot index.ts",
-    "start": "bun --bun run index.ts",
+    "dev": "bun --bun --hot src/index.ts",
+    "start": "bun --bun run src/index.ts",
     "check-types": "tsc --noEmit"
   },
+  "dependencies": {
+    "drizzle-orm": "^1.0.0-beta.22",
+    "h3-js": "^4.4.0",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
+  },
   "devDependencies": {
+    "@kws/logger": "*",
+    "@kws/schema": "*",
     "@kws/typescript": "*",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "^1.0.0-beta.22"
   },
   "peerDependencies": {
     "typescript": "^6"

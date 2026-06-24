@@ -1,18 +1,28 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { seo } from '@/lib/tools';
+import { useSeo } from '@/lib/tools';
 
 export const Route = createFileRoute('/policies/dmca')({
-  head: () => ({
-    meta: [
-      ...seo({
-        title: 'DMCA Policy',
-        description:
-          'Discover all of the latest market updates and the best places to eat in Seattle.',
-        keywords: ['dmca', 'policy', 'dmca policy', 'Seattle', 'Broker', 'Real Estate'].join(', '),
-      }),
-    ],
-  }),
+  loader: async ({ context }) => {
+    return {
+      siteConfig: context.siteConfig,
+    };
+  },
+  head: ({ loaderData }) => {
+    const { seo } = useSeo(loaderData!.siteConfig);
+    return {
+      meta: [
+        ...seo({
+          title: 'DMCA Policy',
+          description:
+            'Discover all of the latest market updates and the best places to eat in Seattle.',
+          keywords: ['dmca', 'policy', 'dmca policy', 'Seattle', 'Broker', 'Real Estate'].join(
+            ', ',
+          ),
+        }),
+      ],
+    };
+  },
   component: RouteComponent,
 });
 

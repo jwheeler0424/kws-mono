@@ -1,7 +1,6 @@
 // src/routes/__root.tsx
 /// <reference types="vite/client" />
 import { cn } from '@kws/design/lib/utils/clsx-merge';
-import { ScrollArea } from '@kws/design/ui/scroll-area';
 import { charsetMeta, defineSiteConfig, iconLinks, seo, viewportMeta } from '@kws/seo';
 import {
   HeadContent,
@@ -11,6 +10,7 @@ import {
 } from '@tanstack/react-router';
 import * as React from 'react';
 
+import { ScrollArea } from '@/components/global/scroll-area';
 import { FrontendFooter } from '@/components/layout/footer';
 import { FrontendHeader } from '@/components/layout/header';
 import ApplicationProvider from '@/providers/application.provider';
@@ -96,7 +96,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <ScrollArea
               key={location.pathname}
               data-parallax-scroller
-              className={cn('min-h-0 w-full grow', isTransparent && 'frontend-home-scroller')}>
+              className={cn('grow w-full min-h-0', isTransparent && 'frontend-home-scroller')}>
               <div className={cn('flex min-h-full w-full flex-col gap-16')}>
                 <section className={cn('flex w-full grow flex-col')}>{children}</section>
                 <FrontendFooter />
