@@ -1,0 +1,114 @@
+name: ${COMPOSE_PROJECT_NAME:-kw-seattle}
+
+services:
+  # ── Database ──────────────────────────────────────────────────────────────
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: db
+    image: ${DB_IMAGE:-dbpg:18.3}
+    command:
+      - postgres
+      - -c
+      - wal_level=${PG_WAL_LEVEL:-logical}
+      - -c
+      - max_replication_slots=${PG_MAX_REPLICATION_SLOTS:-10}
+      - -c
+      - max_wal_senders=${PG_MAX_WAL_SENDERS:-10}
+    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-db
+    restart: unless-stopped
+    mem_limit: ${DB_MEMORY_LIMIT:-1g}
+    environment:
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-postgres}
+    volumes:
+      - pgdata_dev:/var/lib/postgresql
+      - ./docker/database:/docker-entrypoint-initdb.d
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: ${REDIS_IMAGE:-redis:alpine}
+    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-redis
+    restart: unless-stopped
+    mem_limit: ${REDIS_MEMORY_LIMIT:-256m}
+    command: ['redis-server', '--appendonly', '${REDIS_APPENDONLY:-yes}']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redisdata_dev:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # ── Queue executor ────────────────────────────────────────────────────────
+  worker-executor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    restart: unless-stopped
+    mem_limit: ${WORKER_EXECUTOR_MEMORY_LIMIT:-768m}
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: '${DB_PORT:-5432}'
+      DB_NAME: ${DB_NAME:-postgres}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: '${REDIS_PORT:-6379}'
+      REDIS_URL: redis://redis:${REDIS_PORT:-6379}
+      # Run migrations once here before the worker starts.
+      # Uses bunx directly to avoid package.json script-lookup failures
+      # that occur when the image's package.json is older than the bind mount.
+      DB_INIT_COMMAND: 'bunx drizzle-kit migrate --config /app/drizzle.config.ts'
+    volumes:
+      - ./public/media:/app/public/media
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ['bun', '--bun', './src/lib/queue/workers/executor.init.ts']
+
+  # ── Queue scheduler ───────────────────────────────────────────────────────
+  worker-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    restart: unless-stopped
+    mem_limit: ${WORKER_SCHEDULER_MEMORY_LIMIT:-256m}
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: '${DB_PORT:-5432}'
+      DB_NAME: ${DB_NAME:-postgres}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: '${REDIS_PORT:-6379}'
+      REDIS_URL: redis://redis:${REDIS_PORT:-6379}
+      MLS_QUEUE_ENABLE_HOURLY_SYNC: '${MLS_QUEUE_ENABLE_HOURLY_SYNC:-true}'
+    depends_on:
+      db:
+        condition: service_healthy
+      worker-executor:
+        condition: service_started
+    command: ['bun', '--bun', './src/lib/queue/workers/scheduler.init.ts']
+
+volumes:
+  pgdata_dev:
+  redisdata_dev:
+  node_modules:

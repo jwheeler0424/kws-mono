@@ -1,0 +1,244 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.prod.yml  —  PRODUCTION environment  (Docker Swarm)
+#
+# Prerequisites:
+#   docker swarm init
+#   printf "myuser"     | docker secret create postgres_user     -
+#   printf "mypassword" | docker secret create postgres_password -
+#
+# Deploy:
+#   docker stack deploy -c docker-compose.prod.yml kw-seattle
+#
+# Update (rolling, zero-downtime):
+#   docker service update --image kw-seattle/app:latest kw-seattle_app
+# ─────────────────────────────────────────────────────────────────────────────
+name: ${COMPOSE_PROJECT_NAME:-kw-seattle}
+
+services:
+  # ── Database ──────────────────────────────────────────────────────────────
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: db
+    image: ${DB_IMAGE:-dbpg:18.3}
+    command:
+      - postgres
+      - -c
+      - wal_level=${PG_WAL_LEVEL:-logical}
+      - -c
+      - max_replication_slots=${PG_MAX_REPLICATION_SLOTS:-10}
+      - -c
+      - max_wal_senders=${PG_MAX_WAL_SENDERS:-10}
+    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-db
+    restart: unless-stopped
+    environment:
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-postgres}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql
+      - ./docker/database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: ${REDIS_IMAGE:-redis:alpine}
+    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', '${REDIS_APPENDONLY:-yes}']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redisdata_prod:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # ── Application ───────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    image: ${APP_IMAGE:-kw-seattle/app:latest}
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      HOST: ${APP_HOST:-0.0.0.0}
+      PORT: '${APP_PORT:-3443}'
+      DB_HOST: db
+      DB_PORT: '5432'
+      DB_NAME: ${DB_NAME:-kw-seattle}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      REDIS_URL: redis://redis:6379
+      PG_SSL_REQUIRE: '${PG_SSL_REQUIRE:-false}'
+      PG_MAX_CLIENTS: '${PG_MAX_CLIENTS:-20}'
+      DB_INIT_COMMAND: ${DB_INIT_COMMAND:-bun run db:migrate}
+    volumes:
+      - /srv/kw-seattle/public-media:/app/public/media
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: ${APP_REPLICAS:-2}
+      update_config:
+        parallelism: 1
+        delay: ${APP_UPDATE_DELAY:-10s}
+        order: start-first
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: ${APP_MEMORY_LIMIT:-512m}
+
+  # ── Queue executor ────────────────────────────────────────────────────────
+  worker-executor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    image: ${APP_IMAGE:-kw-seattle/app:latest}
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: db
+      DB_PORT: '5432'
+      DB_NAME: ${DB_NAME:-kw-seattle}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      REDIS_URL: redis://redis:6379
+      PG_SSL_REQUIRE: '${PG_SSL_REQUIRE:-false}'
+      PG_MAX_CLIENTS: '${PG_MAX_CLIENTS:-20}'
+    volumes:
+      - /srv/kw-seattle/public-media:/app/public/media
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      ['sh', '-lc', '${WORKER_EXECUTOR_COMMAND:-bun run db:migrate && bun run worker:executor}']
+    deploy:
+      replicas: ${WORKER_EXECUTOR_REPLICAS:-1}
+      update_config:
+        parallelism: 1
+        delay: ${WORKER_EXECUTOR_UPDATE_DELAY:-10s}
+        order: start-first
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: ${WORKER_EXECUTOR_MEMORY_LIMIT:-768m}
+
+  # ── Queue scheduler ───────────────────────────────────────────────────────
+  worker-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    image: ${APP_IMAGE:-kw-seattle/app:latest}
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: db
+      DB_PORT: '5432'
+      DB_NAME: ${DB_NAME:-kw-seattle}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      REDIS_URL: redis://redis:6379
+      MLS_QUEUE_ENABLE_HOURLY_SYNC: '${MLS_QUEUE_ENABLE_HOURLY_SYNC:-true}'
+      PG_SSL_REQUIRE: '${PG_SSL_REQUIRE:-false}'
+      PG_MAX_CLIENTS: '${PG_MAX_CLIENTS:-20}'
+    secrets:
+      - postgres_user
+      - postgres_password
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      worker-executor:
+        condition: service_started
+    command: ['sh', '-lc', '${WORKER_SCHEDULER_COMMAND:-bun run worker:scheduler}']
+    deploy:
+      replicas: ${WORKER_SCHEDULER_REPLICAS:-1}
+      update_config:
+        parallelism: 1
+        delay: ${WORKER_SCHEDULER_UPDATE_DELAY:-10s}
+        order: start-first
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: ${WORKER_SCHEDULER_MEMORY_LIMIT:-256m}
+
+  # ── Reverse proxy (Nginx) ────────────────────────────────────────────────
+  nginx:
+    image: ${NGINX_IMAGE:-nginx:1.27-alpine}
+    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-nginx
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+    volumes:
+      - ./docker/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./docker/nginx-entrypoint.sh:/usr/local/bin/nginx-entrypoint.sh:ro
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    depends_on:
+      app:
+        condition: service_started
+    command: ['sh', '/usr/local/bin/nginx-entrypoint.sh']
+
+  # ── SSL certificate manager (Certbot) ────────────────────────────────────
+  certbot:
+    image: ${CERTBOT_IMAGE:-certbot/certbot:v2.11.0}
+    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-certbot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
+      CERTBOT_EMAIL: ${CERTBOT_EMAIL:-admin@kyleweberseattle.com}
+    volumes:
+      - ./docker/certbot-init.sh:/usr/local/bin/certbot-init.sh:ro
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    depends_on:
+      nginx:
+        condition: service_started
+    command: ['sh', '/usr/local/bin/certbot-init.sh']
+
+volumes:
+  pgdata_prod:
+  redisdata_prod:
+  certbot_certs:
+  certbot_www:
+
+secrets:
+  postgres_user:
+    external: true
+  postgres_password:
+    external: true
