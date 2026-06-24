@@ -8,7 +8,8 @@ import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit';
 import { StarHalfIcon, StarIcon } from 'lucide-react';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import { InputHidden } from './input-hidden';
 
@@ -50,7 +51,11 @@ function getDirectionAwareKey(key: string, dir?: Direction) {
   return key === 'ArrowLeft' ? 'ArrowRight' : key === 'ArrowRight' ? 'ArrowLeft' : key;
 }
 
-function getFocusIntent(event: React.KeyboardEvent<ItemElement>, dir?: Direction, orientation?: Orientation) {
+function getFocusIntent(
+  event: React.KeyboardEvent<ItemElement>,
+  dir?: Direction,
+  orientation?: Orientation,
+) {
   const key = getDirectionAwareKey(event.key, dir);
   if (orientation === 'horizontal' && ['ArrowUp', 'ArrowDown'].includes(key)) return undefined;
   if (orientation === 'vertical' && ['ArrowLeft', 'ArrowRight'].includes(key)) return undefined;
@@ -367,7 +372,9 @@ function Rating(props: RatingProps) {
               : items.find((item) => item.value === value);
           const currentItem = items.find((item) => item.id === tabStopId);
 
-          const candidateItems = [selectedItem, currentItem, ...items].filter(Boolean) as Array<ItemData>;
+          const candidateItems = [selectedItem, currentItem, ...items].filter(
+            Boolean,
+          ) as Array<ItemData>;
           const candidateRefs = candidateItems.map((item) => item.ref);
           focusFirst(candidateRefs, false);
         }
@@ -402,7 +409,19 @@ function Rating(props: RatingProps) {
       clearable,
       getAutoIndex,
     }),
-    [rootId, dir, orientation, activationMode, disabled, readOnly, size, max, step, clearable, getAutoIndex],
+    [
+      rootId,
+      dir,
+      orientation,
+      activationMode,
+      disabled,
+      readOnly,
+      size,
+      max,
+      step,
+      clearable,
+      getAutoIndex,
+    ],
   );
 
   const focusContextValue = React.useMemo<FocusContextValue>(
@@ -536,7 +555,8 @@ function RatingItem(props: RatingItemProps) {
 
   const displayValue = hoveredValue ?? value;
   const isFilled = displayValue >= itemValue;
-  const isPartiallyFilled = step < 1 && displayValue >= itemValue - step && displayValue < itemValue;
+  const isPartiallyFilled =
+    step < 1 && displayValue >= itemValue - step && displayValue < itemValue;
   const isHovered = hoveredValue !== null && hoveredValue < itemValue;
 
   const isMouseClickRef = React.useRef(false);
@@ -639,7 +659,19 @@ function RatingItem(props: RatingItemProps) {
 
       isMouseClickRef.current = false;
     },
-    [focusContext, itemId, activationMode, isDisabled, isReadOnly, clearable, value, itemValue, step, store, propsRef],
+    [
+      focusContext,
+      itemId,
+      activationMode,
+      isDisabled,
+      isReadOnly,
+      clearable,
+      value,
+      itemValue,
+      step,
+      store,
+      propsRef,
+    ],
   );
 
   const onKeyDown = React.useCallback(
@@ -699,7 +731,9 @@ function RatingItem(props: RatingItemProps) {
           candidateRefs.reverse();
         } else if (focusIntent === 'prev' || focusIntent === 'next') {
           if (focusIntent === 'prev') candidateRefs.reverse();
-          const currentIndex = candidateRefs.findIndex((prevItemRef) => prevItemRef.current === event.currentTarget);
+          const currentIndex = candidateRefs.findIndex(
+            (prevItemRef) => prevItemRef.current === event.currentTarget,
+          );
           candidateRefs = candidateRefs.slice(currentIndex + 1);
         }
 
@@ -806,7 +840,8 @@ function RatingItem(props: RatingItemProps) {
 
   const defaultIcon = dataState === 'partial' && step < 1 ? <StarHalfIcon /> : <StarIcon />;
 
-  const itemChildren = typeof children === 'function' ? children(dataState) : (children ?? defaultIcon);
+  const itemChildren =
+    typeof children === 'function' ? children(dataState) : (children ?? defaultIcon);
 
   const item = useRender({
     defaultTagName: 'button',
@@ -853,9 +888,8 @@ function RatingItem(props: RatingItemProps) {
 }
 
 export {
-    Rating,
-    RatingItem,
-    //
-    useStore as useRating
+  Rating,
+  RatingItem,
+  //
+  useStore as useRating,
 };
-

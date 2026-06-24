@@ -4,7 +4,8 @@ import type * as React from 'react';
 import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import { cva } from 'class-variance-authority';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 interface DivProps extends React.ComponentProps<'div'> {}
 
@@ -13,10 +14,12 @@ const statusVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-border/70 text-muted-foreground **:data-[slot=status-indicator]:bg-muted-foreground',
+        default:
+          'border-border/70 text-muted-foreground **:data-[slot=status-indicator]:bg-muted-foreground',
         success:
           'border-green-500/40 text-green-600 **:data-[slot=status-indicator]:bg-green-600 dark:text-green-400 **:data-[slot=status-indicator]:dark:bg-green-400',
-        error: 'border-destructive/40 text-destructive **:data-[slot=status-indicator]:bg-destructive',
+        error:
+          'border-destructive/40 text-destructive **:data-[slot=status-indicator]:bg-destructive',
         warning:
           'border-orange-500/40 text-orange-600 **:data-[slot=status-indicator]:bg-orange-600 dark:text-orange-400 **:data-[slot=status-indicator]:dark:bg-orange-400',
         info: 'border-blue-500/40 text-blue-600 **:data-[slot=status-indicator]:bg-blue-600 dark:text-blue-400 **:data-[slot=status-indicator]:dark:bg-blue-400',
@@ -28,7 +31,8 @@ const statusVariants = cva(
   },
 );
 
-interface StatusProps extends VariantProps<typeof statusVariants>, useRender.ComponentProps<'div'> {}
+interface StatusProps
+  extends VariantProps<typeof statusVariants>, useRender.ComponentProps<'div'> {}
 
 function Status(props: StatusProps) {
   const { className, variant = 'default', render, ...rootProps } = props;
@@ -73,10 +77,9 @@ function StatusLabel(props: DivProps) {
 }
 
 export {
-    Status,
-    StatusIndicator,
-    StatusLabel,
-    //
-    statusVariants
+  Status,
+  StatusIndicator,
+  StatusLabel,
+  //
+  statusVariants,
 };
-

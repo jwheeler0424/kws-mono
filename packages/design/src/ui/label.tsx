@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 type LabelProps = React.ComponentProps<'label'>;
 
@@ -19,4 +20,3 @@ function Label({ className, htmlFor, ...props }: LabelProps) {
 }
 
 export { Label };
-

@@ -3,7 +3,8 @@ import type { VariantProps } from 'class-variance-authority';
 
 import { cva } from 'class-variance-authority';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import type { InputDebouncedProps } from './input-debounced';
 import type { TextareaDebouncedProps } from './textarea-debounced';
@@ -36,7 +37,8 @@ const inputGroupAddonVariants = cva(
         'inline-end': 'pr-2 has-[>button]:mr-[-0.25rem] has-[>kbd]:mr-[-0.15rem] order-last',
         'block-start':
           'px-2.5 pt-2 group-has-[>input]/input-group:pt-2 [.border-b]:pb-2 order-first w-full justify-start',
-        'block-end': 'px-2.5 pb-2 group-has-[>input]/input-group:pb-2 [.border-t]:pt-2 order-last w-full justify-start',
+        'block-end':
+          'px-2.5 pb-2 group-has-[>input]/input-group:pb-2 [.border-t]:pt-2 order-last w-full justify-start',
       },
     },
     defaultVariants: {
@@ -168,13 +170,12 @@ function InputGroupTextareaDebounced({ className, ...props }: TextareaDebouncedP
 }
 
 export {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupButton,
-    InputGroupInput,
-    InputGroupInputDebounced,
-    InputGroupText,
-    InputGroupTextarea,
-    InputGroupTextareaDebounced
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupInputDebounced,
+  InputGroupText,
+  InputGroupTextarea,
+  InputGroupTextareaDebounced,
 };
-

@@ -1,0 +1,22 @@
+{
+  "name": "@kws/seo",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./structured-data/*": "./src/structured-data/*.ts",
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@date-fns/tz": "date-fns/tz",
+    "date-fns": "^4.4.0"
+  },
+  "devDependencies": {
+    "@kws/typescript": "*",
+    "@types/node": "^26.0.0",
+    "typescript": "^6.0.3"
+  }
+}

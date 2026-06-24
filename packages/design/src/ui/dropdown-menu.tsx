@@ -3,7 +3,8 @@
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import { CheckIcon, ChevronRightIcon } from 'lucide-react';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
   return <MenuPrimitive.Root data-slot='dropdown-menu' {...props} />;
@@ -24,7 +25,8 @@ function DropdownMenuContent({
   sideOffset = 4,
   className,
   ...props
-}: MenuPrimitive.Popup.Props & Pick<MenuPrimitive.Positioner.Props, 'align' | 'alignOffset' | 'side' | 'sideOffset'>) {
+}: MenuPrimitive.Popup.Props &
+  Pick<MenuPrimitive.Positioner.Props, 'align' | 'alignOffset' | 'side' | 'sideOffset'>) {
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
@@ -61,7 +63,10 @@ function DropdownMenuLabel({
     <MenuPrimitive.GroupLabel
       data-slot='dropdown-menu-label'
       data-inset={inset}
-      className={cn('px-1.5 py-1 text-xs font-medium text-muted-foreground data-inset:pl-7', className)}
+      className={cn(
+        'px-1.5 py-1 text-xs font-medium text-muted-foreground data-inset:pl-7',
+        className,
+      )}
       {...props}
     />
   );
@@ -229,20 +234,19 @@ function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<'spa
 }
 
 export {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuPortal,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
-    DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 };
-

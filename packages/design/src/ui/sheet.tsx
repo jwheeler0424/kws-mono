@@ -3,7 +3,8 @@
 import { Dialog as SheetPrimitive } from '@base-ui/react/dialog';
 import { XIcon } from 'lucide-react';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import { Button } from './button';
 
@@ -72,11 +73,23 @@ function SheetContent({
 }
 
 function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot='sheet-header' className={cn('flex flex-col gap-0.5 p-4', className)} {...props} />;
+  return (
+    <div
+      data-slot='sheet-header'
+      className={cn('flex flex-col gap-0.5 p-4', className)}
+      {...props}
+    />
+  );
 }
 
 function SheetFooter({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot='sheet-footer' className={cn('mt-auto flex flex-col gap-2 p-4', className)} {...props} />;
+  return (
+    <div
+      data-slot='sheet-footer'
+      className={cn('mt-auto flex flex-col gap-2 p-4', className)}
+      {...props}
+    />
+  );
 }
 
 function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
@@ -99,5 +112,13 @@ function SheetDescription({ className, ...props }: SheetPrimitive.Description.Pr
   );
 }
 
-export { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger };
-
+export {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+};

@@ -14,8 +14,8 @@
   "rtl": false,
   "aliases": {
     "components": "@/components",
-    "utils": "@kws/design/lib/utils",
-    "ui": "@kws/design/ui",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

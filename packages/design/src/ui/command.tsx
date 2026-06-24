@@ -3,7 +3,8 @@
 import { Command as CommandPrimitive } from 'cmdk';
 import { CheckIcon, SearchIcon } from 'lucide-react';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import type { InputDebouncedProps } from './input-debounced';
 
@@ -52,13 +53,19 @@ function CommandDialog({
   );
 }
 
-function CommandInput({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Input>) {
+function CommandInput({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
     <div data-slot='command-input-wrapper' className='p-1 pb-0'>
       <InputGroup className='h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:ps-2!'>
         <CommandPrimitive.Input
           data-slot='command-input'
-          className={cn('w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50', className)}
+          className={cn(
+            'w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+            className,
+          )}
           {...props}
         />
         <InputGroupAddon>
@@ -75,7 +82,10 @@ function CommandInputDebounced({ className, ...props }: InputDebouncedProps) {
       <InputGroup className='h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:ps-2!'>
         <InputGroupInputDebounced
           data-slot='command-input'
-          className={cn('w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50', className)}
+          className={cn(
+            'w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+            className,
+          )}
           {...props}
         />
         <InputGroupAddon>
@@ -90,13 +100,19 @@ function CommandList({ className, ...props }: React.ComponentProps<typeof Comman
   return (
     <CommandPrimitive.List
       data-slot='command-list'
-      className={cn('no-scrollbar max-h-74 scroll-py-1 overflow-x-hidden overflow-y-auto outline-none', className)}
+      className={cn(
+        'no-scrollbar max-h-74 scroll-py-1 overflow-x-hidden overflow-y-auto outline-none',
+        className,
+      )}
       {...props}
     />
   );
 }
 
-function CommandEmpty({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
+function CommandEmpty({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Empty>) {
   return (
     <CommandPrimitive.Empty
       data-slot='command-empty'
@@ -106,7 +122,10 @@ function CommandEmpty({ className, ...props }: React.ComponentProps<typeof Comma
   );
 }
 
-function CommandGroup({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {
+function CommandGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Group>) {
   return (
     <CommandPrimitive.Group
       data-slot='command-group'
@@ -119,7 +138,10 @@ function CommandGroup({ className, ...props }: React.ComponentProps<typeof Comma
   );
 }
 
-function CommandSeparator({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Separator>) {
+function CommandSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
   return (
     <CommandPrimitive.Separator
       data-slot='command-separator'
@@ -129,7 +151,11 @@ function CommandSeparator({ className, ...props }: React.ComponentProps<typeof C
   );
 }
 
-function CommandItem({ className, children, ...props }: React.ComponentProps<typeof CommandPrimitive.Item>) {
+function CommandItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Item>) {
   return (
     <CommandPrimitive.Item
       data-slot='command-item'
@@ -158,15 +184,14 @@ function CommandShortcut({ className, ...props }: React.ComponentProps<'span'>) 
 }
 
 export {
-    Command,
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandInputDebounced,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
-    CommandShortcut
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandInputDebounced,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
 };
-

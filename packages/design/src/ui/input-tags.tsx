@@ -4,7 +4,8 @@ import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import { useMergedRefs } from '@base-ui/utils/useMergedRefs';
 import { X } from 'lucide-react';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import type { InputDebouncedProps } from './input-debounced';
 import type { TextareaDebouncedProps } from './textarea-debounced';
@@ -13,10 +14,10 @@ import { Button } from './button';
 import { Input } from './input';
 import { InputDebounced } from './input-debounced';
 import {
-    InputGroupInput,
-    InputGroupInputDebounced,
-    InputGroupTextarea,
-    InputGroupTextareaDebounced,
+  InputGroupInput,
+  InputGroupInputDebounced,
+  InputGroupTextarea,
+  InputGroupTextareaDebounced,
 } from './input-group';
 import { InputHidden } from './input-hidden';
 import { Label } from './label';
@@ -107,7 +108,10 @@ function composeEventHandlers<E>(
 function compareNodePosition(a: Node, b: Node) {
   const position = a.compareDocumentPosition(b);
 
-  if (position & Node.DOCUMENT_POSITION_FOLLOWING || position & Node.DOCUMENT_POSITION_CONTAINED_BY) {
+  if (
+    position & Node.DOCUMENT_POSITION_FOLLOWING ||
+    position & Node.DOCUMENT_POSITION_CONTAINED_BY
+  ) {
     return -1;
   }
 
@@ -166,7 +170,9 @@ function useControllableState<T>({ prop, defaultProp, onChange }: UseControllabl
     (nextValue: React.SetStateAction<T | undefined>) => {
       if (isControlled) {
         const resolvedValue =
-          typeof nextValue === 'function' ? (nextValue as (value: T | undefined) => T | undefined)(prop) : nextValue;
+          typeof nextValue === 'function'
+            ? (nextValue as (value: T | undefined) => T | undefined)(prop)
+            : nextValue;
 
         if (resolvedValue !== undefined && resolvedValue !== prop) {
           onChange?.(resolvedValue);
@@ -262,7 +268,9 @@ function InputTags({ className, ...props }: InputTagsProps) {
   const valuesId = `${id}-values`;
   const resolvedDirection = useDirection() || dirProp || 'ltr';
   const { getEnabledItems } = useItemCollection(collectionRef);
-  const isFormControl = collectionRef.current ? Boolean(collectionRef.current.closest('form')) : true;
+  const isFormControl = collectionRef.current
+    ? Boolean(collectionRef.current.closest('form'))
+    : true;
 
   const onItemAdd = React.useCallback(
     (textValue: string, options?: { viaPaste?: boolean }) => {
@@ -392,7 +400,10 @@ function InputTags({ className, ...props }: InputTagsProps) {
         return;
       }
 
-      function findNextEnabledIndex(currentIndex: number | null, direction: 'next' | 'prev'): number | null {
+      function findNextEnabledIndex(
+        currentIndex: number | null,
+        direction: 'next' | 'prev',
+      ): number | null {
         const enabledItems = getEnabledItems();
         const enabledIndices = enabledItems
           .map((item) => {
@@ -433,7 +444,8 @@ function InputTags({ className, ...props }: InputTagsProps) {
           if (highlightedIndex !== null) {
             const nextIndex = findNextEnabledIndex(highlightedIndex, 'next');
             const prevIndex = findNextEnabledIndex(highlightedIndex, 'prev');
-            const newIndex = event.key === 'Delete' ? (nextIndex ?? prevIndex) : (prevIndex ?? nextIndex);
+            const newIndex =
+              event.key === 'Delete' ? (nextIndex ?? prevIndex) : (prevIndex ?? nextIndex);
 
             onItemRemove(highlightedIndex);
             setHighlightedIndex(newIndex);
@@ -455,10 +467,20 @@ function InputTags({ className, ...props }: InputTagsProps) {
 
         case 'ArrowLeft':
         case 'ArrowRight': {
-          if (target.selectionStart === 0 && isArrowLeft && highlightedIndex === null && value.length > 0) {
+          if (
+            target.selectionStart === 0 &&
+            isArrowLeft &&
+            highlightedIndex === null &&
+            value.length > 0
+          ) {
             setHighlightedIndex(findNextEnabledIndex(null, 'prev'));
             event.preventDefault();
-          } else if (target.selectionStart === 0 && isArrowRight && highlightedIndex === null && value.length > 0) {
+          } else if (
+            target.selectionStart === 0 &&
+            isArrowRight &&
+            highlightedIndex === null &&
+            value.length > 0
+          ) {
             setHighlightedIndex(findNextEnabledIndex(null, 'next'));
             event.preventDefault();
           } else if (highlightedIndex !== null) {
@@ -594,7 +616,10 @@ function InputTags({ className, ...props }: InputTagsProps) {
           }
         })}
         onBlur={composeEventHandlers(onBlur, (event) => {
-          if (event.relatedTarget !== inputRef.current && !collectionRef.current?.contains(event.relatedTarget)) {
+          if (
+            event.relatedTarget !== inputRef.current &&
+            !collectionRef.current?.contains(event.relatedTarget)
+          ) {
             requestAnimationFrame(() => setHighlightedIndex(null));
           }
         })}>
@@ -706,7 +731,10 @@ function InputTagsTextareaDebounced({ className, ...props }: Omit<TextareaDeboun
   return <TextareaDebounced {...(textareaProps as TextareaDebouncedProps)} />;
 }
 
-function InputTagsInputGroupInput({ className, ...props }: Omit<React.ComponentProps<typeof InputGroupInput>, 'ref'>) {
+function InputTagsInputGroupInput({
+  className,
+  ...props
+}: Omit<React.ComponentProps<typeof InputGroupInput>, 'ref'>) {
   const inputProps = useInputTagsInputProps({
     ...props,
     'data-slot': 'input-tags-input-group-input',
@@ -716,7 +744,10 @@ function InputTagsInputGroupInput({ className, ...props }: Omit<React.ComponentP
   return <InputGroupInput {...(inputProps as React.ComponentProps<'input'>)} />;
 }
 
-function InputTagsInputGroupInputDebounced({ className, ...props }: Omit<InputDebouncedProps, 'ref'>) {
+function InputTagsInputGroupInputDebounced({
+  className,
+  ...props
+}: Omit<InputDebouncedProps, 'ref'>) {
   const inputProps = useInputTagsInputProps(
     {
       ...props,
@@ -727,7 +758,11 @@ function InputTagsInputGroupInputDebounced({ className, ...props }: Omit<InputDe
     { detectDelimiter: false },
   );
 
-  return <InputGroupInputDebounced {...(inputProps as React.ComponentProps<typeof InputGroupInputDebounced>)} />;
+  return (
+    <InputGroupInputDebounced
+      {...(inputProps as React.ComponentProps<typeof InputGroupInputDebounced>)}
+    />
+  );
 }
 
 function InputTagsInputGroupTextarea({
@@ -744,10 +779,15 @@ function InputTagsInputGroupTextarea({
     { detectDelimiter: false, addOnEnter: false, addOnTab: false },
   );
 
-  return <InputGroupTextarea {...(textareaProps as React.ComponentProps<typeof InputGroupTextarea>)} />;
+  return (
+    <InputGroupTextarea {...(textareaProps as React.ComponentProps<typeof InputGroupTextarea>)} />
+  );
 }
 
-function InputTagsInputGroupTextareaDebounced({ className, ...props }: Omit<TextareaDebouncedProps, 'ref'>) {
+function InputTagsInputGroupTextareaDebounced({
+  className,
+  ...props
+}: Omit<TextareaDebouncedProps, 'ref'>) {
   const textareaProps = useInputTagsTextareaProps(
     {
       ...props,
@@ -759,7 +799,9 @@ function InputTagsInputGroupTextareaDebounced({ className, ...props }: Omit<Text
   );
 
   return (
-    <InputGroupTextareaDebounced {...(textareaProps as React.ComponentProps<typeof InputGroupTextareaDebounced>)} />
+    <InputGroupTextareaDebounced
+      {...(textareaProps as React.ComponentProps<typeof InputGroupTextareaDebounced>)}
+    />
   );
 }
 
@@ -1051,7 +1093,10 @@ function handleInputTagsBlur(
   }
 }
 
-function handleInputTagsDelimiterChange(target: InputTagsControlElement, context: InputTagsContextValue) {
+function handleInputTagsDelimiterChange(
+  target: InputTagsControlElement,
+  context: InputTagsContextValue,
+) {
   const delimiter = context.delimiter;
 
   if (delimiter === target.value.slice(-1)) {
@@ -1064,7 +1109,10 @@ function handleInputTagsDelimiterChange(target: InputTagsControlElement, context
   }
 }
 
-function handleInputTagsPaste(event: React.ClipboardEvent<InputTagsControlElement>, context: InputTagsContextValue) {
+function handleInputTagsPaste(
+  event: React.ClipboardEvent<InputTagsControlElement>,
+  context: InputTagsContextValue,
+) {
   event.preventDefault();
   const value = event.clipboardData.getData('text');
   context.onItemAdd(value, { viaPaste: true });
@@ -1266,19 +1314,18 @@ function useInputTagsTextareaProps(
 }
 
 export {
-    InputTags,
-    InputTagsClear,
-    InputTagsInput,
-    InputTagsInputDebounced,
-    InputTagsInputGroupInput,
-    InputTagsInputGroupInputDebounced,
-    InputTagsInputGroupTextarea,
-    InputTagsInputGroupTextareaDebounced,
-    InputTagsItem,
-    InputTagsLabel,
-    InputTagsList,
-    InputTagsTextarea,
-    InputTagsTextareaDebounced,
-    InputTagsValues
+  InputTags,
+  InputTagsClear,
+  InputTagsInput,
+  InputTagsInputDebounced,
+  InputTagsInputGroupInput,
+  InputTagsInputGroupInputDebounced,
+  InputTagsInputGroupTextarea,
+  InputTagsInputGroupTextareaDebounced,
+  InputTagsItem,
+  InputTagsLabel,
+  InputTagsList,
+  InputTagsTextarea,
+  InputTagsTextareaDebounced,
+  InputTagsValues,
 };
-

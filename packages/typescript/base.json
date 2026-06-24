@@ -6,6 +6,7 @@
     "esModuleInterop": true,
     "incremental": false,
     "isolatedModules": true,
+    "types": ["bun"],
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "target": "ES2022",

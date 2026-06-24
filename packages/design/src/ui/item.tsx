@@ -4,7 +4,8 @@ import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import { cva } from 'class-variance-authority';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import { Separator } from './separator';
 
@@ -22,7 +23,14 @@ function ItemGroup({ className, ...props }: React.ComponentProps<'ul'>) {
 }
 
 function ItemSeparator({ className, ...props }: React.ComponentProps<typeof Separator>) {
-  return <Separator data-slot='item-separator' orientation='horizontal' className={cn('my-2', className)} {...props} />;
+  return (
+    <Separator
+      data-slot='item-separator'
+      orientation='horizontal'
+      className={cn('my-2', className)}
+      {...props}
+    />
+  );
 }
 
 const itemVariants = cva(
@@ -145,7 +153,9 @@ function ItemDescription({ className, ...props }: React.ComponentProps<'p'>) {
 }
 
 function ItemActions({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot='item-actions' className={cn('flex items-center gap-2', className)} {...props} />;
+  return (
+    <div data-slot='item-actions' className={cn('flex items-center gap-2', className)} {...props} />
+  );
 }
 
 function ItemHeader({ className, ...props }: React.ComponentProps<'div'>) {
@@ -169,15 +179,14 @@ function ItemFooter({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 export {
-    Item,
-    ItemActions,
-    ItemContent,
-    ItemDescription,
-    ItemFooter,
-    ItemGroup,
-    ItemHeader,
-    ItemMedia,
-    ItemSeparator,
-    ItemTitle
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemFooter,
+  ItemGroup,
+  ItemHeader,
+  ItemMedia,
+  ItemSeparator,
+  ItemTitle,
 };
-

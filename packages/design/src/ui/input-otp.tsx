@@ -2,7 +2,8 @@
 
 import { OTPInput, OTPInputContext } from 'input-otp';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 function InputOTP({
   className,
@@ -14,7 +15,10 @@ function InputOTP({
   return (
     <OTPInput
       data-slot='input-otp'
-      containerClassName={cn('cn-input-otp flex items-center has-disabled:opacity-50', containerClassName)}
+      containerClassName={cn(
+        'cn-input-otp flex items-center has-disabled:opacity-50',
+        containerClassName,
+      )}
       spellCheck={false}
       className={cn('disabled:cursor-not-allowed', className)}
       {...props}
@@ -66,9 +70,12 @@ function InputOTPSlot({
 
 function InputOTPSeparator({ className, ...props }: React.ComponentProps<'hr'>) {
   return (
-    <hr data-slot='input-otp-separator' className={cn('mx-1 h-px w-4 border-0 bg-border', className)} {...props} />
+    <hr
+      data-slot='input-otp-separator'
+      className={cn('mx-1 h-px w-4 border-0 bg-border', className)}
+      {...props}
+    />
   );
 }
 
 export { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot };
-

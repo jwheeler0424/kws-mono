@@ -4,7 +4,8 @@ import type { DateRange, Matcher } from 'react-day-picker';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import { Button } from './button';
 import { Calendar } from './calendar';
@@ -70,7 +71,9 @@ function useControllableState<T>({
   const setValue = React.useCallback(
     (nextValue: React.SetStateAction<T | undefined>) => {
       const resolvedValue =
-        typeof nextValue === 'function' ? (nextValue as (previous: T | undefined) => T | undefined)(value) : nextValue;
+        typeof nextValue === 'function'
+          ? (nextValue as (previous: T | undefined) => T | undefined)(value)
+          : nextValue;
 
       if (!isControlled) {
         setUncontrolled(resolvedValue);
@@ -122,7 +125,12 @@ function hasValue(value: DatePickerValue, mode: 'single' | 'range') {
   return Boolean(range.from || range.to);
 }
 
-function getDisplayText(value: DatePickerValue, mode: 'single' | 'range', placeholder: string, valueAsString?: string) {
+function getDisplayText(
+  value: DatePickerValue,
+  mode: 'single' | 'range',
+  placeholder: string,
+  valueAsString?: string,
+) {
   if (valueAsString !== undefined) {
     return valueAsString || placeholder;
   }
@@ -220,7 +228,9 @@ export function DatePicker({
   });
   const [draftValue, setDraftValue] = React.useState<DatePickerValue>(committedValue);
   const [currentMonth, setCurrentMonth] = React.useState<Date>(
-    () => getAnchorDate(committedValue, mode) ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    () =>
+      getAnchorDate(committedValue, mode) ??
+      new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
   const hiddenInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -233,8 +243,10 @@ export function DatePicker({
     }
   }, [committedValue, isOpen, mode]);
 
-  const effectivePlaceholder = placeholder ?? (mode === 'range' ? 'Pick a date range' : 'Pick a date');
-  const headerFallbackDate = getAnchorDate(draftValue, mode) ?? getAnchorDate(committedValue, mode) ?? new Date();
+  const effectivePlaceholder =
+    placeholder ?? (mode === 'range' ? 'Pick a date range' : 'Pick a date');
+  const headerFallbackDate =
+    getAnchorDate(draftValue, mode) ?? getAnchorDate(committedValue, mode) ?? new Date();
   const headerContent = getHeaderContent(draftValue, mode, headerFallbackDate);
 
   const emitChange = React.useCallback(
@@ -304,7 +316,9 @@ export function DatePicker({
             disabled={disabled}
             onBlur={onBlur}
             onFocus={onFocus}>
-            <span className='pt-0.5'>{getDisplayText(committedValue, mode, effectivePlaceholder, valueAsString)}</span>
+            <span className='pt-0.5'>
+              {getDisplayText(committedValue, mode, effectivePlaceholder, valueAsString)}
+            </span>
             <CalendarIcon />
           </Button>
         }

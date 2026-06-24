@@ -5,7 +5,8 @@ import type { UseEmblaCarouselType } from 'embla-carousel-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import { Button } from './button';
 
@@ -133,7 +134,10 @@ function CarouselContent({ className, ...props }: React.ComponentProps<'div'>) {
 
   return (
     <div ref={carouselRef} className='overflow-hidden' data-slot='carousel-content'>
-      <div className={cn('flex', orientation === 'horizontal' ? '-ml-4' : '-mt-4 flex-col', className)} {...props} />
+      <div
+        className={cn('flex', orientation === 'horizontal' ? '-ml-4' : '-mt-4 flex-col', className)}
+        {...props}
+      />
     </div>
   );
 }
@@ -145,7 +149,11 @@ function CarouselItem({ className, ...props }: React.ComponentProps<'fieldset'>)
     <fieldset
       aria-roledescription='slide'
       data-slot='carousel-item'
-      className={cn('min-w-0 shrink-0 grow-0 basis-full', orientation === 'horizontal' ? 'pl-4' : 'pt-4', className)}
+      className={cn(
+        'min-w-0 shrink-0 grow-0 basis-full',
+        orientation === 'horizontal' ? 'pl-4' : 'pt-4',
+        className,
+      )}
       {...props}
     />
   );
@@ -209,5 +217,12 @@ function CarouselNext({
   );
 }
 
-export { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, useCarousel, type CarouselApi };
-
+export {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  useCarousel,
+  type CarouselApi,
+};

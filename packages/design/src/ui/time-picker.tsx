@@ -6,7 +6,8 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { format } from 'date-fns';
 import { CalendarIcon, CheckIcon, Clock3Icon, XIcon } from 'lucide-react';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import { Button } from './button';
 import { Calendar } from './calendar';
@@ -22,29 +23,33 @@ export type TimeValue = {
   second?: number;
 };
 
-const pickerTriggerVariants = cva('justify-between text-left font-normal data-[empty=true]:text-muted-foreground', {
-  variants: {
-    uiVariant: {
-      default: '',
-      scheduler:
-        'h-10 rounded-xl border-border/70 bg-background/80 shadow-xs supports-backdrop-filter:backdrop-blur-xs',
+const pickerTriggerVariants = cva(
+  'justify-between text-left font-normal data-[empty=true]:text-muted-foreground',
+  {
+    variants: {
+      uiVariant: {
+        default: '',
+        scheduler:
+          'h-10 rounded-xl border-border/70 bg-background/80 shadow-xs supports-backdrop-filter:backdrop-blur-xs',
+      },
+      density: {
+        default: '',
+        compact: 'h-8 rounded-lg text-xs',
+      },
     },
-    density: {
-      default: '',
-      compact: 'h-8 rounded-lg text-xs',
+    defaultVariants: {
+      uiVariant: 'scheduler',
+      density: 'default',
     },
   },
-  defaultVariants: {
-    uiVariant: 'scheduler',
-    density: 'default',
-  },
-});
+);
 
 const pickerPanelVariants = cva('p-2', {
   variants: {
     uiVariant: {
       default: '',
-      scheduler: 'rounded-xl bg-background/95 p-2.5 shadow-md supports-backdrop-filter:backdrop-blur-xs',
+      scheduler:
+        'rounded-xl bg-background/95 p-2.5 shadow-md supports-backdrop-filter:backdrop-blur-xs',
     },
     density: {
       default: '',
@@ -135,7 +140,9 @@ function useControllableState<T>({
   const setValue = React.useCallback(
     (nextValue: React.SetStateAction<T | undefined>) => {
       const resolvedValue =
-        typeof nextValue === 'function' ? (nextValue as (previous: T | undefined) => T | undefined)(value) : nextValue;
+        typeof nextValue === 'function'
+          ? (nextValue as (previous: T | undefined) => T | undefined)(value)
+          : nextValue;
 
       if (!isControlled) {
         setUncontrolled(resolvedValue);
@@ -164,7 +171,12 @@ function pad(value: number) {
   return String(value).padStart(2, '0');
 }
 
-function normalizeTimeValue(value: TimeValue, minuteStep: number, secondStep: number, showSeconds: boolean) {
+function normalizeTimeValue(
+  value: TimeValue,
+  minuteStep: number,
+  secondStep: number,
+  showSeconds: boolean,
+) {
   const hour = Math.min(23, Math.max(0, Math.floor(value.hour)));
   const minute = Math.min(59, Math.max(0, Math.floor(value.minute / minuteStep) * minuteStep));
   const second = showSeconds
@@ -194,7 +206,11 @@ function parseNativeTime(rawValue: string, showSeconds: boolean) {
   const minute = Number(minutePart);
   const second = showSeconds ? Number(secondPart ?? 0) : undefined;
 
-  if (!Number.isFinite(hour) || !Number.isFinite(minute) || (showSeconds && !Number.isFinite(second))) {
+  if (
+    !Number.isFinite(hour) ||
+    !Number.isFinite(minute) ||
+    (showSeconds && !Number.isFinite(second))
+  ) {
     return undefined;
   }
 
@@ -232,7 +248,11 @@ function isSameTime(first: TimeValue | undefined, second: TimeValue) {
     return false;
   }
 
-  return first.hour === second.hour && first.minute === second.minute && (first.second ?? 0) === (second.second ?? 0);
+  return (
+    first.hour === second.hour &&
+    first.minute === second.minute &&
+    (first.second ?? 0) === (second.second ?? 0)
+  );
 }
 
 function getTimeSlotOptions(step: number): Array<TimeValue> {
@@ -256,7 +276,11 @@ function buildDisabledMatchers({
   maxDate?: Date;
   disabledDates?: Matcher | Array<Matcher>;
 }) {
-  const disabled = disabledDates ? (Array.isArray(disabledDates) ? [...disabledDates] : [disabledDates]) : [];
+  const disabled = disabledDates
+    ? Array.isArray(disabledDates)
+      ? [...disabledDates]
+      : [disabledDates]
+    : [];
 
   if (minDate) {
     disabled.push({ before: minDate });
@@ -269,7 +293,12 @@ function buildDisabledMatchers({
   return disabled.length > 0 ? disabled : undefined;
 }
 
-function isSlotDisabled(baseDate: Date | undefined, slot: TimeValue, minDate?: Date, maxDate?: Date) {
+function isSlotDisabled(
+  baseDate: Date | undefined,
+  slot: TimeValue,
+  minDate?: Date,
+  maxDate?: Date,
+) {
   if (!baseDate) {
     return false;
   }
@@ -343,7 +372,14 @@ function TimeFields({
     if (hourCycle === 12) {
       const requestedMeridiem = next.meridiem ?? meridiem;
       const hour12 = nextHour % 12 || 12;
-      nextHour = requestedMeridiem === 'PM' ? (hour12 === 12 ? 12 : hour12 + 12) : hour12 === 12 ? 0 : hour12;
+      nextHour =
+        requestedMeridiem === 'PM'
+          ? hour12 === 12
+            ? 12
+            : hour12 + 12
+          : hour12 === 12
+            ? 0
+            : hour12;
     }
 
     onValueChange(
@@ -363,8 +399,12 @@ function TimeFields({
   return (
     <div className='grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2'>
       <div className='space-y-1'>
-        <p className='px-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>Hour</p>
-        <Select value={String(displayHour)} onValueChange={(rawValue) => updateTime({ hour: Number(rawValue) })}>
+        <p className='px-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>
+          Hour
+        </p>
+        <Select
+          value={String(displayHour)}
+          onValueChange={(rawValue) => updateTime({ hour: Number(rawValue) })}>
           <SelectTrigger className='h-9 w-full'>
             <SelectValue />
           </SelectTrigger>
@@ -379,8 +419,12 @@ function TimeFields({
       </div>
 
       <div className='space-y-1'>
-        <p className='px-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>Minute</p>
-        <Select value={String(minuteValue)} onValueChange={(rawValue) => updateTime({ minute: Number(rawValue) })}>
+        <p className='px-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>
+          Minute
+        </p>
+        <Select
+          value={String(minuteValue)}
+          onValueChange={(rawValue) => updateTime({ minute: Number(rawValue) })}>
           <SelectTrigger className='h-9 w-full'>
             <SelectValue />
           </SelectTrigger>
@@ -396,8 +440,12 @@ function TimeFields({
 
       {showSeconds ? (
         <div className='space-y-1'>
-          <p className='px-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>Second</p>
-          <Select value={String(secondValue)} onValueChange={(rawValue) => updateTime({ second: Number(rawValue) })}>
+          <p className='px-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>
+            Second
+          </p>
+          <Select
+            value={String(secondValue)}
+            onValueChange={(rawValue) => updateTime({ second: Number(rawValue) })}>
             <SelectTrigger className='h-9 w-full'>
               <SelectValue />
             </SelectTrigger>
@@ -414,8 +462,12 @@ function TimeFields({
 
       {hourCycle === 12 ? (
         <div className='space-y-1'>
-          <p className='px-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>Period</p>
-          <Select value={meridiem} onValueChange={(rawValue) => updateTime({ meridiem: rawValue as 'AM' | 'PM' })}>
+          <p className='px-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>
+            Period
+          </p>
+          <Select
+            value={meridiem}
+            onValueChange={(rawValue) => updateTime({ meridiem: rawValue as 'AM' | 'PM' })}>
             <SelectTrigger className='h-9 w-full'>
               <SelectValue />
             </SelectTrigger>
@@ -472,7 +524,9 @@ function TimePicker({
     onChange: onOpenChange,
   });
 
-  const displayValue = selectedTime ? formatTimeValue(selectedTime, hourCycle, showSeconds) : placeholder;
+  const displayValue = selectedTime
+    ? formatTimeValue(selectedTime, hourCycle, showSeconds)
+    : placeholder;
   const actionButtonSize = density === 'compact' ? 'sm' : 'default';
 
   if (mode === 'native') {
@@ -538,7 +592,9 @@ function TimePicker({
         ) : (
           <>
             <div className='rounded-lg bg-muted/25 px-2.5 py-2 text-sm'>
-              <p className='text-xs font-medium tracking-wide text-muted-foreground uppercase'>Selected time</p>
+              <p className='text-xs font-medium tracking-wide text-muted-foreground uppercase'>
+                Selected time
+              </p>
               <p className='font-medium'>{displayValue}</p>
             </div>
             <div className='rounded-lg bg-background/35 p-1.5'>
@@ -554,7 +610,9 @@ function TimePicker({
                       size='xs'
                       className='justify-center'
                       onClick={() =>
-                        setSelectedTime(normalizeTimeValue(slot, safeMinuteStep, safeSecondStep, showSeconds))
+                        setSelectedTime(
+                          normalizeTimeValue(slot, safeMinuteStep, safeSecondStep, showSeconds),
+                        )
                       }>
                       {formatTimeValue(slot, hourCycle, false)}
                     </Button>
@@ -590,10 +648,18 @@ function TimePicker({
             ) : null}
           </div>
           <div className='flex gap-1.5'>
-            <Button variant='outline' size={actionButtonSize} className='min-w-22' onClick={() => setIsOpen(false)}>
+            <Button
+              variant='outline'
+              size={actionButtonSize}
+              className='min-w-22'
+              onClick={() => setIsOpen(false)}>
               {cancelLabel}
             </Button>
-            <Button variant='default' size={actionButtonSize} className='min-w-22' onClick={() => setIsOpen(false)}>
+            <Button
+              variant='default'
+              size={actionButtonSize}
+              className='min-w-22'
+              onClick={() => setIsOpen(false)}>
               <CheckIcon data-icon='inline-start' />
               {applyLabel}
             </Button>
@@ -701,9 +767,15 @@ function DateTimePicker({
                   return;
                 }
 
-                const baselineTime = selectedTime ?? getDefaultTime(safeMinuteStep, safeSecondStep, showSeconds);
+                const baselineTime =
+                  selectedTime ?? getDefaultTime(safeMinuteStep, safeSecondStep, showSeconds);
                 const nextDateTime = new Date(nextDate);
-                nextDateTime.setHours(baselineTime.hour, baselineTime.minute, baselineTime.second ?? 0, 0);
+                nextDateTime.setHours(
+                  baselineTime.hour,
+                  baselineTime.minute,
+                  baselineTime.second ?? 0,
+                  0,
+                );
                 setSelectedDateTime(nextDateTime);
               }}
               defaultMonth={selectedDateTime}
@@ -743,7 +815,9 @@ function DateTimePicker({
                         className='justify-center'
                         disabled={disabledSlot}
                         onClick={() => {
-                          const nextDate = selectedDateTime ? new Date(selectedDateTime) : new Date();
+                          const nextDate = selectedDateTime
+                            ? new Date(selectedDateTime)
+                            : new Date();
                           nextDate.setHours(slot.hour, slot.minute, slot.second ?? 0, 0);
                           setSelectedDateTime(nextDate);
                         }}>
@@ -775,10 +849,18 @@ function DateTimePicker({
             ) : null}
           </div>
           <div className='flex gap-1.5'>
-            <Button variant='outline' size={actionButtonSize} className='min-w-22' onClick={() => setIsOpen(false)}>
+            <Button
+              variant='outline'
+              size={actionButtonSize}
+              className='min-w-22'
+              onClick={() => setIsOpen(false)}>
               {cancelLabel}
             </Button>
-            <Button variant='default' size={actionButtonSize} className='min-w-22' onClick={() => setIsOpen(false)}>
+            <Button
+              variant='default'
+              size={actionButtonSize}
+              className='min-w-22'
+              onClick={() => setIsOpen(false)}>
               <CheckIcon data-icon='inline-start' />
               {applyLabel}
             </Button>
@@ -790,4 +872,3 @@ function DateTimePicker({
 }
 
 export { DateTimePicker, TimePicker, type DateTimePickerProps, type TimePickerProps };
-

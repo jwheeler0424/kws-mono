@@ -3,7 +3,8 @@ import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import { InputHidden } from './input-hidden';
 
@@ -387,7 +388,10 @@ function EditableArea(props: EditableAreaProps) {
     'data-editing': editing ? '' : undefined,
     'data-slot': 'editable-area',
     dir: context.dir,
-    className: cn('relative inline-block min-w-0 data-disabled:cursor-not-allowed data-disabled:opacity-50', className),
+    className: cn(
+      'relative inline-block min-w-0 data-disabled:cursor-not-allowed data-disabled:opacity-50',
+      className,
+    ),
   };
 
   return useRender({
@@ -850,16 +854,15 @@ function EditableSubmit(props: EditableSubmitProps) {
 }
 
 export {
-    Editable,
-    EditableArea,
-    EditableCancel,
-    EditableInput,
-    EditableLabel,
-    EditablePreview,
-    EditableSubmit,
-    EditableToolbar,
-    EditableTrigger,
-    //
-    useStore as useEditable
+  Editable,
+  EditableArea,
+  EditableCancel,
+  EditableInput,
+  EditableLabel,
+  EditablePreview,
+  EditableSubmit,
+  EditableToolbar,
+  EditableTrigger,
+  //
+  useStore as useEditable,
 };
-

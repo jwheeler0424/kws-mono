@@ -2,7 +2,8 @@
 
 import { AlertDialog as AlertDialogPrimitive } from '@base-ui/react/alert-dialog';
 import * as React from 'react';
-import { cn } from '../lib/utils';
+
+import { cn } from '@/lib/utils';
 
 import { Button } from './button';
 
@@ -93,7 +94,10 @@ function AlertDialogMedia({ className, ...props }: React.ComponentProps<'div'>) 
   );
 }
 
-function AlertDialogTitle({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
+function AlertDialogTitle({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
   return (
     <AlertDialogPrimitive.Title
       data-slot='alert-dialog-title'
@@ -131,7 +135,8 @@ function AlertDialogCancel({
   variant = 'outline',
   size = 'default',
   ...props
-}: AlertDialogPrimitive.Close.Props & Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>) {
+}: AlertDialogPrimitive.Close.Props &
+  Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>) {
   return (
     <AlertDialogPrimitive.Close
       data-slot='alert-dialog-cancel'
@@ -143,17 +148,16 @@ function AlertDialogCancel({
 }
 
 export {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogMedia,
-    AlertDialogOverlay,
-    AlertDialogPortal,
-    AlertDialogTitle,
-    AlertDialogTrigger
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 };
-

@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RobotsDotTxtRouteImport } from './routes/robots[.].txt'
+import { Route as PoliciesPrivacyRouteImport } from './routes/policies/privacy'
+import { Route as PoliciesDmcaRouteImport } from './routes/policies/dmca'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -28,34 +30,68 @@ const RobotsDotTxtRoute = RobotsDotTxtRouteImport.update({
   path: '/robots./txt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PoliciesPrivacyRoute = PoliciesPrivacyRouteImport.update({
+  id: '/policies/privacy',
+  path: '/policies/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliciesDmcaRoute = PoliciesDmcaRouteImport.update({
+  id: '/policies/dmca',
+  path: '/policies/dmca',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/policies/dmca': typeof PoliciesDmcaRoute
+  '/policies/privacy': typeof PoliciesPrivacyRoute
   '/robots./txt': typeof RobotsDotTxtRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/policies/dmca': typeof PoliciesDmcaRoute
+  '/policies/privacy': typeof PoliciesPrivacyRoute
   '/robots./txt': typeof RobotsDotTxtRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/policies/dmca': typeof PoliciesDmcaRoute
+  '/policies/privacy': typeof PoliciesPrivacyRoute
   '/robots./txt': typeof RobotsDotTxtRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sitemap.xml' | '/robots./txt'
+  fullPaths:
+    | '/'
+    | '/sitemap.xml'
+    | '/policies/dmca'
+    | '/policies/privacy'
+    | '/robots./txt'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sitemap.xml' | '/robots./txt'
-  id: '__root__' | '/' | '/sitemap.xml' | '/robots./txt'
+  to:
+    | '/'
+    | '/sitemap.xml'
+    | '/policies/dmca'
+    | '/policies/privacy'
+    | '/robots./txt'
+  id:
+    | '__root__'
+    | '/'
+    | '/sitemap.xml'
+    | '/policies/dmca'
+    | '/policies/privacy'
+    | '/robots./txt'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  PoliciesDmcaRoute: typeof PoliciesDmcaRoute
+  PoliciesPrivacyRoute: typeof PoliciesPrivacyRoute
   RobotsDotTxtRoute: typeof RobotsDotTxtRoute
 }
 
@@ -82,12 +118,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RobotsDotTxtRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/policies/privacy': {
+      id: '/policies/privacy'
+      path: '/policies/privacy'
+      fullPath: '/policies/privacy'
+      preLoaderRoute: typeof PoliciesPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies/dmca': {
+      id: '/policies/dmca'
+      path: '/policies/dmca'
+      fullPath: '/policies/dmca'
+      preLoaderRoute: typeof PoliciesDmcaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  PoliciesDmcaRoute: PoliciesDmcaRoute,
+  PoliciesPrivacyRoute: PoliciesPrivacyRoute,
   RobotsDotTxtRoute: RobotsDotTxtRoute,
 }
 export const routeTree = rootRouteImport

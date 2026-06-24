@@ -3,7 +3,12 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "dist",
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+    },
   },
   "include": [
     "src"
