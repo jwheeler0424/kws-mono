@@ -6,20 +6,16 @@
     "esModuleInterop": true,
     "incremental": false,
     "isolatedModules": true,
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "target": "ES2022",
-    /* Bundler mode */
+
     "moduleDetection": "force",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    /* Linting */
+
     "skipLibCheck": true,
     "strict": true,
     "noUnusedLocals": true,

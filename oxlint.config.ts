@@ -30,6 +30,7 @@ export default defineConfig({
     '**/.output/**',
     '**/dist/**',
     '**/coverage/**',
+    '**/public/**',
     '**/vendor/**',
     '**/test/snapshots/**',
     '**/graveyard/**',
