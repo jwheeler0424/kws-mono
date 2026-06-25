@@ -1,6 +1,6 @@
 import { index, integer, jsonb, numeric, pgTable, varchar } from 'drizzle-orm/pg-core';
 
-import type { NWM_PropertyUnitType } from '@/types/property';
+import type { NWM_PropertyUnitType } from '@kws/types';
 
 import { tsvector } from '../../plugins/tsvector';
 import { softDelete, timestamps } from '../common.schema';

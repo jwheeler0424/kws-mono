@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { boolean, index, jsonb, pgTable, timestamp, varchar } from 'drizzle-orm/pg-core';
 
-import type { NWM_OpenHouse } from '@/types/property';
+import type { NWM_OpenHouse } from '@kws/types';
 
 import { tsvector } from '../../plugins/tsvector';
 import { softDelete, timestamps } from '../common.schema';
@@ -66,7 +66,6 @@ export const openHouses = pgTable(
     index('idx_open_houses_missing_listing_active')
       .on(t.originatingSystemName, t.openHouseKey)
       .where(sql`${t.listingKey} IS NULL AND ${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-    index('idx_open_houses_mlg_can_use').on(t.mlgCanUse),
     index('idx_open_houses_search_vector').using('gin', t.searchVector),
   ],
 );

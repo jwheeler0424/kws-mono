@@ -41,7 +41,6 @@ export const lookups = pgTable(
   (t) => [
     index('idx_lookups_name').on(t.lookupName, t.originatingSystemName),
     index('idx_lookups_sync').on(t.originatingSystemName, t.modificationTimestamp),
-    index('idx_lookups_mlg_can_use').on(t.mlgCanUse),
     index('idx_lookups_search_vector').using('gin', t.searchVector),
   ],
 );

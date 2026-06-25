@@ -14,7 +14,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 
-import type { UUIDv7 } from '@/types';
+import type { UUIDv7 } from '@kws/types';
 
 import { idPrimaryKey, timestamps } from './common.schema';
 

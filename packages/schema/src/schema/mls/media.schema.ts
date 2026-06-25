@@ -1,6 +1,6 @@
 import { boolean, index, integer, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
-import type { UUIDv7 } from '@/types';
+import type { UUIDv7 } from '@kws/types';
 
 import { tsvector } from '../../plugins/tsvector';
 import { softDelete, timestamps } from '../common.schema';
@@ -50,8 +50,6 @@ export const mlsMedia = pgTable(
     index('idx_resource_record_key').on(t.resourceRecordKey),
     index('idx_media_modification_timestamp').on(t.mediaModificationTimestamp),
     index('idx_permission').on(t.permission),
-    index('idx_preferred_photo_yn').on(t.preferredPhotoYN),
-    index('idx_preferred_order').on(t.preferredPhotoYN, t.order),
     index('idx_media_listing_primary').on(t.resourceRecordKey, t.preferredPhotoYN, t.order),
     index('idx_image_size_description').on(t.imageSizeDescription),
     index('idx_media_search_vector').using('gin', t.searchVector),

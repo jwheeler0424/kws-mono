@@ -30,7 +30,7 @@ const DB_NAME = env.DB_NAME;
 
 export default defineConfig({
   out: './drizzle/migrations',
-  schema: './src/database/schema.ts',
+  schema: './src/schema.ts',
   dialect: 'postgresql',
   strict: true,
   verbose: true,

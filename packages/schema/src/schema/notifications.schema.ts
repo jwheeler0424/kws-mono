@@ -1,7 +1,7 @@
 import { pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { createSelectSchema } from 'drizzle-orm/zod';
 
-import type { UUIDv7 } from '@/types';
+import type { UUIDv7 } from '@kws/types';
 
 import { user } from './auth';
 import { idPrimaryKey, timestamps } from './common.schema';

@@ -1,6 +1,6 @@
 import { boolean, index, jsonb, pgTable, timestamp, varchar } from 'drizzle-orm/pg-core';
 
-import type { NWM_Member } from '@/types/property';
+import type { NWM_Member } from '@kws/types';
 
 import { tsvector } from '../../plugins/tsvector';
 import { softDelete, timestamps } from '../common.schema';
@@ -72,7 +72,6 @@ export const members = pgTable(
     index('idx_members_name').on(t.memberFullName),
     index('idx_members_key').on(t.memberKey),
     index('idx_members_office').on(t.officeKey),
-    index('idx_members_mlg_can_use').on(t.mlgCanUse),
     index('idx_members_search_vector').using('gin', t.searchVector),
   ],
 );

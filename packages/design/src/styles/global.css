@@ -42,20 +42,6 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --font-fira-mono: 'Fira Mono', monospace;
-  --font-nueu-haas-grotesk: 'Nueu Haas Grotesk', sans-serif;
-  --font-roboto: 'Roboto', sans-serif;
-  --font-knockout: 'Knockout', sans-serif;
-  --polaris-primary-100: oklch(0.945 0.065 27.5);
-  --polaris-primary-200: oklch(0.865 0.12 27.5);
-  --polaris-primary-300: oklch(0.785 0.18 27.5);
-  --polaris-primary-400: oklch(0.705 0.24 27.5);
-  --polaris-primary: oklch(0.625 0.3 27.5);
-  --polaris-primary-500: oklch(0.625 0.3 27.5);
-  --polaris-primary-600: oklch(0.525 0.35 27.5);
-  --polaris-primary-700: oklch(0.425 0.4 27.5);
-  --polaris-primary-800: oklch(0.325 0.45 27.5);
-  --polaris-primary-900: oklch(0.225 0.5 27.5);
 }
 
 .dark {
@@ -90,37 +76,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  --polaris-primary-100: oklch(0.945 0.065 27.5);
-  --polaris-primary-200: oklch(0.865 0.12 27.5);
-  --polaris-primary-300: oklch(0.785 0.18 27.5);
-  --polaris-primary-400: oklch(0.705 0.24 27.5);
-  --polaris-primary: oklch(0.675 0.25 27.5);
-  --polaris-primary-500: oklch(0.625 0.3 27.5);
-  --polaris-primary-600: oklch(0.525 0.35 27.5);
-  --polaris-primary-700: oklch(0.425 0.4 27.5);
-  --polaris-primary-800: oklch(0.325 0.45 27.5);
-  --polaris-primary-900: oklch(0.225 0.5 27.5);
 }
 
 @theme inline {
-  --font-sans: 'Geist Variable', sans-serif;
-  --font-heading: 'Manrope Variable', sans-serif;
-  --font-mono: 'Fira Mono', monospace;
-  --font-knockout: var(--font-knockout);
-  --font-roboto: 'Roboto', sans-serif;
-  --font-nueu-haas-grotesk: 'Nueu Haas Grotesk', sans-serif;
-  --font-fira-mono: 'Fira Mono', monospace;
-  --font-title: var(--font-knockout);
-  --color-polaris-primary-100: var(--polaris-primary-100);
-  --color-polaris-primary-200: var(--polaris-primary-200);
-  --color-polaris-primary-300: var(--polaris-primary-300);
-  --color-polaris-primary-400: var(--polaris-primary-400);
-  --color-polaris-primary: var(--polaris-primary);
-  --color-polaris-primary-500: var(--polaris-primary-500);
-  --color-polaris-primary-600: var(--polaris-primary-600);
-  --color-polaris-primary-700: var(--polaris-primary-700);
-  --color-polaris-primary-800: var(--polaris-primary-800);
-  --color-polaris-primary-900: var(--polaris-primary-900);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

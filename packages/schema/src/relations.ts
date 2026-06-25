@@ -6,6 +6,10 @@ import * as schema from './schema';
 export const relations = {
   ...defineRelationsPart(schema),
   ...schema.authRelations,
+  ...schema.blogCommentRelations,
+  ...schema.blogPostRelations,
+  ...schema.blogPreviewTokenRelations,
+  ...schema.blogTaxonomyRelations,
   ...schema.mediaRelations,
   ...schema.mlsRelations,
   ...schema.taxonomiesRelations,

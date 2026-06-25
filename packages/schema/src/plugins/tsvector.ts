@@ -10,7 +10,7 @@
  *   automatically into generated migrations by generate.ts
  */
 
-import type { SQL, AnyColumn } from 'drizzle-orm';
+import type { AnyColumn, SQL } from 'drizzle-orm';
 
 import { sql } from 'drizzle-orm';
 import { customType } from 'drizzle-orm/pg-core';
@@ -172,6 +172,30 @@ function quoteIdent(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
+function normalizeLanguage(language: FtsLanguage): string {
+  const normalized = language.trim();
+  if (normalized.length === 0) {
+    throw new Error('tsvector: .language() requires a non-empty value');
+  }
+
+  return normalized;
+}
+
+function normalizeColumns(columns: string[]): string[] {
+  if (columns.length === 0) {
+    throw new Error('tsvector: .cols() requires at least one column or expression');
+  }
+
+  return columns.map((column, index) => {
+    const normalized = column.trim();
+    if (normalized.length === 0) {
+      throw new Error(`tsvector: .cols() entry at index ${index} is empty`);
+    }
+
+    return normalized;
+  });
+}
+
 function buildFtsExpression(language: string, specs: FtsSpec[]): SQL {
   if (specs.length === 0) throw new Error('tsvector: no tiers defined');
 
@@ -311,7 +335,7 @@ export function tsvector(name: string) {
   ) as unknown as FtsWeightChain;
 
   function mainChainCols(columns: string[]): FtsColsChain {
-    _pending = columns;
+    _pending = normalizeColumns(columns);
     return colsChain;
   }
 
@@ -331,7 +355,7 @@ export function tsvector(name: string) {
     get(target, prop, receiver) {
       if (prop === 'language') {
         return (lang: FtsLanguage): FtsMainChain => {
-          _language = lang;
+          _language = normalizeLanguage(lang);
           return mainChain;
         };
       }

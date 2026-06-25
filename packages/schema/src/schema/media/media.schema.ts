@@ -15,7 +15,7 @@ import {
 import { createInsertSchema, createSelectSchema } from 'drizzle-orm/zod';
 import { z } from 'zod';
 
-import type { UUIDv7 } from '@/types';
+import type { UUIDv7 } from '@kws/types';
 
 import { tsvector } from '../../plugins/tsvector';
 import { organization, user } from '../auth';
