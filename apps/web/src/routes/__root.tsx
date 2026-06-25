@@ -6,6 +6,7 @@ import {
   HeadContent,
   Scripts,
   createRootRouteWithContext,
+  useLocation,
   type AnyRouteMatch,
 } from '@tanstack/react-router';
 import * as React from 'react';
@@ -41,11 +42,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     return { siteConfig };
     // Placeholder for any root-level data fetching or context setup that may be needed in the future.
   },
-  loader: async ({ context, location }) => {
-    const isTransparent = location.pathname === '/';
+  loader: async ({ context }) => {
     return {
-      isTransparent,
-      location,
       siteConfig: context.siteConfig,
     };
   },
@@ -80,7 +78,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const { isTransparent, location } = Route.useLoaderData();
+  const { pathname } = useLocation();
+  const isTransparent = pathname === '/';
   return (
     <html lang='en' suppressHydrationWarning style={{ width: '100%', height: '100%' }}>
       <head>
@@ -94,7 +93,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             ])}>
             <FrontendHeader />
             <ScrollArea
-              key={location.pathname}
+              key={pathname}
               data-parallax-scroller
               className={cn('grow w-full min-h-0', isTransparent && 'frontend-home-scroller')}>
               <div className={cn('flex min-h-full w-full flex-col gap-16')}>
