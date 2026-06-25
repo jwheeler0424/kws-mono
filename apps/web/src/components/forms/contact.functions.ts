@@ -3,14 +3,11 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
 import { env } from '@/config/env';
-import { db } from '@/database/client';
-import { contactRequests } from '@/database/schema/campaigns.schema';
-import { contactEmails } from '@/database/schema/contacts/communication.schema';
-import { contactNewsletter, contacts } from '@/database/schema/contacts/contacts.schema';
-import { notifications } from '@/database/schema/notifications.schema';
 import { ContactRequestEmail } from '@/emails/contact';
+import { db } from '@/lib/database';
 import { nodemailerClient } from '@/lib/nodemailer';
 import { queueClient } from '@/lib/queue';
+import { contactEmails, contactNewsletter, contactRequests, contacts, notifications } from '@kws/schema';
 
 import { contactFormSchema } from './contact.schema';
 

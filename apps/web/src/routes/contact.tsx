@@ -45,7 +45,7 @@ function RouteComponent() {
             </section>
             <section className='mb-2 flex flex-wrap items-center justify-between gap-6'>
               {/* Custom Component - ContactForm */}
-              {/* <ContactForm propertyAddress={address} /> */}
+              <ContactForm propertyAddress={address} />
             </section>
             <>
               <p className='text-[clamp(0.74rem,-0.01vw+0.79rem,0.78rem)] text-[#707070]'>
