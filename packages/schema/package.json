@@ -8,15 +8,25 @@
     ".": "./src/schema.ts",
     "./plugins": "./src/plugins/index.ts"
   },
+  "scripts": {
+    "db:generate": "bun --bun ./drizzle/generate.ts",
+    "db:migrate": "bun x drizzle-kit migrate --config ./drizzle.config.ts",
+    "db:reset": "bun --bun ./drizzle/reset.ts",
+    "db:fresh": "bun --bun ./drizzle/fresh.ts",
+    "db:push": "bun x drizzle-kit push --config ./drizzle.config.ts",
+    "db:pull": "bun x drizzle-kit pull --config ./drizzle.config.ts",
+    "db:studio": "bun x drizzle-kit studio --port 3333 --config ./drizzle.config.ts"
+  },
   "dependencies": {
     "dotenv": "^17.4.2",
     "drizzle-orm": "^1.0.0-beta.22",
+    "pg": "^8.22.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@kws/types": "*",
     "@kws/typescript": "*",
     "@types/bun": "latest",
+    "@types/pg": "^8.20.0",
     "drizzle-kit": "^1.0.0-beta.22"
   },
   "peerDependencies": {

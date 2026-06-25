@@ -13,7 +13,7 @@ import {
 import { createInsertSchema, createSelectSchema } from 'drizzle-orm/zod';
 import { z } from 'zod';
 
-import type { UUIDv7 } from '@kws/types';
+import type { UUIDv7 } from '../types';
 import { organization, user } from '../auth';
 import { idPrimaryKey, timestamps } from '../common.schema';
 

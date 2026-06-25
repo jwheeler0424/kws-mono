@@ -1,20 +1,19 @@
-"use client";
+'use client';
 // @refresh reset
 
-import * as React from "react";
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import * as React from 'react';
 
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-effect";
-import { cn } from "../../lib/utils";
+import { cn } from '@/lib/utils';
+import { Separator } from '@/ui/separator';
 
-import { Separator } from "../ui/separator";
-
-import { useOverflowContext, useOverflowRegistrationContext } from "./context";
-import { useStore } from "./hooks";
-import { selectorHiddenId } from "./utils/selectors";
+import { useOverflowContext, useOverflowRegistrationContext } from './context';
+import { useStore } from './hooks';
+import { selectorHiddenId } from './utils/selectors';
 
 // ─── Component name ───────────────────────────────────────────────────────────
 
-const SEPARATOR_NAME = "OverflowSeparator";
+const SEPARATOR_NAME = 'OverflowSeparator';
 
 // ─── OverflowSeparatorProps ───────────────────────────────────────────────────
 
@@ -28,7 +27,7 @@ export interface OverflowSeparatorProps {
    *
    * @default 'vertical'
    */
-  orientation?: "horizontal" | "vertical";
+  orientation?: 'horizontal' | 'vertical';
   /** Additional inline styles applied to the outer wrapper `<span>`. */
   style?: React.CSSProperties;
   /** Additional CSS class names applied to the outer wrapper `<span>`. */
@@ -61,7 +60,7 @@ export interface OverflowSeparatorProps {
  * </OverflowGroup>
  */
 export function OverflowSeparator({
-  orientation = "vertical",
+  orientation = 'vertical',
   style,
   className,
 }: OverflowSeparatorProps) {
@@ -76,7 +75,7 @@ export function OverflowSeparator({
   const isHidden = useStore(hiddenSelector, overflowCtx.store);
 
   // Register as a separator so calc() can trim trailing ones.
-  useIsomorphicLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     const el = elRef.current;
     if (!el) return;
     registrationCtx.registerItem(itemId, el, null, /* isSeparator= */ true);
@@ -86,22 +85,21 @@ export function OverflowSeparator({
   return (
     <span
       ref={elRef as React.Ref<HTMLSpanElement>}
-      data-slot="overflow-separator"
-      data-hidden={isHidden ? "" : undefined}
-      aria-hidden="true"
+      data-slot='overflow-separator'
+      data-hidden={isHidden ? '' : undefined}
+      aria-hidden='true'
       style={style}
       className={cn(
-        "shrink-0 self-stretch",
-        isHidden && "pointer-events-none invisible",
+        'shrink-0 self-stretch',
+        isHidden && 'pointer-events-none invisible',
         className,
-      )}
-    >
+      )}>
       <Separator
         orientation={orientation}
-        className={cn(orientation === "vertical" ? "h-full w-px" : "h-px w-full")}
+        className={cn(orientation === 'vertical' ? 'h-full w-px' : 'h-px w-full')}
       />
     </span>
   );
 }
 
-OverflowSeparator.displayName = "OverflowSeparator";
+OverflowSeparator.displayName = 'OverflowSeparator';

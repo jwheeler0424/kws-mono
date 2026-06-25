@@ -1,8 +1,15 @@
 import z from 'zod';
 
-import type { PropertyListing } from '@kws/schema';
+import type { properties, standardStatusEnum } from '@kws/schema';
+import type { Resolve } from './utils';
 
-export type TAddressData = Pick<
+
+export type StandardStatus = (typeof standardStatusEnum.enumValues)[number];
+
+
+export type PropertyListing = typeof properties.$inferSelect;
+
+export type TAddressData = Resolve<Pick<
   PropertyListing,
   | 'streetDirPrefix'
   | 'streetDirSuffix'
@@ -14,9 +21,9 @@ export type TAddressData = Pick<
   | 'postalCode'
   | 'stateOrProvince'
   | 'unparsedAddress'
->;
+>>;
 
-export type TPropertyCard = Pick<
+export type TPropertyCard = Resolve<Pick<
   PropertyListing,
   | 'listingId'
   | 'listingKey'
@@ -56,13 +63,13 @@ export type TPropertyCard = Pick<
     | 'NWM_ShowMapLink'
     | 'NWM_StyleCode'
   > & {
-    memberFullName: string;
-    officeName: string;
-    primaryPhotoUrl: string;
-    primaryPhotoFullUrl: string;
-    primaryPhotoPreviewUrl: string;
-    primaryPhotoThumbnailUrl: string;
-  };
+    memberFullName: string | null;
+    officeName: string | null;
+    primaryPhotoUrl: string | null;
+    primaryPhotoFullUrl: string | null;
+    primaryPhotoPreviewUrl: string | null;
+    primaryPhotoThumbnailUrl: string | null;
+  }>;
 
 export type TPropertyMediaVariants = {
   fullUrl: string;

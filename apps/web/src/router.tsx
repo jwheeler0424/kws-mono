@@ -1,6 +1,8 @@
 // src/router.tsx
 import { createRouter as createTanStackRouter } from '@tanstack/react-router';
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import { DefaultCatchBoundary } from './components/environment/default-catch-boundary';
 import { NotFound } from './components/environment/not-found';
@@ -10,7 +12,7 @@ import { routeTree } from './routeTree.gen';
 
 function createRouterInstance() {
   const context = getRouterContext();
-
+  gsap.registerPlugin(ScrollTrigger);
   const router = createTanStackRouter({
     routeTree,
     defaultPendingComponent: (props) => <Pending {...props} />,

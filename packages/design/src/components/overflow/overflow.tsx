@@ -1,4 +1,4 @@
-"use client";
+'use client';
 // @refresh reset
 
 /**
@@ -11,41 +11,41 @@
  * See index.ts for all public exports.
  */
 
-import { mergeProps } from "@base-ui/react/merge-props";
-import { useRender } from "@base-ui/react/use-render";
-import * as React from "react";
+import { mergeProps } from '@base-ui/react/merge-props';
+import { useRender } from '@base-ui/react/use-render';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import * as React from 'react';
 
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-effect";
-import { cn } from "../../lib/utils";
+import type { OverflowOrientation } from './types';
 
-import { OverflowContext, type OverflowContextValue } from "./context";
-import { createStore } from "./store";
-import type { OverflowOrientation } from "./types";
+import { cn } from '../../lib/utils';
+import { OverflowContext, type OverflowContextValue } from './context';
+import { createStore } from './store';
 
 // ─── Re-export sub-components for backward-compat direct file imports ─────────
 //
 // Consumers that import from "./overflow" directly
 // continue to work unchanged. New code should import from "./".
 
-export { OverflowGroup } from "./overflow-group";
-export { OverflowItem } from "./overflow-item";
-export { OverflowIndicator } from "./overflow-indicator";
-export { OverflowActions } from "./overflow-actions";
-export { OverflowSeparator } from "./overflow-separator";
-export { OverflowAnnouncer } from "./overflow-announcer";
-export { useOverflow, useOverflowItem } from "./hooks";
+export { useOverflow, useOverflowItem } from './hooks';
+export { OverflowActions } from './overflow-actions';
+export { OverflowAnnouncer } from './overflow-announcer';
+export { OverflowGroup } from './overflow-group';
+export { OverflowIndicator } from './overflow-indicator';
+export { OverflowItem } from './overflow-item';
+export { OverflowSeparator } from './overflow-separator';
 
-export type { OverflowGroupProps } from "./overflow-group";
-export type { OverflowItemProps } from "./overflow-item";
-export type { OverflowIndicatorProps } from "./overflow-indicator";
-export type { OverflowActionsProps } from "./overflow-actions";
-export type { OverflowSeparatorProps } from "./overflow-separator";
-export type { OverflowAnnouncerProps } from "./overflow-announcer";
-export type { OverflowOrientation, OverflowFitStrategy, OverflowInfo } from "./types";
+export type { OverflowActionsProps } from './overflow-actions';
+export type { OverflowAnnouncerProps } from './overflow-announcer';
+export type { OverflowGroupProps } from './overflow-group';
+export type { OverflowIndicatorProps } from './overflow-indicator';
+export type { OverflowItemProps } from './overflow-item';
+export type { OverflowSeparatorProps } from './overflow-separator';
+export type { OverflowFitStrategy, OverflowInfo, OverflowOrientation } from './types';
 
 // ─── OverflowProps ────────────────────────────────────────────────────────────
 
-export interface OverflowProps extends useRender.ComponentProps<"div"> {
+export interface OverflowProps extends useRender.ComponentProps<'div'> {
   /**
    * Which axis to detect overflow on. Consumed by OverflowGroup via context.
    * @default 'none'
@@ -68,7 +68,7 @@ export interface OverflowProps extends useRender.ComponentProps<"div"> {
 
 export function Overflow(props: OverflowProps) {
   const {
-    orientation = "none",
+    orientation = 'none',
     onOverflowChange,
     defaultVisibleCount = 0,
     className,
@@ -83,7 +83,7 @@ export function Overflow(props: OverflowProps) {
   const rootId = id ?? instanceId;
 
   const propsRef = React.useRef({ onOverflowChange });
-  useIsomorphicLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     propsRef.current = { onOverflowChange };
   });
 
@@ -100,7 +100,7 @@ export function Overflow(props: OverflowProps) {
     [],
   );
 
-  useIsomorphicLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     let prev = store.getState().isOverflowing;
     return store.subscribe(() => {
       const next = store.getState().isOverflowing;
@@ -116,19 +116,19 @@ export function Overflow(props: OverflowProps) {
     [rootId, orientation, store],
   );
 
-  const defaultProps: useRender.ElementProps<"div"> & {
-    "data-slot": string;
-    "data-orientation"?: OverflowOrientation;
+  const defaultProps: useRender.ElementProps<'div'> & {
+    'data-slot': string;
+    'data-orientation'?: OverflowOrientation;
   } = {
     id: rootId,
-    "data-slot": "overflow",
-    "data-orientation": orientation !== "none" ? orientation : undefined,
-    className: cn("flex min-h-0 max-w-full min-w-0", className),
+    'data-slot': 'overflow',
+    'data-orientation': orientation !== 'none' ? orientation : undefined,
+    className: cn('flex min-h-0 max-w-full min-w-0', className),
     children,
   };
 
   const element = useRender<Record<string, unknown>, HTMLElement>({
-    defaultTagName: "div",
+    defaultTagName: 'div',
     ref: [ref as React.Ref<HTMLDivElement>],
     render,
     props: mergeProps(defaultProps, rootProps as Record<string, unknown>),
@@ -137,4 +137,4 @@ export function Overflow(props: OverflowProps) {
   return <OverflowContext.Provider value={context}>{element}</OverflowContext.Provider>;
 }
 
-Overflow.displayName = "Overflow";
+Overflow.displayName = 'Overflow';

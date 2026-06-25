@@ -1,11 +1,10 @@
-import type { PropertyCardPageResult } from '@/packages/mls/queries/property-cards.queries';
-import type { TPropertyCard } from '@/types/property';
+import type { CursorResult, TPropertyCard } from '@kws/types';
 
 import VirtualPropertyGrid from '@/components/global/virtual-property-grid';
 
 interface ListingsSectionProps {
   title: string;
-  properties?: PropertyCardPageResult<TPropertyCard> | undefined;
+  properties?: CursorResult<TPropertyCard> | undefined;
   emptyText?: string;
   pageSize?: number;
   loadingMore?: boolean;

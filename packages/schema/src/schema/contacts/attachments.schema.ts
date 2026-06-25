@@ -1,6 +1,6 @@
 import { pgTable, uuid } from 'drizzle-orm/pg-core';
 
-import type { UUIDv7 } from '@kws/types';
+import type { UUIDv7 } from '../types';
 
 import { user } from '../auth';
 import { idPrimaryKey, timestamps } from '../common.schema';

@@ -1,36 +1,4 @@
 import { z } from 'zod';
-// export type QueryLimit = {
-//   min: number | null;
-//   max: number | null;
-// };
-
-// export type MapPosition = {
-//   lat: number;
-//   lng: number;
-// };
-
-// export type MapBounds = {
-//   northEast: MapPosition;
-//   southWest: MapPosition;
-// };
-
-// export type PropertyQueryParams = {
-//   query?: string | null;
-//   priceMin?: number | null;
-//   priceMax?: number | null;
-//   sqFtMin?: number | null;
-//   sqFtMax?: number | null;
-//   bedroomsMin?: number | null;
-//   bedroomsMax?: number | null;
-//   bathroomsMin?: number | null;
-//   bathroomsMax?: number | null;
-//   [key: string]: unknown;
-// };
-
-// export type MapQueryParams = {
-//   bounds?: MapBounds | null;
-//   mapPosition?: MapPosition | null;
-// };
 
 export const querySchema = z.string().trim();
 export const queryLimitSchema = z.number().int().nonnegative();

@@ -6,6 +6,8 @@
     "packages/*"
   ],
   "scripts": {
+    "dev:up": "docker compose -f docker-compose.dev.yml up -d --build --remove-orphans",
+    "dev:down": "docker compose -f docker-compose.dev.yml down --remove-orphans --volumes --rmi local",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "oxlint",

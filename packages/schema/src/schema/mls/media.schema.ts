@@ -1,6 +1,6 @@
 import { boolean, index, integer, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
-import type { UUIDv7 } from '@kws/types';
+import type { UUIDv7 } from '../types';
 
 import { tsvector } from '../../plugins/tsvector';
 import { softDelete, timestamps } from '../common.schema';

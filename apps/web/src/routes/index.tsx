@@ -6,12 +6,13 @@ import {
   ParallaxContentLayer,
   ParallaxMediaLayer,
 } from '@/components/animation/parallax';
-// import FeaturedProperties from '@/components/global/featured-properties';
+import FeaturedProperties from '@/components/global/featured-properties';
 import { Link } from '@/components/global/link';
 import Video from '@/components/global/video';
+import { featuredPropertiesOptions } from '@/features/mls/options';
 
 export const Route = createFileRoute('/')({
-  // loader: ({ context }) => context.queryClient.ensureQueryData(featuredPropertyCardsPageOptions()),
+  loader: ({ context }) => context.queryClient.ensureQueryData(featuredPropertiesOptions()),
   component: Home,
 });
 
@@ -130,7 +131,7 @@ function Home() {
                   justifyContent: 'center',
                   width: '100%',
                 }}>
-                {/* <FeaturedProperties autoplay autoPlaySpeed={4000} /> */}
+                <FeaturedProperties autoplay autoPlaySpeed={4000} />
               </section>
               <section
                 style={{

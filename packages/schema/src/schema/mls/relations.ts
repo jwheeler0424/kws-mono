@@ -1,5 +1,6 @@
 import { defineRelationsPart } from 'drizzle-orm';
 
+import { media } from '../media';
 import { mlsMedia } from './media.schema';
 import { members } from './members.schema';
 import { offices } from './offices.schema';
@@ -13,6 +14,7 @@ import { propertyUnitTypes } from './property-unit-types.schema';
 // ---------------------------------------------------------------------------
 export const mlsRelations = defineRelationsPart(
   {
+    media,
     mlsMedia,
     members,
     offices,
@@ -46,6 +48,7 @@ export const mlsRelations = defineRelationsPart(
     // mlsMedia.resourceRecordKey is a polymorphic FK — linked to property, member,
     // or office depending on which resource the media belongs to.
     mlsMedia: {
+      media: r.one.media({ from: r.mlsMedia.mediaId, to: r.media.id }),
       property: r.one.properties({
         from: r.mlsMedia.resourceRecordKey,
         to: r.properties.listingKey,

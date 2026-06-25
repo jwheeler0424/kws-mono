@@ -1,11 +1,10 @@
-import type { PropertyCardPageResult } from '@/packages/mls/queries/property-cards.queries';
-import type { TPropertyCard } from '@/types/property';
+import type { TPropertyCard } from '@kws/types';
 
 import VirtualPropertyGrid from '@/components/global/virtual-property-grid';
 
 interface PropertiesSectionProps {
   title: string;
-  properties?: PropertyCardPageResult<TPropertyCard> | undefined;
+  properties?: TPropertyCard[] | undefined;
   emptyText?: string;
   virtualization?: {
     threshold?: number;
@@ -20,7 +19,7 @@ export default function PropertiesSection({
   emptyText,
   virtualization,
 }: PropertiesSectionProps) {
-  const items = properties?.items ?? [];
+  const items = properties ?? [];
   return (
     <VirtualPropertyGrid
       title={title}

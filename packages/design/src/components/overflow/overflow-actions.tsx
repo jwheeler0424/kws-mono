@@ -1,22 +1,21 @@
-"use client";
+'use client';
 // @refresh reset
 
-import { mergeProps } from "@base-ui/react/merge-props";
-import { useRender } from "@base-ui/react/use-render";
-import * as React from "react";
+import { mergeProps } from '@base-ui/react/merge-props';
+import { useRender } from '@base-ui/react/use-render';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import * as React from 'react';
 
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-effect";
-import { cn } from "../../lib/utils";
-
-import { OverflowRegistrationContext, useOverflowContext } from "./context";
+import { cn } from '../../lib/utils';
+import { OverflowRegistrationContext, useOverflowContext } from './context';
 
 // ─── Component name ───────────────────────────────────────────────────────────
 
-const ACTIONS_NAME = "OverflowActions";
+const ACTIONS_NAME = 'OverflowActions';
 
 // ─── OverflowActionsProps ─────────────────────────────────────────────────────
 
-export type OverflowActionsProps = useRender.ComponentProps<"div">;
+export type OverflowActionsProps = useRender.ComponentProps<'div'>;
 
 // ─── OverflowActions ─────────────────────────────────────────────────────────
 
@@ -73,26 +72,26 @@ export function OverflowActions(props: OverflowActionsProps) {
   const registrationCtx = React.useContext(OverflowRegistrationContext);
   const elRef = React.useRef<HTMLElement | null>(null);
 
-  useIsomorphicLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     if (!registrationCtx) return;
     registrationCtx.registerActions(elRef.current);
     return () => registrationCtx.registerActions(null);
   }, [registrationCtx]);
 
-  const defaultProps: useRender.ElementProps<"div"> & {
-    "data-slot": string;
+  const defaultProps: useRender.ElementProps<'div'> & {
+    'data-slot': string;
   } = {
-    "data-slot": "overflow-actions",
-    className: cn("shrink-0", className),
+    'data-slot': 'overflow-actions',
+    className: cn('shrink-0', className),
     children,
   };
 
   return useRender<Record<string, unknown>, HTMLElement>({
-    defaultTagName: "div",
+    defaultTagName: 'div',
     ref: [ref as React.Ref<HTMLDivElement>, elRef as React.Ref<HTMLDivElement>],
     render,
     props: mergeProps(defaultProps, actionsProps as Record<string, unknown>),
   }) as React.ReactElement;
 }
 
-OverflowActions.displayName = "OverflowActions";
+OverflowActions.displayName = 'OverflowActions';

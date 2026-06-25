@@ -1,6 +1,6 @@
 import { index, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 
-import type { UUIDv7 } from '@kws/types';
+import type { UUIDv7 } from '../types';
 
 import { tsvector } from '../../plugins/tsvector';
 import { idPrimaryKey } from '../common.schema';

@@ -1,26 +1,25 @@
-"use client";
+'use client';
 // @refresh reset
 
-import { mergeProps } from "@base-ui/react/merge-props";
-import { useRender } from "@base-ui/react/use-render";
-import * as React from "react";
+import { mergeProps } from '@base-ui/react/merge-props';
+import { useRender } from '@base-ui/react/use-render';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import * as React from 'react';
 
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-effect";
-import { cn } from "../../lib/utils";
+import type { OverflowInfo } from './types';
 
-import { useOverflowContext, useOverflowRegistrationContext } from "./context";
-import { useStore } from "./hooks";
-import { selectHiddenCount, selectHiddenIds, selectIsOverflowing } from "./utils/selectors";
-
-import type { OverflowInfo } from "./types";
+import { cn } from '../../lib/utils';
+import { useOverflowContext, useOverflowRegistrationContext } from './context';
+import { useStore } from './hooks';
+import { selectHiddenCount, selectHiddenIds, selectIsOverflowing } from './utils/selectors';
 
 // ─── Component name ───────────────────────────────────────────────────────────
 
-const INDICATOR_NAME = "OverflowIndicator";
+const INDICATOR_NAME = 'OverflowIndicator';
 
 // ─── OverflowIndicatorProps ───────────────────────────────────────────────────
 
-export interface OverflowIndicatorProps extends Omit<useRender.ComponentProps<"div">, "children"> {
+export interface OverflowIndicatorProps extends Omit<useRender.ComponentProps<'div'>, 'children'> {
   /**
    * When false (default), the indicator element renders with
    * `position:absolute; visibility:hidden` when not overflowing so its size
@@ -71,7 +70,7 @@ export function OverflowIndicator(props: OverflowIndicatorProps) {
   const elRef = React.useRef<HTMLElement | null>(null);
 
   // Register so the measurement engine can read the indicator's rendered size.
-  useIsomorphicLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     registrationCtx.registerIndicator(elRef.current);
     return () => registrationCtx.registerIndicator(null);
   }, [registrationCtx]);
@@ -84,9 +83,9 @@ export function OverflowIndicator(props: OverflowIndicatorProps) {
   // overflow transition.
   const hiddenMeasureStyle: React.CSSProperties | undefined = !shouldRender
     ? {
-        position: "absolute",
-        visibility: "hidden",
-        pointerEvents: "none",
+        position: 'absolute',
+        visibility: 'hidden',
+        pointerEvents: 'none',
       }
     : undefined;
 
@@ -100,22 +99,22 @@ export function OverflowIndicator(props: OverflowIndicatorProps) {
     isOverflowing,
   };
 
-  const resolvedChildren = typeof children === "function" ? children(info) : children;
+  const resolvedChildren = typeof children === 'function' ? children(info) : children;
 
-  const defaultProps: useRender.ElementProps<"div"> & {
-    "data-slot": string;
-    "data-visible"?: string;
+  const defaultProps: useRender.ElementProps<'div'> & {
+    'data-slot': string;
+    'data-visible'?: string;
   } = {
-    "data-slot": "overflow-indicator",
-    "data-visible": isOverflowing ? "" : undefined,
-    "aria-hidden": !shouldRender ? true : undefined,
+    'data-slot': 'overflow-indicator',
+    'data-visible': isOverflowing ? '' : undefined,
+    'aria-hidden': !shouldRender ? true : undefined,
     tabIndex: !shouldRender ? -1 : undefined,
     style: hiddenMeasureStyle,
-    className: cn("shrink-0", className),
+    className: cn('shrink-0', className),
   };
 
   return useRender<Record<string, unknown>, HTMLElement>({
-    defaultTagName: "div",
+    defaultTagName: 'div',
     ref: [ref as React.Ref<HTMLDivElement>, elRef as React.Ref<HTMLDivElement>],
     render,
     props: mergeProps(
@@ -125,4 +124,4 @@ export function OverflowIndicator(props: OverflowIndicatorProps) {
   }) as React.ReactElement;
 }
 
-OverflowIndicator.displayName = "OverflowIndicator";
+OverflowIndicator.displayName = 'OverflowIndicator';

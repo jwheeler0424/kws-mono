@@ -1,9 +1,8 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
-// import { getFeaturedProperties } from "@/services/api/properties/queries/featured-properties";
 import React from 'react';
 
+import { featuredPropertiesOptions } from '@/features/mls/options';
 import { cn } from '@/lib/utils';
-import { featuredPropertyCardsPageOptions } from '@/packages/mls/options/properties.options';
 
 import PropertyCarousel from './property-carousel';
 
@@ -18,9 +17,9 @@ export default function FeaturedProperties({
   autoPlaySpeed = 4000,
   ...props
 }: FeaturedPropertiesProps) {
-  const { data: featuredProperties } = useSuspenseQuery(featuredPropertyCardsPageOptions());
+  const { data: featuredProperties } = useSuspenseQuery(featuredPropertiesOptions());
 
-  return !featuredProperties.items || featuredProperties.items.length <= 0 ? (
+  return !featuredProperties || featuredProperties.length <= 0 ? (
     <div className='my-[clamp(3rem,10vw+1rem,5rem)] flex w-full items-center justify-center'>
       <span className='max-w-full rounded bg-black/60 p-[clamp(1rem,6vw+0.25rem,5rem)] text-center font-sans text-base font-thin text-white/75'>
         There are currently no available properties to view.
@@ -35,7 +34,7 @@ export default function FeaturedProperties({
       <PropertyCarousel
         autoplay={autoplay}
         autoPlaySpeed={autoPlaySpeed}
-        properties={featuredProperties.items}
+        properties={featuredProperties}
       />
     </main>
   );

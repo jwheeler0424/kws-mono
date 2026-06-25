@@ -15,15 +15,14 @@ import {
 import { createInsertSchema, createSelectSchema } from 'drizzle-orm/zod';
 import { z } from 'zod';
 
-import type { UUIDv7 } from '@kws/types';
+import type { UUIDv7 } from '../types';
 
 import { tsvector } from '../../plugins/tsvector';
 
 import { organization, user } from '../auth';
 import { idPrimaryKey, softDelete, timestamps } from '../common.schema';
 import { media } from '../media';
-import { previewTokens } from './preview-tokens.schema';
-import { postTermRelationships } from './taxonomies.schema';
+
 
 // ============================================================================
 // ENUMS
@@ -331,9 +330,7 @@ export const blogPostRelations = defineRelationsPart(
     postMeta,
     postRelationships,
     postRevisions,
-    postTermRelationships,
     posts,
-    previewTokens,
     user,
   },
   (r) => ({
@@ -351,8 +348,6 @@ export const blogPostRelations = defineRelationsPart(
       revisionHistory: r.many.postRevisions({ from: r.posts.id, to: r.postRevisions.postId }),
       relatedPosts: r.many.postRelationships({ from: r.posts.id, to: r.postRelationships.postId }),
       relatedToPosts: r.many.postRelationships({ from: r.posts.id, to: r.postRelationships.relatedPostId }),
-      termRelationships: r.many.postTermRelationships({ from: r.posts.id, to: r.postTermRelationships.postId }),
-      previewTokens: r.many.previewTokens({ from: r.posts.id, to: r.previewTokens.postId }),
     },
 
     postMeta: {

@@ -1,11 +1,10 @@
+import type { PropertyMapMarker, TListingsSearch } from '@kws/types';
+
 import { useQuery } from '@tanstack/react-query';
 import { ClientOnly } from '@tanstack/react-router';
 import React from 'react';
 
-import type { PropertyMapMarker } from '@/packages/mls/types';
-import type { TListingsSearch } from '@/types/search';
-
-import { searchListingsMapMarkersFromRouteOptions } from '@/packages/mls/search.options';
+import { listingMarkersOptions } from '@/features/mls/options';
 
 import Loader from './map-loader';
 
@@ -60,14 +59,12 @@ export function ListingsMap({ params }: { params: TListingsSearch }) {
     };
   }, []);
 
-  const { data, isPending } = useQuery(searchListingsMapMarkersFromRouteOptions(params));
+  const { data, isPending } = useQuery(listingMarkersOptions());
 
   const properties = data ?? [];
 
   return (
     <div className='relative h-[60vh] w-full overflow-hidden portrait:h-[60vh] landscape:h-[60vh] landscape:lg:h-[calc(80vh-4rem)]'>
-      <div id='listings-map' className='absolute inset-0 z-0' />
-
       <ClientOnly fallback={<Loader />}>
         {mapViewComponent ? (
           React.createElement(mapViewComponent, {

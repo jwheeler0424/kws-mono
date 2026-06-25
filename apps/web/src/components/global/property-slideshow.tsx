@@ -1,26 +1,16 @@
 'use client';
 
+import type { TMlsMedia } from '@kws/schema';
+
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@kws/design/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import React from 'react';
 
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from '@/components/ui/carousel';
 import { cn } from '@/lib/utils';
 
-export type MediaDetails = {
-  mediaURL: string;
-  description?: string | null;
-  imageHeight?: number | null;
-  imageWidth?: number | null;
-};
-
 export interface SlideshowProps extends React.PropsWithChildren {
-  media: MediaDetails[];
+  media: TMlsMedia[];
   className?: string;
   style?: React.CSSProperties;
   type?: 'fade' | 'slide' | 'zoom';
@@ -102,8 +92,8 @@ export function PropertySlideshow({
             <CarouselItem key={`${img.mediaURL}-${index}`} className='pl-0'>
               <div style={divStyle} className='property-slideshow-stage'>
                 <img
-                  src={img.mediaURL}
-                  alt={img.description ?? `Image ${index + 1} of ${media.length}`}
+                  src={img.mediaURL ?? ''}
+                  alt={img.longDescription ?? `Image ${index + 1} of ${media.length}`}
                   height={img.imageHeight ?? 1920}
                   width={img.imageWidth ?? 1080}
                   className={cn('property-slideshow-image h-full w-auto bg-gray-700')}

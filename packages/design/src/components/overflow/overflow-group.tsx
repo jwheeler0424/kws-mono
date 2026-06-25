@@ -1,4 +1,4 @@
-"use client";
+'use client';
 // @refresh reset
 
 /**
@@ -20,19 +20,20 @@
  *   5. Grid batch measurement: all writes, then all reads in one pass (O(1) reflows).
  */
 
-import { mergeProps } from "@base-ui/react/merge-props";
-import { useRender } from "@base-ui/react/use-render";
-import * as React from "react";
+import { mergeProps } from '@base-ui/react/merge-props';
+import { useRender } from '@base-ui/react/use-render';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import * as React from 'react';
 
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-effect";
-import { cn } from "../../lib/utils";
+import type { OverflowFitStrategy } from './types';
 
+import { cn } from '../../lib/utils';
 import {
   OverflowRegistrationContext,
   useOverflowContext,
   type OverflowRegistrationContextValue,
-} from "./context";
-import type { OverflowFitStrategy } from "./types";
+} from './context';
+import { parseAutoRepeatMinTrack, parseRepeatCount, splitTracks } from './utils/grid';
 import {
   batchMeasureHeightsAtWidth,
   getOuterSize,
@@ -40,17 +41,16 @@ import {
   measureOuterSizeAtWidth,
   resolveSpace,
   type OuterSizeBounds,
-} from "./utils/measurement";
-import { parseAutoRepeatMinTrack, parseRepeatCount, splitTracks } from "./utils/grid";
-import { areSetsEqual, packGrid, packHorizontal, packVertical, packWrap } from "./utils/packing";
+} from './utils/measurement';
+import { areSetsEqual, packGrid, packHorizontal, packVertical, packWrap } from './utils/packing';
 
 // ─── Component name ───────────────────────────────────────────────────────────
 
-const CONTAINER_NAME = "OverflowGroup";
+const CONTAINER_NAME = 'OverflowGroup';
 
 // ─── OverflowGroupProps ───────────────────────────────────────────────────────
 
-export interface OverflowGroupProps extends useRender.ComponentProps<"div"> {
+export interface OverflowGroupProps extends useRender.ComponentProps<'div'> {
   /**
    * When true (default), the group fills available space (`flex-1 w-full`).
    * When false, the group is content-sized but can still shrink under parent
@@ -96,7 +96,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
   const {
     fill = true,
     stabilizeByParent = true,
-    fitStrategy = "min",
+    fitStrategy = 'min',
     overscan = 0,
     className,
     ref,
@@ -277,7 +277,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
     const n = items.length;
 
-    if (orientation === "none" || !el) {
+    if (orientation === 'none' || !el) {
       ctx.store.batch({
         visibleCount: n,
         hiddenCount: 0,
@@ -313,16 +313,16 @@ export function OverflowGroup(props: OverflowGroupProps) {
     const availableW = stabilizeByParent && parentW > 0 ? parentW : contentW;
     const availableH = stabilizeByParent && parentH > 0 ? parentH : contentH;
 
-    if (orientation === "horizontal" && availableW <= 0) return;
-    if (orientation === "vertical" && availableH <= 0) return;
-    if ((orientation === "wrap" || orientation === "grid") && (availableW <= 0 || availableH <= 0))
+    if (orientation === 'horizontal' && availableW <= 0) return;
+    if (orientation === 'vertical' && availableH <= 0) return;
+    if ((orientation === 'wrap' || orientation === 'grid') && (availableW <= 0 || availableH <= 0))
       return;
 
     // ── Indicator size ────────────────────────────────────────────────────
     const oel = indicatorRef.current;
     if (oel) {
       const outer = getOuterSize(oel);
-      const indicatorIsVisible = oel.hasAttribute("data-visible");
+      const indicatorIsVisible = oel.hasAttribute('data-visible');
       // When forceMount is used, the indicator stays mounted even when not
       // overflowing. Reset the cache in that state so a stale "+N" badge
       // width does not prevent items from being revealed on expand.
@@ -346,9 +346,9 @@ export function OverflowGroup(props: OverflowGroupProps) {
     // Reserve the actions footprint from the available flow space.
     const cg = cssColGap;
     const rg = cssRowGap;
-    const reserveW = orientation === "horizontal" && aw > 0 ? aw + (n > 0 ? cg : 0) : 0;
+    const reserveW = orientation === 'horizontal' && aw > 0 ? aw + (n > 0 ? cg : 0) : 0;
     const reserveH =
-      (orientation === "vertical" || orientation === "wrap" || orientation === "grid") && ah > 0
+      (orientation === 'vertical' || orientation === 'wrap' || orientation === 'grid') && ah > 0
         ? ah + (n > 0 ? rg : 0)
         : 0;
 
@@ -394,11 +394,11 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
     let visibleCount = n;
 
-    if (orientation === "horizontal") {
+    if (orientation === 'horizontal') {
       visibleCount = packHorizontal(itemSizes, flowW, cg, ow, hasLiveIndicator, fitStrategy);
-    } else if (orientation === "vertical") {
+    } else if (orientation === 'vertical') {
       visibleCount = packVertical(itemSizes, flowH, rg, oh, hasLiveIndicator, fitStrategy);
-    } else if (orientation === "wrap") {
+    } else if (orientation === 'wrap') {
       visibleCount = packWrap(
         itemSizes,
         flowW,
@@ -410,8 +410,8 @@ export function OverflowGroup(props: OverflowGroupProps) {
         hasLiveIndicator,
         fitStrategy,
       );
-    } else if (orientation === "grid") {
-      if (process.env.NODE_ENV !== "production" && cs.gridTemplateColumns === "none") {
+    } else if (orientation === 'grid') {
+      if (process.env.NODE_ENV !== 'production' && cs.gridTemplateColumns === 'none') {
         console.warn(
           `[${CONTAINER_NAME}] orientation="grid" requires display:grid. ` +
             'gridTemplateColumns resolved to "none" — check className/style.',
@@ -426,7 +426,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
       let colCount = 1;
       if (explicitRepeat !== null) {
         colCount = explicitRepeat;
-      } else if (trackTokens.length > 0 && template !== "none") {
+      } else if (trackTokens.length > 0 && template !== 'none') {
         colCount = trackTokens.length;
       } else if (autoRepeatMin !== null) {
         colCount = Math.max(1, Math.floor((flowW + cg) / (autoRepeatMin + cg)));
@@ -439,7 +439,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
       // Batch all style writes then all reads — ONE forced reflow total (vs N).
       const gridMeasureItems = oel
-        ? [...items.map((item) => ({ id: item.id, el: item.el })), { id: "__indicator__", el: oel }]
+        ? [...items.map((item) => ({ id: item.id, el: item.el })), { id: '__indicator__', el: oel }]
         : items.map((item) => ({ id: item.id, el: item.el }));
       const gridHeights = batchMeasureHeightsAtWidth(
         gridMeasureItems,
@@ -553,7 +553,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
   // Schedule on orientation / strategy change (deferred to rAF to prevent
   // forced reflow during React's commit phase).
-  useIsomorphicLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     scheduleCalc();
   }, [calc]);
 
@@ -570,7 +570,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
   React.useEffect(() => {
     const el = containerElRef.current;
-    if (!el || ctx.orientation === "none") return;
+    if (!el || ctx.orientation === 'none') return;
 
     // Watch container + parent. Parent observation handles unconstrained flex
     // children whose available space is determined by their parent's size.
@@ -596,20 +596,20 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const defaultProps: useRender.ElementProps<"div"> & {
-    "data-slot": string;
+  const defaultProps: useRender.ElementProps<'div'> & {
+    'data-slot': string;
   } = {
-    "data-slot": "overflow-group",
+    'data-slot': 'overflow-group',
     className: cn(
-      "relative min-h-0 max-w-full min-w-0 overflow-hidden",
-      fill ? "w-full flex-1" : "w-auto shrink",
+      'relative min-h-0 max-w-full min-w-0 overflow-hidden',
+      fill ? 'w-full flex-1' : 'w-auto shrink',
       className,
     ),
     children,
   };
 
   const element = useRender<Record<string, unknown>, HTMLElement>({
-    defaultTagName: "div",
+    defaultTagName: 'div',
     ref: [ref as React.Ref<HTMLDivElement>, containerElRef as React.Ref<HTMLDivElement>],
     render,
     props: mergeProps(defaultProps, containerProps as Record<string, unknown>),
@@ -622,4 +622,4 @@ export function OverflowGroup(props: OverflowGroupProps) {
   );
 }
 
-OverflowGroup.displayName = "OverflowGroup";
+OverflowGroup.displayName = 'OverflowGroup';

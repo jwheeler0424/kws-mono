@@ -16,7 +16,41 @@ function ScrollArea({ className, children, ...props }: ScrollAreaPrimitive.Root.
     const viewport = root.querySelector<HTMLElement>("[data-slot='scroll-area-viewport']");
     if (!viewport) return;
 
+    const redEls = Array.from(viewport.querySelectorAll<HTMLElement>('[data-red-bg]'));
+    if (redEls.length === 0) {
+      root.style.setProperty(
+        '--thumb-white-mask',
+        'linear-gradient(to bottom, transparent, transparent)',
+      );
+      return;
+    }
+
     let raf = 0;
+    let measureRaf = 0;
+    let redRanges: Array<{ start: number; end: number }> = [];
+
+    const measureRedRanges = () => {
+      const viewportRect = viewport.getBoundingClientRect();
+      const baseScrollTop = viewport.scrollTop;
+
+      redRanges = redEls
+        .map((el) => {
+          const rect = el.getBoundingClientRect();
+          const start = rect.top - viewportRect.top + baseScrollTop;
+          const end = rect.bottom - viewportRect.top + baseScrollTop;
+          return { start, end };
+        })
+        .filter((segment) => Number.isFinite(segment.start) && segment.end > segment.start);
+    };
+
+    const queueMeasure = () => {
+      if (measureRaf) return;
+      measureRaf = window.requestAnimationFrame(() => {
+        measureRaf = 0;
+        measureRedRanges();
+        queue();
+      });
+    };
 
     const checkUnderThumb = () => {
       raf = 0;
@@ -30,26 +64,24 @@ function ScrollArea({ className, children, ...props }: ScrollAreaPrimitive.Root.
         return;
       }
 
-      // Compute the thumb's actual bounding rect in browser coordinates.
-      // Base UI positions the thumb inside the scrollbar track which lives in Root.
-      const rootRect = root.getBoundingClientRect();
       const thumbHeight = (clientHeight / scrollHeight) * clientHeight;
       const thumbTopInTrack = (scrollTop / scrollHeight) * clientHeight;
-      const thumbTopY = rootRect.top + thumbTopInTrack;
-      const thumbBottomY = thumbTopY + thumbHeight;
+      const thumbTop = thumbTopInTrack;
+      const thumbBottom = thumbTop + thumbHeight;
 
-      const redEls = viewport.querySelectorAll<HTMLElement>('[data-red-bg]');
       const segments: Array<{ start: number; end: number }> = [];
 
-      for (const el of redEls) {
-        const elRect = el.getBoundingClientRect();
-        // Overlap between element and thumb in browser-Y space
-        const overlapTop = Math.max(elRect.top, thumbTopY);
-        const overlapBottom = Math.min(elRect.bottom, thumbBottomY);
+      for (const range of redRanges) {
+        // Convert content scroll-space into viewport local-space.
+        const rangeTop = range.start - scrollTop;
+        const rangeBottom = range.end - scrollTop;
+        const overlapTop = Math.max(rangeTop, thumbTop);
+        const overlapBottom = Math.min(rangeBottom, thumbBottom);
         if (overlapBottom <= overlapTop) continue;
+
         // Convert overlap to thumb-local px (0 = top of thumb, thumbHeight = bottom)
-        const startPx = overlapTop - thumbTopY;
-        const endPx = overlapBottom - thumbTopY;
+        const startPx = overlapTop - thumbTop;
+        const endPx = overlapBottom - thumbTop;
         segments.push({ start: startPx, end: endPx });
       }
 
@@ -85,12 +117,16 @@ function ScrollArea({ className, children, ...props }: ScrollAreaPrimitive.Root.
       if (!raf) raf = window.requestAnimationFrame(checkUnderThumb);
     };
 
+    measureRedRanges();
     viewport.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queueMeasure);
     queue();
 
     return () => {
       if (raf) window.cancelAnimationFrame(raf);
+      if (measureRaf) window.cancelAnimationFrame(measureRaf);
       viewport.removeEventListener('scroll', queue);
+      window.removeEventListener('resize', queueMeasure);
     };
   }, []);
 

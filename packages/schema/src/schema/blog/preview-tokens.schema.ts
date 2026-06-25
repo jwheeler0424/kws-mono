@@ -3,7 +3,7 @@ import { index, integer, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/p
 import { createInsertSchema, createSelectSchema } from 'drizzle-orm/zod';
 import { z } from 'zod';
 
-import type { UUIDv7 } from '@kws/types';
+import type { UUIDv7 } from '../types';
 
 import { user } from '../auth';
 import { idPrimaryKey } from '../common.schema';
@@ -53,6 +53,9 @@ export const blogPreviewTokenRelations = defineRelationsPart(
     previewTokens: {
       post: r.one.posts({ from: r.previewTokens.postId, to: r.posts.id, optional: false }),
       creator: r.one.user({ from: r.previewTokens.createdBy, to: r.user.id, optional: false }),
+    },
+    posts: {
+      previewTokens: r.many.previewTokens({ from: r.posts.id, to: r.previewTokens.postId }),
     },
   }),
 );

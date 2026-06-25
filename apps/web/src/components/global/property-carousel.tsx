@@ -1,7 +1,4 @@
-import Autoplay from 'embla-carousel-autoplay';
-import React from 'react';
-
-import type { TPropertyCard } from '@/types/property';
+import type { TPropertyCard } from '@kws/types';
 
 import {
   Carousel,
@@ -9,7 +6,10 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from '@/components/ui/carousel';
+} from '@kws/design/ui/carousel';
+import Autoplay from 'embla-carousel-autoplay';
+import React from 'react';
+
 import { cn } from '@/lib/utils';
 
 import PropertyCard from './property-card';

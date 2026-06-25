@@ -1,4 +1,4 @@
 export * from '@kws/design/lib/utils/index'
 export * from './formatters'
-export * from './get-initials'
 
+export * from "./properties"

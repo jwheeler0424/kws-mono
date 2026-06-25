@@ -1,7 +1,7 @@
+import { Input as InputPrimitive } from '@kws/design/ui/input';
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 
-import { Input as InputPrimitive } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const inputVariants = cva(

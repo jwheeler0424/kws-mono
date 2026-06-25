@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { boolean, index, jsonb, pgTable, timestamp, varchar } from 'drizzle-orm/pg-core';
 
-import type { NWM_OpenHouse } from '@kws/types';
+import type { NWM_OpenHouse } from '../types';
 
 import { tsvector } from '../../plugins/tsvector';
 import { softDelete, timestamps } from '../common.schema';

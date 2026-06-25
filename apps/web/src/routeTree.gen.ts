@@ -15,11 +15,15 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BuyingRouteImport } from './routes/buying'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PropertiesIndexRouteImport } from './routes/properties/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as RobotsDotTxtRouteImport } from './routes/robots[.].txt'
 import { Route as PoliciesPrivacyRouteImport } from './routes/policies/privacy'
 import { Route as PoliciesDmcaRouteImport } from './routes/policies/dmca'
+import { Route as ListingsListingKeyRouteImport } from './routes/listings/$listingKey'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
+import { Route as ListingsListingsRouteRouteImport } from './routes/listings/_listings.route'
+import { Route as ListingsListingsIndexRouteImport } from './routes/listings/_listings.index'
 import { Route as BlogTagChar123TagChar125Char123SlugChar125RouteImport } from './routes/blog/tag.{-$tag}.{-$slug}'
 import { Route as BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport } from './routes/blog/category.{-$category}.{-$slug}'
 import { Route as BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport } from './routes/blog/archive/{-$year}/{-$month}/{-$day}'
@@ -54,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PropertiesIndexRoute = PropertiesIndexRouteImport.update({
+  id: '/properties/',
+  path: '/properties/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -74,10 +83,25 @@ const PoliciesDmcaRoute = PoliciesDmcaRouteImport.update({
   path: '/policies/dmca',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ListingsListingKeyRoute = ListingsListingKeyRouteImport.update({
+  id: '/listings/$listingKey',
+  path: '/listings/$listingKey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ListingsListingsRouteRoute = ListingsListingsRouteRouteImport.update({
+  id: '/listings/_listings',
+  path: '/listings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListingsListingsIndexRoute = ListingsListingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ListingsListingsRouteRoute,
 } as any)
 const BlogTagChar123TagChar125Char123SlugChar125Route =
   BlogTagChar123TagChar125Char123SlugChar125RouteImport.update({
@@ -107,11 +131,15 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/selling': typeof SellingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/listings': typeof ListingsListingsRouteRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
+  '/listings/$listingKey': typeof ListingsListingKeyRoute
   '/policies/dmca': typeof PoliciesDmcaRoute
   '/policies/privacy': typeof PoliciesPrivacyRoute
   '/robots./txt': typeof RobotsDotTxtRoute
   '/blog/': typeof BlogIndexRoute
+  '/properties/': typeof PropertiesIndexRoute
+  '/listings/': typeof ListingsListingsIndexRoute
   '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
   '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
   '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
@@ -124,10 +152,13 @@ export interface FileRoutesByTo {
   '/selling': typeof SellingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/listings/$listingKey': typeof ListingsListingKeyRoute
   '/policies/dmca': typeof PoliciesDmcaRoute
   '/policies/privacy': typeof PoliciesPrivacyRoute
   '/robots./txt': typeof RobotsDotTxtRoute
   '/blog': typeof BlogIndexRoute
+  '/properties': typeof PropertiesIndexRoute
+  '/listings': typeof ListingsListingsIndexRoute
   '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
   '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
   '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
@@ -140,11 +171,15 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/selling': typeof SellingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/listings/_listings': typeof ListingsListingsRouteRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
+  '/listings/$listingKey': typeof ListingsListingKeyRoute
   '/policies/dmca': typeof PoliciesDmcaRoute
   '/policies/privacy': typeof PoliciesPrivacyRoute
   '/robots./txt': typeof RobotsDotTxtRoute
   '/blog/': typeof BlogIndexRoute
+  '/properties/': typeof PropertiesIndexRoute
+  '/listings/_listings/': typeof ListingsListingsIndexRoute
   '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
   '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
   '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
@@ -158,11 +193,15 @@ export interface FileRouteTypes {
     | '/contact'
     | '/selling'
     | '/sitemap.xml'
+    | '/listings'
     | '/blog/$slug'
+    | '/listings/$listingKey'
     | '/policies/dmca'
     | '/policies/privacy'
     | '/robots./txt'
     | '/blog/'
+    | '/properties/'
+    | '/listings/'
     | '/blog/category/{-$category}/{-$slug}'
     | '/blog/tag/{-$tag}/{-$slug}'
     | '/blog/archive/{-$year}/{-$month}/{-$day}'
@@ -175,10 +214,13 @@ export interface FileRouteTypes {
     | '/selling'
     | '/sitemap.xml'
     | '/blog/$slug'
+    | '/listings/$listingKey'
     | '/policies/dmca'
     | '/policies/privacy'
     | '/robots./txt'
     | '/blog'
+    | '/properties'
+    | '/listings'
     | '/blog/category/{-$category}/{-$slug}'
     | '/blog/tag/{-$tag}/{-$slug}'
     | '/blog/archive/{-$year}/{-$month}/{-$day}'
@@ -190,11 +232,15 @@ export interface FileRouteTypes {
     | '/contact'
     | '/selling'
     | '/sitemap.xml'
+    | '/listings/_listings'
     | '/blog/$slug'
+    | '/listings/$listingKey'
     | '/policies/dmca'
     | '/policies/privacy'
     | '/robots./txt'
     | '/blog/'
+    | '/properties/'
+    | '/listings/_listings/'
     | '/blog/category/{-$category}/{-$slug}'
     | '/blog/tag/{-$tag}/{-$slug}'
     | '/blog/archive/{-$year}/{-$month}/{-$day}'
@@ -207,11 +253,14 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   SellingRoute: typeof SellingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ListingsListingsRouteRoute: typeof ListingsListingsRouteRouteWithChildren
   BlogSlugRoute: typeof BlogSlugRoute
+  ListingsListingKeyRoute: typeof ListingsListingKeyRoute
   PoliciesDmcaRoute: typeof PoliciesDmcaRoute
   PoliciesPrivacyRoute: typeof PoliciesPrivacyRoute
   RobotsDotTxtRoute: typeof RobotsDotTxtRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  PropertiesIndexRoute: typeof PropertiesIndexRoute
   BlogCategoryChar123CategoryChar125Char123SlugChar125Route: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
   BlogTagChar123TagChar125Char123SlugChar125Route: typeof BlogTagChar123TagChar125Char123SlugChar125Route
   BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route: typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
@@ -261,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/properties/': {
+      id: '/properties/'
+      path: '/properties'
+      fullPath: '/properties/'
+      preLoaderRoute: typeof PropertiesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/': {
       id: '/blog/'
       path: '/blog'
@@ -289,12 +345,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PoliciesDmcaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/listings/$listingKey': {
+      id: '/listings/$listingKey'
+      path: '/listings/$listingKey'
+      fullPath: '/listings/$listingKey'
+      preLoaderRoute: typeof ListingsListingKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/$slug': {
       id: '/blog/$slug'
       path: '/blog/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/listings/_listings': {
+      id: '/listings/_listings'
+      path: '/listings'
+      fullPath: '/listings'
+      preLoaderRoute: typeof ListingsListingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/listings/_listings/': {
+      id: '/listings/_listings/'
+      path: '/'
+      fullPath: '/listings/'
+      preLoaderRoute: typeof ListingsListingsIndexRouteImport
+      parentRoute: typeof ListingsListingsRouteRoute
     }
     '/blog/tag/{-$tag}/{-$slug}': {
       id: '/blog/tag/{-$tag}/{-$slug}'
@@ -320,6 +397,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ListingsListingsRouteRouteChildren {
+  ListingsListingsIndexRoute: typeof ListingsListingsIndexRoute
+}
+
+const ListingsListingsRouteRouteChildren: ListingsListingsRouteRouteChildren = {
+  ListingsListingsIndexRoute: ListingsListingsIndexRoute,
+}
+
+const ListingsListingsRouteRouteWithChildren =
+  ListingsListingsRouteRoute._addFileChildren(
+    ListingsListingsRouteRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -327,11 +417,14 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   SellingRoute: SellingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ListingsListingsRouteRoute: ListingsListingsRouteRouteWithChildren,
   BlogSlugRoute: BlogSlugRoute,
+  ListingsListingKeyRoute: ListingsListingKeyRoute,
   PoliciesDmcaRoute: PoliciesDmcaRoute,
   PoliciesPrivacyRoute: PoliciesPrivacyRoute,
   RobotsDotTxtRoute: RobotsDotTxtRoute,
   BlogIndexRoute: BlogIndexRoute,
+  PropertiesIndexRoute: PropertiesIndexRoute,
   BlogCategoryChar123CategoryChar125Char123SlugChar125Route:
     BlogCategoryChar123CategoryChar125Char123SlugChar125Route,
   BlogTagChar123TagChar125Char123SlugChar125Route:

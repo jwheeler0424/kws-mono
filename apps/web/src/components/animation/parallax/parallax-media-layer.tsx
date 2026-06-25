@@ -38,7 +38,7 @@ export const ParallaxMediaLayer = <T extends ElementType = 'div'>({
       <Activity mode={overlay ? 'visible' : 'hidden'}>
         <div
           data-slot='parallax-overlay'
-          className={cn(`bg-black/${overlayOpacity}`, `absolute inset-0 isolate`)}
+          className={`bg-black/${overlayOpacity} absolute inset-0 isolate`}
         />
       </Activity>
     </ParallaxItem>

@@ -53,61 +53,6 @@ services:
       retries: 10
       start_period: 5s
 
-  # ── Queue executor ────────────────────────────────────────────────────────
-  worker-executor:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: dev
-    restart: unless-stopped
-    mem_limit: ${WORKER_EXECUTOR_MEMORY_LIMIT:-768m}
-    env_file:
-      - .env
-    environment:
-      DB_HOST: db
-      DB_PORT: '${DB_PORT:-5432}'
-      DB_NAME: ${DB_NAME:-postgres}
-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
-      REDIS_HOST: redis
-      REDIS_PORT: '${REDIS_PORT:-6379}'
-      REDIS_URL: redis://redis:${REDIS_PORT:-6379}
-      # Run migrations once here before the worker starts.
-      # Uses bunx directly to avoid package.json script-lookup failures
-      # that occur when the image's package.json is older than the bind mount.
-      DB_INIT_COMMAND: 'bunx drizzle-kit migrate --config /app/drizzle.config.ts'
-    volumes:
-      - ./public/media:/app/public/media
-    depends_on:
-      db:
-        condition: service_healthy
-    command: ['bun', '--bun', './src/lib/queue/workers/executor.init.ts']
-
-  # ── Queue scheduler ───────────────────────────────────────────────────────
-  worker-scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: dev
-    restart: unless-stopped
-    mem_limit: ${WORKER_SCHEDULER_MEMORY_LIMIT:-256m}
-    env_file:
-      - .env
-    environment:
-      DB_HOST: db
-      DB_PORT: '${DB_PORT:-5432}'
-      DB_NAME: ${DB_NAME:-postgres}
-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
-      REDIS_HOST: redis
-      REDIS_PORT: '${REDIS_PORT:-6379}'
-      REDIS_URL: redis://redis:${REDIS_PORT:-6379}
-      MLS_QUEUE_ENABLE_HOURLY_SYNC: '${MLS_QUEUE_ENABLE_HOURLY_SYNC:-true}'
-    depends_on:
-      db:
-        condition: service_healthy
-      worker-executor:
-        condition: service_started
-    command: ['bun', '--bun', './src/lib/queue/workers/scheduler.init.ts']
-
 volumes:
   pgdata_dev:
   redisdata_dev:

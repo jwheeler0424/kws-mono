@@ -1,23 +1,10 @@
 import type { CheckboxRootState } from '@base-ui/react/checkbox';
+import type { TPropertyCard } from '@kws/types';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
-import { Search, X } from 'lucide-react';
-import React from 'react';
-
-import type { TPropertyCard } from '@/types/property';
-
-import { Button } from '@/components/global/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Combobox, ComboboxContent, ComboboxInputDebounced } from '@/components/ui/combobox';
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
-import { Input } from '@/components/ui/input';
+import { Checkbox } from '@kws/design/ui/checkbox';
+import { Combobox, ComboboxContent, ComboboxInputDebounced } from '@kws/design/ui/combobox';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@kws/design/ui/empty';
+import { Input } from '@kws/design/ui/input';
 import {
   Item,
   ItemContent,
@@ -25,8 +12,8 @@ import {
   ItemGroup,
   ItemMedia,
   ItemTitle,
-} from '@/components/ui/item';
-import { Label } from '@/components/ui/label';
+} from '@kws/design/ui/item';
+import { Label } from '@kws/design/ui/label';
 import {
   Sheet,
   SheetContent,
@@ -35,8 +22,16 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
-import { Slider } from '@/components/ui/slider';
+} from '@kws/design/ui/sheet';
+import { Slider } from '@kws/design/ui/slider';
+import { toast } from '@kws/design/ui/toast';
+import { toCanonicalListingsSearch, toListingsSearchUrl } from '@kws/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { Search, X } from 'lucide-react';
+import React from 'react';
+
+import { Button } from '@/components/global/button';
 import {
   DEFAULT_POSITION,
   FILTER_LIMITS,
@@ -49,11 +44,9 @@ import {
   resetSearchFiltersMutationOptions,
   searchListingsOptions,
 } from '@/packages/mls/search.options';
-import { Route as ListingsRoute } from '@/routes/_frontend/listings/_listings.index';
+import { Route as ListingsRoute } from '@/routes/listings/_listings.index';
 import { useMapActions, useMapStore } from '@/stores/map.store';
-import { toCanonicalListingsSearch, toListingsSearchUrl } from '@/types/search';
 
-import { toast } from '../ui/toast';
 import { ScrollArea } from './listings-search-scroll-area';
 
 export default function ListingsSearch() {

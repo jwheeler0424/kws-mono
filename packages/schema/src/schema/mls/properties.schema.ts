@@ -13,7 +13,7 @@ import {
     varchar,
 } from 'drizzle-orm/pg-core';
 
-import type { NWM_Property } from '@kws/types';
+import type { NWM_Property } from '../types';
 
 import { tsvector } from '../../plugins/tsvector';
 import { softDelete, timestamps } from '../common.schema';
@@ -35,7 +35,6 @@ export const standardStatusEnum = pgEnum('standard_status', [
     'Pending',
     'Withdrawn',
 ]);
-export type StandardStatus = (typeof standardStatusEnum.enumValues)[number];
 
 export const propertyTypeEnum = pgEnum('property_type', [
     'BusinessOpportunity',
@@ -481,10 +480,10 @@ export const properties = pgTable(
                 'parking_features',
             ])
             .weight('C')
+            .array()
             // D — descriptive text (public remarks)
             .cols(['public_remarks'])
-            .weight('D')
-            .array(),
+            .weight('D'),
     },
     (t) => [
         index('idx_properties_property_type')
@@ -528,7 +527,6 @@ export const properties = pgTable(
     ],
 );
 
-export type PropertyListing = typeof properties.$inferSelect;
 
 /*
 *** REFERENCE OData EDMX for Properties from RESO Web API ***

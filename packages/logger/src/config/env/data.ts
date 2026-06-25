@@ -1,0 +1,26 @@
+import { z } from 'zod';
+
+const envSchema = z.object({
+  // ── Database configuration ──────────────────────────────────────────────
+  DATABASE_URL: z.url(),
+  DB_USER: z.string().min(1),
+  DB_PASSWORD: z.string().min(1),
+  DB_NAME: z.string().min(1),
+  DB_HOST: z.hostname().default('localhost'),
+  DB_PORT: z.coerce.number().int().positive(),
+  PG_MAX_CLIENTS: z.coerce.number().int().positive().default(10),
+  PG_BOSS_MAX_CONNECTIONS: z.coerce.number().int().positive().default(5),
+
+  // ── Redis configuration ─────────────────────────────────────────────────
+  REDIS_HOST: z.hostname().default('localhost'),
+  REDIS_PORT: z.coerce.number().int().positive(),
+  REDIS_URL: z.url(),
+});
+
+const parsed = envSchema.safeParse(Bun.env);
+
+if (!parsed.success) {
+  throw new Error(`Invalid environment variables: ${parsed.error.message}`);
+}
+
+export default parsed.data;

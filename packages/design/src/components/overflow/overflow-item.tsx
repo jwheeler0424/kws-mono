@@ -1,29 +1,28 @@
-"use client";
+'use client';
 // @refresh reset
 
-import { mergeProps } from "@base-ui/react/merge-props";
-import { useRender } from "@base-ui/react/use-render";
-import * as React from "react";
+import { mergeProps } from '@base-ui/react/merge-props';
+import { useRender } from '@base-ui/react/use-render';
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect';
+import * as React from 'react';
 
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-effect";
-import { cn } from "../../lib/utils";
-
+import { cn } from '../../lib/utils';
 import {
   OverflowItemContext,
   useOverflowContext,
   useOverflowRegistrationContext,
   type OverflowItemContextValue,
-} from "./context";
-import { useStore } from "./hooks";
-import { selectorHiddenId, selectorOverscanId } from "./utils/selectors";
+} from './context';
+import { useStore } from './hooks';
+import { selectorHiddenId, selectorOverscanId } from './utils/selectors';
 
 // ─── Component name ───────────────────────────────────────────────────────────
 
-const ITEM_NAME = "OverflowItem";
+const ITEM_NAME = 'OverflowItem';
 
 // ─── OverflowItemProps ────────────────────────────────────────────────────────
 
-export interface OverflowItemProps extends useRender.ComponentProps<"div"> {
+export interface OverflowItemProps extends useRender.ComponentProps<'div'> {
   /**
    * When true (default), hidden items stay in the DOM with:
    *   `data-hidden=""`  — CSS selector hook
@@ -85,7 +84,7 @@ export function OverflowItem(props: OverflowItemProps) {
   const postMountRef = React.useRef(false);
 
   // Effect 1: mount / unmount — registers item and sets up cleanup.
-  useIsomorphicLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     const el = elRef.current;
     if (!el) return;
     const idx = registrationCtx.registerItem(itemId, el, children, false);
@@ -102,7 +101,7 @@ export function OverflowItem(props: OverflowItemProps) {
   // `postMountRef` guard prevents double-registration on initial mount because
   // React fires effects in declaration order: Effect 1 fires first (skipping
   // the guard isn't needed there), then Effect 2 fires and finds the flag unset.
-  useIsomorphicLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     if (!postMountRef.current) {
       postMountRef.current = true;
       return; // skip — Effect 1 already registered on this render
@@ -121,18 +120,18 @@ export function OverflowItem(props: OverflowItemProps) {
   };
 
   const requiresLiveMeasurement =
-    overflowCtx.orientation === "grid" || overflowCtx.orientation === "wrap";
+    overflowCtx.orientation === 'grid' || overflowCtx.orientation === 'wrap';
   const shouldRenderChildren = keepMounted || !isHidden || isOverscan || requiresLiveMeasurement;
   const shouldHideWrapper = isHidden;
   const shouldWarmHidden = isHidden && isOverscan && !requiresLiveMeasurement;
 
-  const defaultProps: useRender.ElementProps<"div"> & {
-    "data-slot": string;
-    "data-hidden"?: string;
+  const defaultProps: useRender.ElementProps<'div'> & {
+    'data-slot': string;
+    'data-hidden'?: string;
   } = {
-    "data-slot": "overflow-item",
-    "data-hidden": isHidden ? "" : undefined,
-    "aria-hidden": isHidden ? true : undefined,
+    'data-slot': 'overflow-item',
+    'data-hidden': isHidden ? '' : undefined,
+    'aria-hidden': isHidden ? true : undefined,
     tabIndex: isHidden ? -1 : undefined,
     style: shouldHideWrapper
       ? shouldWarmHidden
@@ -140,32 +139,32 @@ export function OverflowItem(props: OverflowItemProps) {
             // Overscan / warm-hidden: fully rendered off-screen, instantly
             // revealable. `contain` prevents hidden content from influencing
             // surrounding layout.
-            position: "absolute",
+            position: 'absolute',
             top: 0,
             left: 0,
-            visibility: "hidden",
-            pointerEvents: "none",
-            contain: "layout paint style",
+            visibility: 'hidden',
+            pointerEvents: 'none',
+            contain: 'layout paint style',
           }
         : {
             // Zero-footprint: hidden without contributing to scroll extents
             // or triggering accidental page-width expansion.
-            position: "absolute",
+            position: 'absolute',
             top: 0,
             left: 0,
             width: 0,
             height: 0,
-            overflow: "hidden",
-            visibility: "hidden",
-            pointerEvents: "none",
+            overflow: 'hidden',
+            visibility: 'hidden',
+            pointerEvents: 'none',
           }
       : undefined,
-    className: cn("shrink-0", className),
+    className: cn('shrink-0', className),
     children: shouldRenderChildren ? children : null,
   };
 
   const element = useRender<Record<string, unknown>, HTMLElement>({
-    defaultTagName: "div",
+    defaultTagName: 'div',
     ref: [ref as React.Ref<HTMLDivElement>, elRef as React.Ref<HTMLDivElement>],
     render,
     props: mergeProps(defaultProps, itemProps as Record<string, unknown>),
@@ -174,4 +173,4 @@ export function OverflowItem(props: OverflowItemProps) {
   return <OverflowItemContext.Provider value={itemContext}>{element}</OverflowItemContext.Provider>;
 }
 
-OverflowItem.displayName = "OverflowItem";
+OverflowItem.displayName = 'OverflowItem';

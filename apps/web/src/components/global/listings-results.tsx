@@ -1,9 +1,7 @@
+import type { CursorResult, TListingsSearch, TPropertyCard } from '@kws/types';
+
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
-
-import type { PropertyCardPageResult } from '@/packages/mls/queries/property-cards.queries';
-import type { TPropertyCard } from '@/types/property';
-import type { TListingsSearch } from '@/types/search';
 
 import {
   searchListingsCountFromRouteOptions,
@@ -33,7 +31,7 @@ export function ListingsResults({ params }: { params: TListingsSearch }) {
       }),
   });
 
-  const [pages, setPages] = React.useState<PropertyCardPageResult<TPropertyCard>[]>([]);
+  const [pages, setPages] = React.useState<CursorResult<TPropertyCard>[]>([]);
   const [nextCursor, setNextCursor] = React.useState<string | null>(null);
   const [loadingMore, setLoadingMore] = React.useState(false);
 
@@ -81,7 +79,7 @@ export function ListingsResults({ params }: { params: TListingsSearch }) {
     <>
       {isPending ? <Loader /> : null}
       <ListingsSection
-        properties={{ items: properties } as PropertyCardPageResult<TPropertyCard>}
+        properties={{ items: properties } as CursorResult<TPropertyCard>}
         title={`Search Results ${resultCount ? `(${resultCount})` : ''}`}
         emptyText={isPending || isFetching ? '' : 'There are currently no results to view.'}
         pageSize={params.limit ?? 48}

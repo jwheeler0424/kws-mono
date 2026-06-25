@@ -3,7 +3,7 @@ import type { PgColumn } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { customType, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-import type { UUIDv7 } from '@kws/types';
+import type { UUIDv7 } from './types';
 
 export type RequiredKey<
   BaseRecord extends Record<string, unknown>,

@@ -1,18 +1,20 @@
-import { useQueryClient } from '@tanstack/react-query';
-import L, { DivIcon, type LeafletEvent } from 'leaflet';
-import 'leaflet-edgebuffer';
-import 'leaflet.markercluster';
-import 'leaflet/dist/leaflet.css';
-import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import type { PropertyMapMarker } from '@kws/types';
 
-import type { PropertyMapMarker } from '@/packages/mls/types';
+import { useQueryClient } from '@tanstack/react-query';
+import 'leaflet-edgebuffer';
+import 'leaflet/dist/leaflet.css';
+import L, { DivIcon, type LeafletEvent } from 'leaflet';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 
 import { DEFAULT_POSITION } from '@/config/constants/properties';
 import { abbreviateNumber } from '@/lib/utils';
 import { markerCardByListingKeyOptions } from '@/packages/mls/search.options';
 import { useMapActions, useMapStore } from '@/stores/map.store';
-import 'react-leaflet-markercluster/styles';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
 
 import Loader from './map-loader';
 import MapPopupCard from './map-popup-card';
@@ -32,19 +34,34 @@ export function MapView({
 }: MapProps) {
   const queryClient = useQueryClient();
   const [mapLoading, setMapLoading] = React.useState(true);
-  const [markersReady, setMarkersReady] = React.useState(false);
+  const [mapReady, setMapReady] = React.useState(false);
   const [openPopup, setOpenPopup] = useState<{ listingKey: string; container: HTMLElement } | null>(
     null,
   );
   const initialMarkersRenderedRef = useRef(false);
-  const mapRef = useRef<L.Map>(null);
-  const markersRef = useRef<L.MarkerClusterGroup>(null);
   const mapTimestamp = useMapStore((state) => state.timestamp);
   const positionUpdated = useMapStore((state) => state.positionUpdated);
   const mapPosition = useMapStore((state) => state.mapPosition);
   const userPosition = useMapStore((state) => state.userPosition);
   const zoom = useMapStore((state) => state.zoom);
   const { setPositionUpdated, setBounds, setMapPosition, setZoom } = useMapActions();
+
+  const initialCenter = useMemo<[number, number]>(() => {
+    const timestamp = Date.now() - mapTimestamp;
+    const millisecondsInOneDay = 24 * 60 * 60 * 1000;
+
+    if (timestamp < millisecondsInOneDay && mapPosition.lat && mapPosition.lng) {
+      return [mapPosition.lat, mapPosition.lng];
+    }
+
+    return [DEFAULT_POSITION.lat, DEFAULT_POSITION.lng];
+  }, [mapPosition.lat, mapPosition.lng, mapTimestamp]);
+
+  const initialZoom = useMemo(() => {
+    const timestamp = Date.now() - mapTimestamp;
+    const millisecondsInOneDay = 24 * 60 * 60 * 1000;
+    return timestamp < millisecondsInOneDay && zoom ? zoom : DEFAULT_POSITION.zoom;
+  }, [mapTimestamp, zoom]);
 
   const prefetchMarkerCard = React.useCallback(
     (listingKey: string) => {
@@ -80,71 +97,6 @@ export function MapView({
     setOpenPopup({ listingKey: property.listingKey, container });
   }, []);
 
-  const createPropertyMarker = React.useCallback(
-    (property: PropertyMapMarker) => {
-      const marker = L.marker([Number(property.latitude), Number(property.longitude)], {
-        icon: markerIcon(property.listPrice ?? '0', zoom),
-      });
-      marker.bindPopup(`<p>Loading property details...</p>`, {
-        autoPan: true,
-        keepInView: true,
-        closeButton: false,
-        className: 'w-72',
-      });
-      marker.on('mouseover', () => {
-        prefetchMarkerCard(property.listingKey);
-      });
-      marker.on('popupopen', (e: L.LeafletEvent) => {
-        mountPopupContent(e, property);
-      });
-      marker.on('popupclose', () => {
-        setOpenPopup(null);
-      });
-
-      return marker;
-    },
-    [mountPopupContent, prefetchMarkerCard, zoom],
-  );
-
-  const generatePropertyMarkers = React.useCallback(() => {
-    const map = mapRef.current;
-    if (!map) {
-      return;
-    }
-
-    setMarkersReady(false);
-
-    const nextMarkers = L.markerClusterGroup({
-      animate: false,
-      chunkedLoading: false,
-      maxClusterRadius: (zoom: number) => {
-        return zoom < ZOOM_BREAKPOINT ? 36 : 16;
-      },
-      showCoverageOnHover: false,
-      removeOutsideVisibleBounds: true,
-      spiderfyOnMaxZoom: true,
-      iconCreateFunction: clusterMarkerFactory,
-    });
-
-    for (const property of properties) {
-      nextMarkers.addLayer(createPropertyMarker(property));
-    }
-
-    const previousMarkers = markersRef.current;
-    map.addLayer(nextMarkers);
-    if (previousMarkers) {
-      map.removeLayer(previousMarkers);
-      previousMarkers.clearLayers();
-    }
-
-    markersRef.current = nextMarkers;
-    setMarkersReady(true);
-    if (!initialMarkersRenderedRef.current && !markersLoading) {
-      initialMarkersRenderedRef.current = true;
-      onInitialMarkersRendered?.();
-    }
-  }, [createPropertyMarker, markersLoading, onInitialMarkersRendered, properties]);
-
   function clusterMarkerFactory() {
     return new DivIcon({
       className: 'h-auto w-auto rounded-full',
@@ -163,50 +115,10 @@ export function MapView({
     });
 
   useEffect(() => {
-    const timestamp = Date.now() - mapTimestamp;
-    const millisecondsInOneDay = 24 * 60 * 60 * 1000;
-    if (!mapRef.current)
-      mapRef.current = L.map('listings-map', {
-        center:
-          timestamp < millisecondsInOneDay && mapPosition.lat && mapPosition.lng
-            ? [mapPosition.lat, mapPosition.lng]
-            : [DEFAULT_POSITION.lat, DEFAULT_POSITION.lng],
-        zoom: timestamp < millisecondsInOneDay && zoom ? zoom : DEFAULT_POSITION.zoom,
-        maxZoom: 18,
-        scrollWheelZoom: false,
-      }).addLayer(
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          detectRetina: true,
-          edgeBufferTiles: 2,
-        }),
-      );
-
-    if (!markersRef.current)
-      markersRef.current = L.markerClusterGroup({
-        animate: false,
-        chunkedLoading: false,
-        maxClusterRadius: (zoom: number) => {
-          return zoom < ZOOM_BREAKPOINT ? 36 : 16;
-        },
-        showCoverageOnHover: false,
-        removeOutsideVisibleBounds: true,
-        spiderfyOnMaxZoom: true,
-        iconCreateFunction: clusterMarkerFactory,
-      });
-
-    mapRef.current.addLayer(markersRef.current);
-    setMapLoading(false);
-
-    return () => {
-      markersRef.current?.clearLayers();
-      markersRef.current = null;
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!mapReady) {
+      setMapLoading(true);
+    }
+  }, [mapReady]);
 
   useEffect(() => {
     if (markersLoading) {
@@ -215,17 +127,20 @@ export function MapView({
   }, [markersLoading]);
 
   useEffect(() => {
-    generatePropertyMarkers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [properties]);
+    if (mapReady && !markersLoading && !initialMarkersRenderedRef.current) {
+      initialMarkersRenderedRef.current = true;
+      onInitialMarkersRendered?.();
+    }
+  }, [mapReady, markersLoading, onInitialMarkersRendered, properties.length]);
 
-  useEffect(() => {
-    const map = mapRef.current;
+  function MapEvents() {
+    const map = useMap();
+    const initializedRef = useRef(false);
 
-    const handleMapChange = (map: L.Map) => {
-      const zoom = map.getZoom();
-      const mapBounds = map.getBounds();
-      const { lat, lng } = map.getCenter();
+    const handleMapChange = (targetMap: L.Map) => {
+      const currentZoom = targetMap.getZoom();
+      const mapBounds = targetMap.getBounds();
+      const { lat, lng } = targetMap.getCenter();
       const bounds = {
         northEast: {
           lat: mapBounds.getNorthEast().lat,
@@ -238,74 +153,106 @@ export function MapView({
       };
 
       setBounds(bounds);
-      setZoom(zoom);
+      setZoom(currentZoom);
       setMapPosition({ lat, lng });
     };
 
-    const handleMoveStart = (_e: LeafletEvent) => {
-      setMapLoading(true);
-    };
+    useMapEvents({
+      movestart: () => {
+        setMapLoading(true);
+      },
+      moveend: (e: LeafletEvent) => {
+        handleMapChange(e.target as L.Map);
+        setMapLoading(false);
+      },
+      zoomstart: () => {
+        setMapLoading(true);
+      },
+      zoomend: (e: LeafletEvent) => {
+        handleMapChange(e.target as L.Map);
+        setMapLoading(false);
+      },
+    });
 
-    const handleMoveEnd = (e: LeafletEvent) => {
-      handleMapChange(e.target as L.Map);
-      setMapLoading(false);
-    };
-
-    const handleZoomStart = (_e: LeafletEvent) => {
-      setMapLoading(true);
-    };
-
-    const handleZoomEnd = (e: LeafletEvent) => {
-      const prevZoom = zoom;
-      const mapTarget = e.target as L.Map;
-      const currentZoom = mapTarget.getZoom();
-
-      const crossZoomThreshold =
-        (prevZoom >= ZOOM_BREAKPOINT && currentZoom < ZOOM_BREAKPOINT) ||
-        (prevZoom < ZOOM_BREAKPOINT && currentZoom >= ZOOM_BREAKPOINT);
-      if (crossZoomThreshold) {
-        markersRef.current?.clearLayers();
-        generatePropertyMarkers();
+    useEffect(() => {
+      if (initializedRef.current) {
+        return;
       }
+      initializedRef.current = true;
 
-      handleMapChange(mapTarget);
-
-      setMapLoading(false);
-    };
-
-    map?.on('movestart', handleMoveStart);
-    map?.on('moveend', handleMoveEnd);
-
-    map?.on('zoomstart', handleZoomStart);
-    map?.on('zoomend', handleZoomEnd);
-
-    map?.whenReady((e: { target: L.Map }) => {
       const timestamp = Date.now() - mapTimestamp;
       const millisecondsInOneDay = 24 * 60 * 60 * 1000;
 
       if (!positionUpdated && userPosition) {
-        e.target.flyTo([userPosition.lat, userPosition.lng], zoom);
+        map.flyTo([userPosition.lat, userPosition.lng], zoom);
         setPositionUpdated(true);
-      } else if (Date.now() - timestamp < millisecondsInOneDay) {
-        // Timestamp is not older than 24 hours
-        e.target.flyTo([mapPosition.lat, mapPosition.lng], zoom);
+      } else if (timestamp < millisecondsInOneDay) {
+        map.flyTo([mapPosition.lat, mapPosition.lng], zoom);
         setPositionUpdated(true);
       }
-      setMapLoading(false);
-    });
 
-    return () => {
-      map?.off('movestart', handleMoveStart);
-      map?.off('moveend', handleMoveEnd);
-      map?.off('zoomstart', handleZoomStart);
-      map?.off('zoomend', handleZoomEnd);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [generatePropertyMarkers, mapPosition, mapTimestamp, positionUpdated, userPosition]);
+      setMapLoading(false);
+      setMapReady(true);
+      handleMapChange(map);
+      // We only want to apply initial camera restoration once after the map mounts.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [map]);
+
+    return null;
+  }
 
   return (
     <>
-      {mapLoading || markersLoading || !markersReady ? <Loader /> : null}
+      <MapContainer
+        center={initialCenter}
+        zoom={initialZoom}
+        maxZoom={18}
+        scrollWheelZoom={false}
+        className='absolute inset-0 z-0 h-full w-full'>
+        <TileLayer
+          url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          detectRetina
+          edgeBufferTiles={2}
+        />
+
+        <MapEvents />
+
+        <MarkerClusterGroup
+          animate={false}
+          chunkedLoading={false}
+          maxClusterRadius={(currentZoom: number) => {
+            return currentZoom < ZOOM_BREAKPOINT ? 36 : 16;
+          }}
+          showCoverageOnHover={false}
+          removeOutsideVisibleBounds
+          spiderfyOnMaxZoom
+          iconCreateFunction={clusterMarkerFactory}>
+          {properties.map((property) => (
+            <Marker
+              key={property.listingKey}
+              position={[Number(property.latitude), Number(property.longitude)]}
+              icon={markerIcon(property.listPrice ?? '0', zoom)}
+              eventHandlers={{
+                mouseover: () => {
+                  prefetchMarkerCard(property.listingKey);
+                },
+                popupopen: (e: LeafletEvent) => {
+                  mountPopupContent(e, property);
+                },
+                popupclose: () => {
+                  setOpenPopup(null);
+                },
+              }}>
+              <Popup autoPan keepInView closeButton={false} className='w-72'>
+                <p>Loading property details...</p>
+              </Popup>
+            </Marker>
+          ))}
+        </MarkerClusterGroup>
+      </MapContainer>
+
+      {mapLoading || markersLoading || !mapReady ? <Loader /> : null}
       {openPopup
         ? createPortal(<MapPopupCard listingKey={openPopup.listingKey} />, openPopup.container)
         : null}

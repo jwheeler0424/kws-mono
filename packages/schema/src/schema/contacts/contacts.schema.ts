@@ -1,7 +1,7 @@
 import { boolean, date, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { createSelectSchema } from 'drizzle-orm/zod';
 
-import type { UUIDv7 } from '@kws/types';
+import type { UUIDv7 } from '../types';
 
 import { idPrimaryKey, timestamps } from '../common.schema';
 import { companies } from './companies.schema';

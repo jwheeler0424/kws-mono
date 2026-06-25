@@ -1,10 +1,8 @@
 'use client';
 import L, { type LatLngTuple } from 'leaflet';
 import 'leaflet-edgebuffer';
-import 'leaflet.markercluster';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef } from 'react';
-import 'react-leaflet-markercluster/styles';
 
 export const ZOOM_BREAKPOINT = 14;
 

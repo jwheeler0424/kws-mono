@@ -4,7 +4,6 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import React, { useRef } from 'react';
-gsap.registerPlugin(ScrollTrigger);
 
 interface ParallaxContainerProps {
   children: React.ReactNode;
@@ -13,6 +12,17 @@ interface ParallaxContainerProps {
   start?: string;
   end?: string;
 }
+
+let refreshRaf = 0;
+
+const scheduleScrollTriggerRefresh = () => {
+  if (typeof window === 'undefined' || refreshRaf) return;
+
+  refreshRaf = window.requestAnimationFrame(() => {
+    refreshRaf = 0;
+    ScrollTrigger.refresh();
+  });
+};
 
 const getScrollParent = (element: HTMLElement | null): HTMLElement | Window => {
   if (!element || typeof window === 'undefined') return window;
@@ -116,7 +126,7 @@ export const ParallaxContainer = ({
         );
       });
 
-      ScrollTrigger.refresh();
+      scheduleScrollTriggerRefresh();
     },
     {
       dependencies: [scrub, start, end],
