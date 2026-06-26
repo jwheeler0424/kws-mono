@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 
-import { env } from '@kws/config/env';
+import { env } from '@kws/config';
 
 import { relations } from '@kws/schema/relations';
 

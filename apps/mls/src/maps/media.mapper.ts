@@ -7,7 +7,7 @@ import {
   parseNullableString,
   parseStringArray,
   parseTimestamp,
-} from '../normalize';
+} from '@/lib/utils';
 
 type MediaInsert = typeof mlsMedia.$inferInsert;
 

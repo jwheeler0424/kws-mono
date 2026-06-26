@@ -2,6 +2,10 @@
   "extends": "@kws/typescript/base.json",
   "compilerOptions": {
     // Environment setup & latest features
+    "rootDir": "./src",
+    "outDir": "dist",
+    "declaration": false,
+    "declarationMap": false,
     "lib": [
       "ESNext"
     ],

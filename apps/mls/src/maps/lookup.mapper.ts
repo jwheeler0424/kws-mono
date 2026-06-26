@@ -2,7 +2,7 @@ import type { lookups } from '@kws/schema';
 
 import type { MlsLookupPayload } from '../types';
 
-import { parseNullableString, parseStringArray, parseTimestamp } from '../normalize';
+import { parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
 
 type LookupInsert = typeof lookups.$inferInsert;
 

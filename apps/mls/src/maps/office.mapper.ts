@@ -2,7 +2,7 @@ import type { offices } from '@kws/schema';
 
 import type { MlsOfficePayload } from '../types';
 
-import { parseNullableString, parseStringArray, parseTimestamp } from '../normalize';
+import { parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
 
 type OfficeInsert = typeof offices.$inferInsert;
 

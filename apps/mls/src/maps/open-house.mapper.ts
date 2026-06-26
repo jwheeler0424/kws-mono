@@ -5,7 +5,7 @@ import { NWM_OpenHouseSchema } from '@/types/property';
 
 import type { MlsOpenHousePayload } from '../types';
 
-import { parseNullableString, parseStringArray, parseTimestamp } from '../normalize';
+import { parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
 import { extractSchemaMetadata } from './nwm';
 
 type OpenHouseInsert = typeof openHouses.$inferInsert;

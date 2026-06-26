@@ -4,7 +4,7 @@ import type { properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
 import { computePropertyCells } from '@/lib/h3';
 import { NWM_PropertySchema, NWM_PropertyUnitTypeSchema } from '@/types/property';
 
-import type { MlsPropertyPayload, MlsRoomPayload, MlsUnitTypePayload } from '../types';
+import type { MlsPropertyPayload, MlsRoomPayload, MlsUnitTypePayload } from '@/types';
 
 import {
   parseBoolean,
@@ -14,7 +14,7 @@ import {
   parseRealNumber,
   parseStringArray,
   parseTimestamp,
-} from '../normalize';
+} from '@/lib/utils';
 import { extractSchemaMetadata } from './nwm';
 
 const STANDARD_STATUS_MAP = {

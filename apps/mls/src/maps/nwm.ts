@@ -1,6 +1,6 @@
 import type { infer as ZodInfer, ZodObject, ZodRawShape } from 'zod';
 
-import { sanitizeJsonObject } from '../normalize';
+import { sanitizeJsonObject } from '@/lib/utils';
 
 export function extractSchemaMetadata<TShape extends ZodRawShape>(
   payload: Record<string, unknown>,

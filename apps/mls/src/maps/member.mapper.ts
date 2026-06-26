@@ -5,7 +5,7 @@ import { NWM_MemberSchema } from '@/types/property';
 
 import type { MlsMemberPayload } from '../types';
 
-import { parseNullableString, parseStringArray, parseTimestamp } from '../normalize';
+import { parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
 import { extractSchemaMetadata } from './nwm';
 
 type MemberInsert = typeof members.$inferInsert;

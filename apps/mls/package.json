@@ -9,6 +9,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@tanstack/pacer": "^0.21.1",
     "drizzle-orm": "^1.0.0-beta.22",
     "h3-js": "^4.4.0",
     "pg": "^8.22.0",
@@ -18,6 +19,7 @@
     "@kws/config": "*",
     "@kws/logger": "*",
     "@kws/schema": "*",
+    "@kws/types": "*",
     "@kws/typescript": "*",
     "@types/bun": "latest",
     "@types/pg": "^8.20.0",
