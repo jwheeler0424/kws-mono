@@ -1,6 +1,9 @@
 # dependencies (bun install)
 node_modules
 
+# media
+apps/web/public/media/**
+
 # output
 out
 dist
