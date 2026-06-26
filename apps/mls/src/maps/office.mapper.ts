@@ -3,15 +3,19 @@ import type { offices } from '@kws/schema';
 import type { MlsOfficePayload } from '../types';
 
 import { parseBoolean, parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
+import { mapMedia, type MappedMedia } from './media.mapper';
 
 type OfficeInsert = typeof offices.$inferInsert;
 
-export type MappedOffice = Omit<OfficeInsert, 'createdAt' | 'searchVector'>;
+export type MappedOffice = Omit<OfficeInsert, 'createdAt' | 'searchVector'> & {
+  media: MappedMedia[];
+};
 
 export function mapOffice(payload: MlsOfficePayload): MappedOffice {
   const canView = parseBoolean(payload.MlgCanView) === true;
   const now = new Date();
   const officeMlsId = payload.OfficeMlsId;
+  const media = payload.Media?.map((mediaPayload => mapMedia(mediaPayload, payload.OfficeMlsId))) ?? [];
 
   return {
     officeMlsId,
@@ -39,5 +43,7 @@ export function mapOffice(payload: MlsOfficePayload): MappedOffice {
     photosChangeTimestamp: parseTimestamp(payload.PhotosChangeTimestamp),
     deletedAt: canView ? null : now,
     updatedAt: now,
+    /* extensions */
+    media,
   };
 }

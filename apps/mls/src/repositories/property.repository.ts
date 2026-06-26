@@ -4,7 +4,7 @@ import { env } from '@kws/config';
 import { mlsMedia, properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
 
 import { db } from '@/lib/database';
-import { chunkArray, getUpsertSetFields } from '@/lib/utils/helpers';
+import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
 import type { MappedMedia } from '../maps/media.mapper';
 import type {
   MappedProperty,
@@ -64,7 +64,8 @@ export async function upsertProperties(
 ) {
   if (data.length === 0) return;
 
-  const batches = chunkArray(data, 250);
+  const deduped = dedupeByKey(data, (row) => row.listingKey);
+  const batches = chunkArray(deduped, 200);
   const setFields = getUpsertSetFields(properties, ['listingKey', 'createdAt', 'searchVector']);
 
   await db.transaction(async (tx) => {
@@ -76,6 +77,37 @@ export async function upsertProperties(
           target: properties.listingKey,
           set: setFields,
         });
+      /**
+       * try {
+      await tx
+        .insert(properties)
+        .values(batch)
+        .onConflictDoUpdate({
+          target: properties.listingKey,
+          set: setFields,
+        });
+    } catch (error) {
+      const pgCode =
+        (error as { cause?: { code?: string }; code?: string })?.cause?.code ??
+        (error as { code?: string })?.code;
+
+      // Bun + pg can intermittently fail wide batched upserts with protocol 08P01.
+      // Fallback to per-row upserts for the affected batch to preserve progress.
+      if (pgCode !== '08P01') {
+        throw error;
+      }
+
+      for (const row of batch) {
+        await tx
+          .insert(properties)
+          .values(row)
+          .onConflictDoUpdate({
+            target: properties.listingKey,
+            set: setFields,
+          });
+      }
+    }
+       */
     }
   });
 }
@@ -84,7 +116,8 @@ export async function upsertProperties(
 export async function upsertPropertyRooms(data: (typeof propertyRooms.$inferInsert)[]) {
   if (data.length === 0) return;
 
-  const batches = chunkArray(data, 2000);
+  const deduped = dedupeByKey(data, (row) => row.roomKey);
+  const batches = chunkArray(deduped, 2000);
   const setFields = getUpsertSetFields(propertyRooms, ['roomKey', 'searchVector', 'createdAt']);
 
   await db.transaction(async (tx) => {
@@ -103,7 +136,8 @@ export async function upsertPropertyRooms(data: (typeof propertyRooms.$inferInse
 export async function upsertPropertyUnitTypes(data: (typeof propertyUnitTypes.$inferInsert)[]) {
   if (data.length === 0) return;
 
-  const batches = chunkArray(data, 2000);
+  const deduped = dedupeByKey(data, (row) => row.unitTypeKey);
+  const batches = chunkArray(deduped, 2000);
   const setFields = getUpsertSetFields(propertyUnitTypes, ['unitTypeKey', 'searchVector', 'createdAt']);
 
   await db.transaction(async (tx) => {

@@ -17,7 +17,7 @@ const envSchema = z.object({
   REDIS_URL: z.url(),
 });
 
-const parsed = envSchema.safeParse(Bun.env);
+const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   throw new Error(`Invalid environment variables: ${parsed.error.message}`);

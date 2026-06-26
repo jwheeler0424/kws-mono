@@ -89,6 +89,20 @@ export function chunkArray<T>(array: T[], size: number): T[][] {
 }
 
 /**
+ * Dedupe records by a derived key while preserving deterministic write order.
+ * The last occurrence wins so later records in a payload overwrite earlier ones.
+ */
+export function dedupeByKey<T>(records: readonly T[], getKey: (record: T) => string): T[] {
+  const byKey = new Map<string, T>();
+  for (const record of records) {
+    const key = getKey(record);
+    if (!key) continue;
+    byKey.set(key, record);
+  }
+  return Array.from(byKey.values());
+}
+
+/**
  * Generates a dynamic set object for mass upserts via .onConflictDoUpdate()
  * * @param table - The Drizzle schema table object
  * @param excludeColumns - Array of column keys to ignore (e.g., primary keys, generated columns)

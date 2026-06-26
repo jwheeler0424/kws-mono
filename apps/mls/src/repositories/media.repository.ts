@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/database';
 import { mlsMedia } from '@kws/schema';
 
-import { chunkArray, getUpsertSetFields } from '@/lib/utils/helpers';
+import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
 import type { MappedMedia } from '../maps/media.mapper';
 
 export async function upsertSingleMlsMedia(record: MappedMedia): Promise<void> {
@@ -31,7 +31,8 @@ export async function upsertMlsMedia(
 ) {
   if (data.length === 0) return;
 
-  const batches = chunkArray(data, 1000);
+  const deduped = dedupeByKey(data, (row) => row.mediaKey);
+  const batches = chunkArray(deduped, 1000);
   const setFields = getUpsertSetFields(mlsMedia, ['mediaKey', 'createdAt', 'searchVector']);
 
   await db.transaction(async (tx) => {

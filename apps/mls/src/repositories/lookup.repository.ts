@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/database';
 import { lookups } from '@kws/schema';
 
-import { chunkArray, getUpsertSetFields } from '@/lib/utils/helpers';
+import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
 import type { MappedLookup } from '../maps/lookup.mapper';
 
 export async function upsertSingleLookup(record: MappedLookup): Promise<void> {
@@ -27,11 +27,12 @@ export async function deactivateLookup(lookupKey: string): Promise<void> {
 
 
 export async function upsertLookups(
-  data: (typeof lookups.$inferInsert)[]
+  data: MappedLookup[]
 ) {
   if (data.length === 0) return;
 
-  const batches = chunkArray(data, 1000);
+  const deduped = dedupeByKey(data, (row) => row.lookupKey);
+  const batches = chunkArray(deduped, 1000);
   const setFields = getUpsertSetFields(lookups, ['lookupKey', 'createdAt', 'searchVector']);
 
   await db.transaction(async (tx) => {

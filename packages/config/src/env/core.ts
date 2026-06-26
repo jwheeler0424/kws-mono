@@ -30,7 +30,7 @@ const envSchema = z.object({
   APP_URL: httpHttpsUrl,
 });
 
-const runtimeEnv = { ...process.env, ...Bun.env };
+const runtimeEnv = process.env;
 const parsed = envSchema.safeParse(runtimeEnv);
 
 if (!parsed.success) {

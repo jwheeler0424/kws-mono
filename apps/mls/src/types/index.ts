@@ -454,7 +454,7 @@ export interface MlsPropertyPayload {
 // ---------------------------------------------------------------------------
 
 export interface ErrorDetail {
-  key: string;
+  key?: string;
   message: string;
   stack?: string;
 }

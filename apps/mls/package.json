@@ -4,12 +4,13 @@
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
-    "dev": "bun --bun --hot src/index.ts",
+    "dev": "bun --bun run /src/index.ts",
     "start": "bun --bun run src/index.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@tanstack/pacer": "^0.21.1",
+    "date-fns": "^4.4.0",
     "drizzle-orm": "^1.0.0-beta.22",
     "h3-js": "^4.4.0",
     "pg": "^8.22.0",

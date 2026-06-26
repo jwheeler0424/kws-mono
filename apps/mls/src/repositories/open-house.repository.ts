@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/database';
 import { openHouses } from '@kws/schema';
 
-import { chunkArray, getUpsertSetFields } from '@/lib/utils/helpers';
+import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
 import type { MappedOpenHouse } from '../maps/open-house.mapper';
 
 export async function upsertSingleOpenHouse(record: MappedOpenHouse): Promise<void> {
@@ -30,7 +30,8 @@ export async function upsertOpenHouses(
 ) {
   if (data.length === 0) return;
 
-  const batches = chunkArray(data, 1000);
+  const deduped = dedupeByKey(data, (row) => row.openHouseKey);
+  const batches = chunkArray(deduped, 1000);
   const setFields = getUpsertSetFields(openHouses, ['openHouseKey', 'createdAt', 'searchVector']);
 
   await db.transaction(async (tx) => {

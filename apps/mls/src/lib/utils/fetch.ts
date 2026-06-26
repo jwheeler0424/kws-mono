@@ -3,7 +3,7 @@ import { env } from '@kws/config';
 import { DEFAULT_RESOURCE_EXPANDS, MAX_RETRIES, REQUEST_TIMEOUT_MS } from '../constants';
 import { logger } from "../logger";
 import { MlsApiError } from './errors';
-import { baseUrl, getBodyPreview, getResponseBytes, getRetryDelayMs, getSafeEndpoint, parseRetryAfterMs, sleep } from "./helpers";
+import { baseUrl, chunkArray, escapeODataString, getBodyPreview, getResponseBytes, getRetryDelayMs, getSafeEndpoint, parseRetryAfterMs, sleep } from "./helpers";
 import { mlsQuotaTracker } from "./quota";
 import { throttle } from "./rate-limit";
 
@@ -345,4 +345,282 @@ export function fetchOpenHouses(
       top: Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
     }),
   );
+}
+
+function buildPropertySeedFilter(
+  osn: string,
+  options?: {
+    standardStatuses?: string[];
+    propertyTypes?: string[];
+    afterTimestamp?: Date;
+    beforeTimestamp?: Date;
+  },
+): string {
+  const parts: string[] = [
+    `OriginatingSystemName eq '${escapeODataString(osn)}'`,
+    'MlgCanView eq true',
+  ];
+
+  if (options?.standardStatuses && options.standardStatuses.length > 0) {
+    if (options.standardStatuses.length === 1) {
+      parts.push(`StandardStatus eq '${escapeODataString(options.standardStatuses[0] ?? "")}'`);
+    } else {
+      const statusClauses = options.standardStatuses
+        .map((status) => `StandardStatus eq '${escapeODataString(status)}'`)
+        .join(' or ');
+      parts.push(`(${statusClauses})`);
+    }
+  }
+
+  if (options?.propertyTypes && options.propertyTypes.length > 0) {
+    if (options.propertyTypes.length === 1) {
+      parts.push(`PropertyType eq '${escapeODataString(options.propertyTypes[0] ?? "")}'`);
+    } else {
+      const typeClauses = options.propertyTypes
+        .map((type) => `PropertyType eq '${escapeODataString(type)}'`)
+        .join(' or ');
+      parts.push(`(${typeClauses})`);
+    }
+  }
+
+  if (options?.afterTimestamp) {
+    parts.push(`ModificationTimestamp gt ${options.afterTimestamp.toISOString()}`);
+  }
+  if (options?.beforeTimestamp) {
+    parts.push(`ModificationTimestamp lt ${options.beforeTimestamp.toISOString()}`);
+  }
+
+  return parts.join(' and ');
+}
+
+export function buildPropertySeedUrl(
+  osn: string,
+  top: number,
+  options?: {
+    officeMlsId?: string
+    standardStatuses?: string[];
+    propertyTypes?: string[];
+    afterTimestamp?: Date;
+    beforeTimestamp?: Date;
+  },
+): string {
+  const params = new URLSearchParams({
+    $filter: buildPropertySeedFilter(osn, options),
+    $top: String(top),
+  });
+
+  const expand = getExpandParam('Property');
+  if (expand) {
+    params.set('$expand', expand);
+  }
+
+  return `${baseUrl('Property')}?${params.toString()}`;
+}
+
+/** Fetch Property records scoped to a single ListOfficeMlsId for initial seed passes. */
+export function fetchPropertiesByOffice(
+  osn: string,
+  officeMlsId: string,
+  options?: FetchResourceOptions,
+): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
+  return paginate<MlsPropertyPayload>(
+    options?.startUrl ??
+    buildPropertySeedUrl(osn, Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000), {
+      officeMlsId,
+    }),
+  )
+}
+
+/** Fetch Property records scoped to StandardStatus and PropertyType for initial seed passes. */
+export function fetchPropertiesByType(
+  osn: string,
+  propertyType: string,
+  options?: FetchResourceOptions,
+): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
+  return paginate<MlsPropertyPayload>(
+    options?.startUrl ??
+    buildPropertySeedUrl(osn, Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000), {
+      propertyTypes: [propertyType],
+    }),
+  )
+}
+
+export async function fetchPropertyByListingId(
+  osn: string,
+  listingId: string,
+): Promise<MlsPropertyPayload | null> {
+  const params = new URLSearchParams({
+    $filter: `OriginatingSystemName eq '${escapeODataString(osn)}' and ListingId eq '${escapeODataString(listingId)}'`,
+    $top: '1',
+  });
+
+  const expand = getExpandParam('Property');
+  if (expand) {
+    params.set('$expand', expand);
+  }
+
+  const page = await fetchPage<MlsPropertyPayload>(`${baseUrl('Property')}?${params.toString()}`);
+  return page.value[0] ?? null;
+}
+
+/**
+ * Fetch Property records for a targeted set of listing keys.
+ * Keys are chunked to keep OData filter query length bounded.
+ * @yields ODataPageBatch<MlsPropertyPayload> for each chunk of listing keys.
+ */
+export async function* fetchPropertiesByListingKeys(
+  osn: string,
+  listingKeys: readonly string[],
+): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
+  const uniqueKeys = [...new Set(listingKeys.filter((key) => key.length > 0))];
+  if (uniqueKeys.length === 0) {
+    return;
+  }
+
+  const keyChunks = chunkArray(uniqueKeys, 75);
+  const top = Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000);
+  const expand = getExpandParam('Property');
+
+  for (const keyChunk of keyChunks) {
+    const listingKeyClause = keyChunk
+      .map((listingKey) => `ListingKey eq '${escapeODataString(listingKey)}'`)
+      .join(' or ');
+    const filter = `OriginatingSystemName eq '${escapeODataString(osn)}' and (${listingKeyClause})`;
+
+    const params = new URLSearchParams({
+      $filter: filter,
+      $top: String(top),
+    });
+
+    if (expand) {
+      params.set('$expand', expand);
+    }
+
+    const url = `${baseUrl('Property')}?${params.toString()}`;
+    yield* paginate<MlsPropertyPayload>(url);
+  }
+}
+
+const RESIDENTIAL_PROPERTY_TYPES = [
+  'Residential',
+  'ResidentialIncome',
+  'ResidentialLease',
+] as const;
+
+/**
+ * Fetch Property records scoped to residential property types for delta sync.
+ * Includes records where MlgCanView is false so that deactivations are
+ * processed correctly — only the type filter is applied on top of the
+ * standard OriginatingSystemName + ModificationTimestamp delta filter.
+ * @yields ODataPageBatch<MlsPropertyPayload> for each page of residential properties.
+ */
+export async function* fetchResidentialProperties(
+  osn: string,
+  options?: FetchResourceOptions,
+): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
+  const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
+
+  if (startUrl) {
+    return paginate<MlsPropertyPayload>(startUrl);
+  }
+
+  const typeClauses = RESIDENTIAL_PROPERTY_TYPES.map(
+    (type) => `PropertyType eq '${escapeODataString(type)}'`,
+  ).join(' or ');
+
+  const parts: string[] = [`OriginatingSystemName eq '${escapeODataString(osn)}'`];
+  parts.push(`(${typeClauses})`);
+  if (afterTimestamp) {
+    parts.push(`ModificationTimestamp gt ${afterTimestamp.toISOString()}`);
+  }
+  if (beforeTimestamp) {
+    parts.push(`ModificationTimestamp lt ${beforeTimestamp.toISOString()}`);
+  }
+
+  const params = new URLSearchParams({
+    $filter: parts.join(' and '),
+    $top: String(Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000)),
+  });
+
+  const expand = getExpandParam('Property');
+  if (expand) {
+    params.set('$expand', expand);
+  }
+
+  yield* paginate<MlsPropertyPayload>(`${baseUrl('Property')}?${params.toString()}`);
+}
+
+/**
+ * Fetch Property records for multiple property types and standard statuses in a single
+ * API request using OData OR clauses. Avoids issuing one request per type.
+ * @yields ODataPageBatch<MlsPropertyPayload> for each page of properties matching the criteria.
+ */
+export async function* fetchViewablePropertiesByTypesAndStatuses(
+  osn: string,
+  propertyTypes?: readonly string[],
+  standardStatuses?: readonly string[],
+  options?: FetchResourceOptions,
+): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
+  yield* paginate<MlsPropertyPayload>(
+    options?.startUrl ??
+    buildPropertySeedUrl(osn, Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000), {
+      propertyTypes: propertyTypes ? [...propertyTypes] : undefined,
+      standardStatuses: standardStatuses ? [...standardStatuses] : undefined,
+      afterTimestamp: options?.afterTimestamp,
+      beforeTimestamp: options?.beforeTimestamp,
+    }),
+  );
+}
+
+/** Fetch Property records without $expand for lightweight existence scans.
+ * @yields ODataPageBatch<MlsPropertyPayload> for each page of properties.
+ */
+export async function* fetchPropertiesUnexpanded(
+  osn: string,
+  options?: FetchResourceOptions,
+): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
+  const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
+  yield* paginate<MlsPropertyPayload>(
+    startUrl ??
+    buildResourceUrl({ resource: 'Property', osn, afterTimestamp, beforeTimestamp, top: Math.min(env.MLS_PAGE_SIZE, 5000), options: { includeExpand: false } }),
+  );
+}
+
+const INITIAL_PROPERTY_TYPES = ['Residential', 'ResidentialIncome', 'ResidentialLease'] as const
+
+export async function* fetchPropertiesForInitialSeed(
+  osn: string,
+  options?: {
+    afterTimestamp?: Date
+    beforeTimestamp?: Date
+    startUrl?: string
+  },
+): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
+  let resumeStartUrl = options?.startUrl
+
+  // These loops are intentionally sequential: each segment consumes a paged
+  // generator and may carry forward checkpoint URL state into the next segment.
+  // Running them in parallel would break deterministic resume ordering.
+  /* eslint-disable no-await-in-loop */
+  for (const officeMlsId of env.MLS_OFFICE_ID ?? []) {
+    for await (const pageBatch of fetchPropertiesByOffice(osn, officeMlsId, {
+      afterTimestamp: options?.afterTimestamp,
+      beforeTimestamp: options?.beforeTimestamp,
+      startUrl: resumeStartUrl,
+    })) {
+      yield pageBatch
+    }
+    resumeStartUrl = undefined
+  }
+
+  for await (const pageBatch of fetchViewablePropertiesByTypesAndStatuses(osn, INITIAL_PROPERTY_TYPES, undefined, {
+    afterTimestamp: options?.afterTimestamp,
+    beforeTimestamp: options?.beforeTimestamp,
+    startUrl: resumeStartUrl,
+  })) {
+    yield pageBatch
+  }
+
+  resumeStartUrl = undefined
+  /* eslint-enable no-await-in-loop */
 }

@@ -1077,21 +1077,6 @@ CREATE TABLE "properties" (
         setweight(to_tsvector('english'::regconfig, coalesce("public_remarks"::text, '')), 'D')) STORED
 );
 --> statement-breakpoint
-CREATE TABLE "mls_property_missing_backfill" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "mls_property_missing_backfill_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"originating_system_name" varchar(32) DEFAULT 'nwmls' NOT NULL,
-	"listing_key" varchar(64) NOT NULL,
-	"discovered_modification_timestamp" timestamp with time zone NOT NULL,
-	"status" varchar(32) DEFAULT 'pending' NOT NULL,
-	"first_seen_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"last_seen_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"backfilled_at" timestamp with time zone,
-	"backfill_attempts" integer DEFAULT 0 NOT NULL,
-	"last_error" text,
-	"created_at" timestamp DEFAULT now(),
-	"updated_at" timestamp DEFAULT now()
-);
---> statement-breakpoint
 CREATE TABLE "property_rooms" (
 	"room_key" varchar(255) PRIMARY KEY,
 	"listing_key" varchar(64) NOT NULL,
@@ -1122,25 +1107,6 @@ CREATE TABLE "property_unit_types" (
 	"deleted_at" timestamp,
 	"search_vector" tsvector GENERATED ALWAYS AS (setweight(to_tsvector('english'::regconfig, coalesce("unit_type_key"::text, '') || ' ' || coalesce("listing_key"::text, '')), 'A') ||
         setweight(to_tsvector('english'::regconfig, coalesce("unit_type_beds_total"::text, '') || ' ' || coalesce("unit_type_baths_total"::text, '') || ' ' || coalesce("unit_type_actual_rent"::text, '')), 'B')) STORED
-);
---> statement-breakpoint
-CREATE TABLE "mls_sync_cursors" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "mls_sync_cursors_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"resource" varchar(64) NOT NULL,
-	"originating_system_name" varchar(32) NOT NULL,
-	"last_modified_timestamp" timestamp with time zone,
-	"last_run_at" timestamp with time zone,
-	"last_run_status" varchar(32),
-	"last_run_error" text,
-	"checkpoint_request_url" text,
-	"checkpoint_next_url" text,
-	"checkpoint_recent_request_urls" text,
-	"checkpointed_at" timestamp with time zone,
-	"total_records_processed" integer DEFAULT 0,
-	"last_run_records_processed" integer DEFAULT 0,
-	"phase" varchar(32) DEFAULT 'delta',
-	"created_at" timestamp DEFAULT now(),
-	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE "notifications" (
@@ -1602,14 +1568,10 @@ CREATE INDEX "idx_properties_visible_status_sort" ON "properties" ("standard_sta
 CREATE INDEX "idx_properties_visible_office_status_sort" ON "properties" ("list_office_mls_id","standard_status","on_market_date","modification_timestamp","listing_key") WHERE "mlg_can_view" = true AND "deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_properties_visible_member_status_sort" ON "properties" ("list_agent_mls_id","standard_status","on_market_date","modification_timestamp","listing_key") WHERE "mlg_can_view" = true AND "deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_properties_visible_search_vector" ON "properties" USING gin ("search_vector") WHERE "mlg_can_view" = true AND "deleted_at" IS NULL;--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_mls_property_missing_backfill_unique" ON "mls_property_missing_backfill" ("originating_system_name","listing_key");--> statement-breakpoint
-CREATE INDEX "idx_mls_property_missing_backfill_status" ON "mls_property_missing_backfill" ("originating_system_name","status");--> statement-breakpoint
-CREATE INDEX "idx_mls_property_missing_backfill_discovered" ON "mls_property_missing_backfill" ("originating_system_name","discovered_modification_timestamp");--> statement-breakpoint
 CREATE INDEX "idx_property_rooms_listing_key" ON "property_rooms" ("listing_key");--> statement-breakpoint
 CREATE INDEX "idx_property_rooms_search_vector" ON "property_rooms" USING gin ("search_vector");--> statement-breakpoint
 CREATE INDEX "idx_property_unit_types_listing_key" ON "property_unit_types" ("listing_key");--> statement-breakpoint
 CREATE INDEX "idx_property_unit_types_search_vector" ON "property_unit_types" USING gin ("search_vector");--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_mls_sync_cursors_resource_unique" ON "mls_sync_cursors" ("resource","originating_system_name");--> statement-breakpoint
 CREATE INDEX "email_bounces_send_idx" ON "email_bounces" ("send_id");--> statement-breakpoint
 CREATE INDEX "email_bounces_next_retry_idx" ON "email_bounces" ("next_retry_at");--> statement-breakpoint
 CREATE INDEX "email_campaigns_created_id_idx" ON "email_campaigns" ("created_at","id");--> statement-breakpoint

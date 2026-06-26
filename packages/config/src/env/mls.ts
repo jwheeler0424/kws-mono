@@ -1,3 +1,4 @@
+import { parseCronExpression } from 'cron-schedule';
 import { z } from 'zod';
 import './preload.ts';
 
@@ -5,7 +6,7 @@ import { KEY_FIELDS_PREFIX, ORIGINATING_SYSTEM_NAMES, RESOURCE_NAMING } from '..
 
 const keyPrefixSchema = z.enum(KEY_FIELDS_PREFIX);
 const cronScheduleSchema = z.string().superRefine((value, ctx) => {
-  const result = Bun.cron.parse(value);
+  const result = parseCronExpression(value);
   const isValid = result !== null;
   if (!isValid) {
     ctx.addIssue({
@@ -53,7 +54,7 @@ const resourceCronSchema = z.string().superRefine((value, ctx) => {
     });
     return;
   }
-  const result = Bun.cron.parse(cronSchedule);
+  const result = parseCronExpression(cronSchedule);
   const isValid = result !== null;
 
   if (!isValid) {
@@ -147,7 +148,7 @@ const envSchema = z.object({
   MLS_QUEUE_MEDIA_RECONCILE_CRON: cronScheduleSchema.optional(),
 });
 
-const parsed = envSchema.safeParse(Bun.env);
+const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   throw new Error(`Invalid environment variables: ${parsed.error.message}`);

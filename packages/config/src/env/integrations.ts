@@ -24,7 +24,7 @@ const envSchema = z.object({
     .max(64, { message: 'String must be at most 64 characters long' }),
 });
 
-const parsed = envSchema.safeParse(Bun.env);
+const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   throw new Error(`Invalid environment variables: ${parsed.error.message}`);

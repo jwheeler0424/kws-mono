@@ -41,6 +41,52 @@ export type MappedPropertyUnitType = Omit<PropertyUnitTypeInsert, 'createdAt' | 
   NWM: NWM_PropertyUnitType | null;
 };
 
+const PROPERTY_TYPE_VALUES: readonly PropertyType[] = [
+  'BusinessOpportunity',
+  'CommercialLease',
+  'CommercialSale',
+  'Farm',
+  'Land',
+  'ManufacturedInPark',
+  'Residential',
+  'ResidentialIncome',
+  'ResidentialLease',
+] as const;
+
+const STANDARD_STATUS_VALUES: readonly StandardStatus[] = [
+  'Active',
+  'ActiveUnderContract',
+  'Canceled',
+  'Closed',
+  'ComingSoon',
+  'Delete',
+  'Expired',
+  'Hold',
+  'Incomplete',
+  'Pending',
+  'Withdrawn',
+] as const;
+
+function normalizeEnumToken(value: string): string {
+  return value.replace(/[^a-z0-9]/gi, '').toLowerCase();
+}
+
+function normalizePropertyType(value: string | null | undefined): PropertyType | null {
+  if (!value) return null;
+  const normalized = normalizeEnumToken(value);
+  return (
+    PROPERTY_TYPE_VALUES.find((candidate) => normalizeEnumToken(candidate) === normalized) ?? null
+  );
+}
+
+function normalizeStandardStatus(value: string | null | undefined): StandardStatus | null {
+  if (!value) return null;
+  const normalized = normalizeEnumToken(value);
+  return (
+    STANDARD_STATUS_VALUES.find((candidate) => normalizeEnumToken(candidate) === normalized) ?? null
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main property mapper
 // ---------------------------------------------------------------------------
@@ -62,9 +108,9 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     listingKey: payload.ListingKey,
     listingId: parseNullableString(payload.ListingId, 64),
     originatingSystemName: parseNullableString(payload.OriginatingSystemName, 32) ?? 'nwmls',
-    standardStatus: payload.StandardStatus as StandardStatus,
+    standardStatus: normalizeStandardStatus(payload.StandardStatus),
     mlsStatus: parseNullableString(payload.MlsStatus, 64),
-    propertyType: payload.PropertyType as PropertyType,
+    propertyType: normalizePropertyType(payload.PropertyType),
     propertySubType: parseNullableString(payload.PropertySubType, 128),
     mlgCanView: canView,
     modificationTimestamp: parseTimestamp(payload.ModificationTimestamp),

@@ -35,7 +35,7 @@ const envSchema = z.object({
     .default(24 * 7),
 });
 
-const parsed = envSchema.safeParse(Bun.env);
+const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   throw new Error(`Invalid environment variables: ${parsed.error.message}`);

@@ -5,11 +5,13 @@ import type { members } from '@kws/schema';
 import type { MlsMemberPayload } from '../types';
 
 import { parseBoolean, parseLocalFields, parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
+import { mapMedia, type MappedMedia } from './media.mapper';
 
 type MemberInsert = typeof members.$inferInsert;
 
 export type MappedMember = Omit<MemberInsert, 'createdAt' | 'searchVector'> & {
   NWM: NWM_Member | null;
+  media: MappedMedia[];
 };
 
 export function mapMember(payload: MlsMemberPayload): MappedMember {
@@ -17,6 +19,7 @@ export function mapMember(payload: MlsMemberPayload): MappedMember {
   const nwm = parseLocalFields(payload, 'NWM_')
   const now = new Date();
   const memberMlsId = payload.MemberMlsId;
+  const media = payload.Media?.map((mediaPayload => mapMedia(mediaPayload, payload.MemberMlsId))) ?? [];
 
   return {
     memberMlsId,
@@ -40,8 +43,10 @@ export function mapMember(payload: MlsMemberPayload): MappedMember {
     mlgCanUse: parseStringArray(payload.MlgCanUse),
     modificationTimestamp: parseTimestamp(payload.ModificationTimestamp),
     mlgCanView: canView,
-    NWM: nwm,
     deletedAt: canView ? null : now,
     updatedAt: now,
+    /* extensions */
+    NWM: nwm,
+    media,
   };
 }

@@ -19,7 +19,7 @@ const envSchema = z.object({
   GEOIP_IPWHOIS_CACHE_TTL_MS: z.coerce.number().int().positive().default(300000),
 });
 
-const parsed = envSchema.safeParse(Bun.env);
+const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   throw new Error(`Invalid environment variables: ${parsed.error.message}`);
