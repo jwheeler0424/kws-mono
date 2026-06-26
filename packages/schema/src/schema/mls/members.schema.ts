@@ -36,6 +36,7 @@ export const members = pgTable(
 
     modificationTimestamp: timestamp('modification_timestamp', {
       withTimezone: true,
+      mode: 'string',
     }),
     mlgCanView: boolean('mlg_can_view').default(true),
 

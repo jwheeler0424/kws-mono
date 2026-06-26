@@ -4,8 +4,7 @@ export * from './members.schema';
 export * from './offices.schema';
 export * from './open-houses.schema';
 export * from './properties.schema';
-export * from './property-missing-backfill.schema';
 export * from './property-rooms.schema';
 export * from './property-unit-types.schema';
 export * from './relations';
-export * from './sync-cursors.schema';
+

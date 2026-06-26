@@ -1,12 +1,10 @@
 import type { NWM_Member } from '@/types/property';
 import type { members } from '@kws/schema';
 
-import { NWM_MemberSchema } from '@/types/property';
 
 import type { MlsMemberPayload } from '../types';
 
-import { parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
-import { extractSchemaMetadata } from './nwm';
+import { parseBoolean, parseLocalFields, parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
 
 type MemberInsert = typeof members.$inferInsert;
 
@@ -15,10 +13,10 @@ export type MappedMember = Omit<MemberInsert, 'createdAt' | 'searchVector'> & {
 };
 
 export function mapMember(payload: MlsMemberPayload): MappedMember {
-  const canView = payload.MlgCanView !== false;
+  const canView = parseBoolean(payload.MlgCanView) === true;
+  const nwm = parseLocalFields(payload, 'NWM_')
   const now = new Date();
-  const memberMlsId =
-    parseNullableString(payload.MemberMlsId, 25) ?? payload.MemberKey.slice(0, 25);
+  const memberMlsId = payload.MemberMlsId;
 
   return {
     memberMlsId,
@@ -42,7 +40,7 @@ export function mapMember(payload: MlsMemberPayload): MappedMember {
     mlgCanUse: parseStringArray(payload.MlgCanUse),
     modificationTimestamp: parseTimestamp(payload.ModificationTimestamp),
     mlgCanView: canView,
-    NWM: extractSchemaMetadata(payload, NWM_MemberSchema),
+    NWM: nwm,
     deletedAt: canView ? null : now,
     updatedAt: now,
   };

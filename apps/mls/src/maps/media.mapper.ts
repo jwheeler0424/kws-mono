@@ -3,6 +3,7 @@ import type { mlsMedia } from '@kws/schema';
 import type { MlsMediaPayload } from '../types';
 
 import {
+  parseBoolean,
   parseIntegerValue,
   parseNullableString,
   parseStringArray,
@@ -14,7 +15,7 @@ type MediaInsert = typeof mlsMedia.$inferInsert;
 export type MappedMedia = Omit<MediaInsert, 'createdAt' | 'searchVector'>;
 
 export function mapMedia(payload: MlsMediaPayload, resourceRecordKey: string): MappedMedia {
-  const canView = payload.MlgCanView !== false;
+  const canView = parseBoolean(payload.MlgCanView) === true;
 
   return {
     mediaKey: payload.MediaKey,

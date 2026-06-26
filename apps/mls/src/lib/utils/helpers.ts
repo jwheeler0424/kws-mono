@@ -1,4 +1,5 @@
 import { env } from "@kws/config";
+import { getColumns, sql, type SQL, type Table } from "drizzle-orm";
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -26,13 +27,32 @@ export function getResponseBytes(res: Response, body: string): number {
   return new TextEncoder().encode(body).byteLength;
 }
 
-export function getRetryDelayMs(res: Response, attempt: number): number {
-  const retryAfterMs = parseRetryAfterMs(res.headers.get('retry-after'));
-  if (retryAfterMs !== null) {
-    return retryAfterMs;
+export function parseRetryAfterMs(
+  headerValue: string | null,
+  nowMs: number = Date.now(),
+): number | null {
+  if (!headerValue) return null
+
+  const seconds = Number(headerValue)
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.max(0, Math.round(seconds * 1000))
   }
 
-  return Math.min(1_000 * 2 ** attempt + Math.random() * 500, 30_000);
+  const when = Date.parse(headerValue)
+  if (!Number.isNaN(when)) {
+    return Math.max(0, when - nowMs)
+  }
+
+  return null
+}
+
+export function getRetryDelayMs(res: Response, attempt: number): number {
+  const retryAfterMs = parseRetryAfterMs(res.headers.get('retry-after'))
+  if (retryAfterMs !== null) {
+    return retryAfterMs
+  }
+
+  return Math.min(1_000 * 2 ** attempt + Math.random() * 500, 30_000)
 }
 
 export function getBodyPreview(body: string, maxChars: number = 120): string {
@@ -56,56 +76,39 @@ export function startOfUtcDay(nowMs: number): number {
   return date.getTime();
 }
 
-export function parseRetryAfterMs(
-  headerValue: string | null,
-  nowMs: number = Date.now(),
-): number | null {
-  if (!headerValue) return null;
 
-  const seconds = Number(headerValue);
-  if (Number.isFinite(seconds) && seconds >= 0) {
-    return Math.max(0, Math.round(seconds * 1000));
-  }
-
-  const when = Date.parse(headerValue);
-  if (!Number.isNaN(when)) {
-    return Math.max(0, when - nowMs);
-  }
-
-  return null;
-}
-
-interface FetchResourceOptions {
-  afterTimestamp?: Date;
-  startUrl?: string;
-}
-
-export function normalizeFetchResourceOptions(
-  optionsOrAfterTimestamp?: FetchResourceOptions | Date,
-): FetchResourceOptions {
-  if (optionsOrAfterTimestamp instanceof Date) {
-    return { afterTimestamp: optionsOrAfterTimestamp };
-  }
-
-  return optionsOrAfterTimestamp ?? {};
-}
 
 export function escapeODataString(value: string): string {
   return value.replace(/'/g, "''");
 }
 
-export function splitIntoChunks<T>(values: readonly T[], chunkSize: number): T[][] {
-  if (values.length === 0) {
-    return [];
-  }
-
-  const size = Math.max(1, chunkSize);
-  const chunks: T[][] = [];
-
-  for (let index = 0; index < values.length; index += size) {
-    chunks.push(values.slice(index, index + size) as T[]);
-  }
-
-  return chunks;
+export function chunkArray<T>(array: T[], size: number): T[][] {
+  return Array.from({ length: Math.ceil(array.length / size) }, (_, i) =>
+    array.slice(i * size, i * size + size)
+  );
 }
 
+/**
+ * Generates a dynamic set object for mass upserts via .onConflictDoUpdate()
+ * * @param table - The Drizzle schema table object
+ * @param excludeColumns - Array of column keys to ignore (e.g., primary keys, generated columns)
+ */
+export function getUpsertSetFields<TTable extends Table>(
+  table: TTable,
+  // Drizzle stores its schema shape inside the '_' metadata property
+  excludeColumns: (keyof TTable['_']['columns'])[] = []
+): Record<string, SQL> {
+  const allColumns = getColumns(table);
+
+  return Object.keys(allColumns).reduce((acc, key) => {
+    // We assert excludeColumns as string[] just to satisfy TS for the .includes() check
+    if (!(excludeColumns as string[]).includes(key)) {
+      const dbColumnName = allColumns[key]?.name;
+
+      if (dbColumnName) {
+        acc[key] = sql.raw(`excluded.${dbColumnName}`);
+      }
+    }
+    return acc;
+  }, {} as Record<string, SQL>);
+}

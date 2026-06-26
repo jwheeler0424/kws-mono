@@ -1,12 +1,9 @@
 import type { NWM_OpenHouse } from '@/types/property';
 import type { openHouses } from '@kws/schema';
 
-import { NWM_OpenHouseSchema } from '@/types/property';
-
 import type { MlsOpenHousePayload } from '../types';
 
-import { parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
-import { extractSchemaMetadata } from './nwm';
+import { parseBoolean, parseLocalFields, parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
 
 type OpenHouseInsert = typeof openHouses.$inferInsert;
 
@@ -15,7 +12,8 @@ export type MappedOpenHouse = Omit<OpenHouseInsert, 'createdAt' | 'searchVector'
 };
 
 export function mapOpenHouse(payload: MlsOpenHousePayload): MappedOpenHouse {
-  const canView = payload.MlgCanView !== false;
+  const canView = parseBoolean(payload.MlgCanView) === true;
+  const nwm = parseLocalFields(payload, 'NWM_')
   const now = new Date();
 
   return {
@@ -32,7 +30,7 @@ export function mapOpenHouse(payload: MlsOpenHousePayload): MappedOpenHouse {
     refreshments: parseNullableString(payload.Refreshments, 255),
     modificationTimestamp: parseTimestamp(payload.ModificationTimestamp),
     mlgCanView: canView,
-    NWM: extractSchemaMetadata(payload, NWM_OpenHouseSchema),
+    NWM: nwm,
     deletedAt: canView ? null : now,
     updatedAt: now,
   };

@@ -8,3 +8,5 @@ export const DEFAULT_RESOURCE_EXPANDS: Readonly<Record<string, readonly string[]
   Office: ['Media'],
   Property: ['Media', 'Rooms', 'UnitTypes'],
 };
+
+export const MLS_RESOURCE_NAMES = ['Lookup', 'Member', 'Office', 'Property', 'OpenHouse'] as const;

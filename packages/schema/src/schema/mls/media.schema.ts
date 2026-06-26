@@ -20,6 +20,7 @@ export const mlsMedia = pgTable(
     longDescription: varchar('long_description', { length: 1024 }),
     mediaModificationTimestamp: timestamp('media_modification_timestamp', {
       withTimezone: true,
+      mode: 'string',
     }),
     mediaObjectId: varchar('media_object_id', { length: 255 }),
     mediaURL: varchar('media_url', { length: 8000 }),

@@ -24,17 +24,25 @@ export const openHouses = pgTable(
       length: 255,
     }).default('nwmls'),
 
-    openHouseDate: timestamp('open_house_date', { withTimezone: true }),
+    openHouseDate: timestamp('open_house_date', {
+      withTimezone: true,
+      mode: 'string',
+    }),
     openHouseStartTime: timestamp('open_house_start_time', {
       withTimezone: true,
+      mode: 'string',
     }),
-    openHouseEndTime: timestamp('open_house_end_time', { withTimezone: true }),
+    openHouseEndTime: timestamp('open_house_end_time', {
+      withTimezone: true,
+      mode: 'string',
+    }),
     openHouseRemarks: varchar('open_house_remarks', { length: 500 }),
     openHouseType: varchar('open_house_type', { length: 25 }),
     refreshments: varchar('refreshments', { length: 255 }),
 
     modificationTimestamp: timestamp('modification_timestamp', {
       withTimezone: true,
+      mode: 'string',
     }),
     mlgCanView: boolean('mlg_can_view').default(true),
 

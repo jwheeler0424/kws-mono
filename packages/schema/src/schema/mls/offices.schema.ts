@@ -17,6 +17,7 @@ export const offices = pgTable(
     mlgCanView: boolean('mlg_can_view').default(true),
     modificationTimestamp: timestamp('modification_timestamp', {
       withTimezone: true,
+      mode: 'string',
     }),
 
     officeAddress1: varchar('office_address1', { length: 50 }),
@@ -40,6 +41,7 @@ export const offices = pgTable(
     }).default('nwmls'),
     photosChangeTimestamp: timestamp('photos_change_timestamp', {
       withTimezone: true,
+      mode: 'string',
     }),
 
     ...timestamps,

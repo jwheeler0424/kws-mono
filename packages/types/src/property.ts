@@ -5,7 +5,7 @@ import type { Resolve } from './utils';
 
 
 export type StandardStatus = (typeof standardStatusEnum.enumValues)[number];
-
+export type PropertyType = (typeof properties.propertyType.enumValues)[number];
 
 export type PropertyListing = typeof properties.$inferSelect;
 

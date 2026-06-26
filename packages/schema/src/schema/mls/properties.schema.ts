@@ -76,42 +76,51 @@ export const properties = pgTable(
         mlgCanView: boolean('mlg_can_view').notNull().default(true),
         modificationTimestamp: timestamp('modification_timestamp', {
             withTimezone: true,
+            mode: 'string',
         }),
         originalEntryTimestamp: timestamp('original_entry_timestamp', {
             withTimezone: true,
+            mode: 'string',
         }),
         majorChangeTimestamp: timestamp('major_change_timestamp', {
             withTimezone: true,
+            mode: 'string',
         }),
         majorChangeType: varchar('major_change_type', { length: 128 }),
         photosChangeTimestamp: timestamp('photos_change_timestamp', {
             withTimezone: true,
+            mode: 'string',
         }),
         statusChangeTimestamp: timestamp('status_change_timestamp', {
             withTimezone: true,
+            mode: 'string',
         }),
         priceChangeTimestamp: timestamp('price_change_timestamp', {
             withTimezone: true,
+            mode: 'string',
         }),
         contractStatusChangeDate: timestamp('contract_status_change_date', {
             withTimezone: true,
+            mode: 'string',
         }),
         purchaseContractDate: timestamp('purchase_contract_date', {
             withTimezone: true,
+            mode: 'string',
         }),
-        offMarketDate: timestamp('off_market_date', { withTimezone: true }),
-        closingDate: timestamp('closing_date', { withTimezone: true }),
+        offMarketDate: timestamp('off_market_date', { withTimezone: true, mode: 'string' }),
+        closingDate: timestamp('closing_date', { withTimezone: true, mode: 'string' }),
         internetAddressDisplayYN: boolean('internet_address_display_yn').default(true),
         internetAutomatedValuationDisplayYN: boolean('internet_automated_valuation_display_yn').default(
             true,
         ),
-        availabilityDate: timestamp('availability_date', { withTimezone: true }),
-        contingentDate: timestamp('contingent_date', { withTimezone: true }),
-        closeDate: timestamp('close_date', { withTimezone: true }),
-        onMarketDate: timestamp('on_market_date', { withTimezone: true }),
+        availabilityDate: timestamp('availability_date', { withTimezone: true, mode: 'string' }),
+        contingentDate: timestamp('contingent_date', { withTimezone: true, mode: 'string' }),
+        closeDate: timestamp('close_date', { withTimezone: true, mode: 'string' }),
+        onMarketDate: timestamp('on_market_date', { withTimezone: true, mode: 'string' }),
         cumulativeDaysOnMarket: integer('cumulative_days_on_market'),
         originatingSystemModificationTimestamp: timestamp('originating_system_modification_timestamp', {
             withTimezone: true,
+            mode: 'string',
         }),
         internetConsumerCommentYN: boolean('internet_consumer_comment_yn'),
         internetEntireListingDisplayYN: boolean('internet_entire_listing_display_yn'),
@@ -340,9 +349,16 @@ export const properties = pgTable(
         specialListingConditions: text('special_listing_conditions').array(),
         listingContractDate: timestamp('listing_contract_date', {
             withTimezone: true,
+            mode: 'string',
         }),
-        expirationDate: timestamp('expiration_date', { withTimezone: true }),
-        leaseExpiration: timestamp('lease_expiration', { withTimezone: true }),
+        expirationDate: timestamp('expiration_date', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        leaseExpiration: timestamp('lease_expiration', {
+            withTimezone: true,
+            mode: 'string',
+        }),
         rentIncludes: text('rent_includes').array(),
         capRate: numeric('cap_rate', { precision: 13, scale: 2 }),
         electricExpense: numeric('electric_expense', { precision: 13, scale: 2 }),

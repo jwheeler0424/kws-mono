@@ -20,6 +20,7 @@ export const lookups = pgTable(
     }).default('nwmls'),
     modificationTimestamp: timestamp('modification_timestamp', {
       withTimezone: true,
+      mode: 'string',
     }),
     mlgCanView: boolean('mlg_can_view').default(true),
 

@@ -10,8 +10,6 @@ import { mlsQuotaTracker, type QuotaSnapshot } from "./quota";
 let _queue: Promise<void> = Promise.resolve();
 const recentRequestSlotsMs: number[] = [];
 
-
-
 interface AdaptiveDelayOverrides {
   requestDelayMs?: number;
   requestsPerHourLimit?: number;

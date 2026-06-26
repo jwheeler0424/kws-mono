@@ -1,6 +1,10 @@
+import { main } from '@/app';
 import { logger } from '@/lib/logger';
 
-logger.info("Hello, MLS Grid Application!");
+main().catch((error) => {
+  console.error("An error occurred while running the MLS Grid Application:", error);
+  process.exit(1);
+});
 
 process.on("SIGINT", () => {
   logger.info("Ctrl-C was pressed");

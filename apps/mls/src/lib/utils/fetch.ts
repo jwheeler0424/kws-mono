@@ -1,12 +1,11 @@
-import type { MlsLookupPayload, MlsMemberPayload, MlsOfficePayload, MlsPropertyPayload, ODataPage, ODataPageBatch } from "@/types";
+import type { MlsLookupPayload, MlsMemberPayload, MlsOfficePayload, MlsOpenHousePayload, MlsPropertyPayload, MlsResource, ODataPage, ODataPageBatch } from "@/types";
 import { env } from '@kws/config';
 import { DEFAULT_RESOURCE_EXPANDS, MAX_RETRIES, REQUEST_TIMEOUT_MS } from '../constants';
 import { logger } from "../logger";
 import { MlsApiError } from './errors';
-import { baseUrl, getBodyPreview, getResponseBytes, getRetryDelayMs, getSafeEndpoint, normalizeFetchResourceOptions, parseRetryAfterMs, sleep } from "./helpers";
+import { baseUrl, getBodyPreview, getResponseBytes, getRetryDelayMs, getSafeEndpoint, parseRetryAfterMs, sleep } from "./helpers";
 import { mlsQuotaTracker } from "./quota";
 import { throttle } from "./rate-limit";
-
 
 let configuredResourceExpandMap: Readonly<Record<string, readonly string[]>> | null = null;
 
@@ -40,7 +39,7 @@ export function getConfiguredResourceExpandMap(): Readonly<Record<string, readon
   return configuredResourceExpandMap;
 }
 
-export function getExpandParam(resource: string): string | null {
+export function getExpandParam(resource: MlsResource): string | null {
   const configured = getConfiguredResourceExpandMap()[resource];
   const expanded =
     configured && configured.length > 0 ? configured : DEFAULT_RESOURCE_EXPANDS[resource];
@@ -50,17 +49,25 @@ export function getExpandParam(resource: string): string | null {
   return expanded.join(',');
 }
 
-export function buildResourceUrl(
-  resource: string,
+export function buildResourceUrl({
+  resource,
+  osn,
+  beforeTimestamp,
+  afterTimestamp,
+  top,
+  options,
+}: {
+  resource: MlsResource,
   osn: string,
+  beforeTimestamp?: Date | undefined,
   afterTimestamp: Date | undefined,
   top: number,
   options?: {
     includeExpand?: boolean;
   },
-) {
+}) {
   const params = new URLSearchParams({
-    $filter: buildFilter(osn, afterTimestamp),
+    $filter: buildFilter(osn, afterTimestamp, beforeTimestamp),
     $top: String(top),
   });
 
@@ -74,13 +81,17 @@ export function buildResourceUrl(
   return `${baseUrl(resource)}?${params.toString()}`;
 }
 
-export function buildFilter(osn: string, afterTimestamp?: Date): string {
+export function buildFilter(osn: string, afterTimestamp?: Date, beforeTimestamp?: Date): string {
   const parts: string[] = [`OriginatingSystemName eq '${osn}'`];
   if (afterTimestamp) {
     parts.push(`ModificationTimestamp gt ${afterTimestamp.toISOString()}`);
   }
+  if (beforeTimestamp) {
+    parts.push(`ModificationTimestamp lt ${beforeTimestamp.toISOString()}`);
+  }
   return parts.join(' and ');
 }
+
 
 export async function* paginate<T>(initialUrl: string): AsyncGenerator<ODataPageBatch<T>> {
   let url: string | undefined = initialUrl;
@@ -248,52 +259,55 @@ export async function fetchPage<T>(url: string): Promise<ODataPage<T>> {
 
 export interface FetchResourceOptions {
   afterTimestamp?: Date;
+  beforeTimestamp?: Date;
   startUrl?: string;
 }
 
 /** Fetch Lookup records, optionally filtered to records modified after a timestamp. */
 export function fetchLookups(
   osn: string,
-  options?: FetchResourceOptions | Date,
+  options?: FetchResourceOptions,
 ): AsyncGenerator<ODataPageBatch<MlsLookupPayload>> {
-  const { afterTimestamp, startUrl } = normalizeFetchResourceOptions(options);
+  const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsLookupPayload>(
     startUrl ??
-    buildResourceUrl('Lookup', osn, afterTimestamp, Math.min(env.MLS_PAGE_SIZE, 5000)),
+    buildResourceUrl({ resource: 'Lookup', osn, afterTimestamp, beforeTimestamp, top: Math.min(env.MLS_PAGE_SIZE, 5000) }),
   );
 }
 
 /** Fetch Member records with expanded Media. */
 export function fetchMembers(
   osn: string,
-  options?: FetchResourceOptions | Date,
+  options?: FetchResourceOptions,
 ): AsyncGenerator<ODataPageBatch<MlsMemberPayload>> {
-  const { afterTimestamp, startUrl } = normalizeFetchResourceOptions(options);
+  const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsMemberPayload>(
     startUrl ??
-    buildResourceUrl(
-      'Member',
+    buildResourceUrl({
+      resource: 'Member',
       osn,
       afterTimestamp,
-      Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
-    ),
+      beforeTimestamp,
+      top: Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
+    }),
   );
 }
 
 /** Fetch Office records with expanded Media. */
 export function fetchOffices(
   osn: string,
-  options?: FetchResourceOptions | Date,
+  options?: FetchResourceOptions,
 ): AsyncGenerator<ODataPageBatch<MlsOfficePayload>> {
-  const { afterTimestamp, startUrl } = normalizeFetchResourceOptions(options);
+  const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsOfficePayload>(
     startUrl ??
-    buildResourceUrl(
-      'Office',
+    buildResourceUrl({
+      resource: 'Office',
       osn,
       afterTimestamp,
-      Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
-    ),
+      beforeTimestamp,
+      top: Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
+    }),
   );
 }
 
@@ -301,16 +315,34 @@ export function fetchOffices(
  *  Page size is capped at maxPageSizeWithExpand (1000) per API limits. */
 export function fetchProperties(
   osn: string,
-  options?: FetchResourceOptions | Date,
+  options?: FetchResourceOptions,
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
-  const { afterTimestamp, startUrl } = normalizeFetchResourceOptions(options);
+  const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsPropertyPayload>(
     startUrl ??
-    buildResourceUrl(
-      'Property',
+    buildResourceUrl({
+      resource: 'Property',
       osn,
       afterTimestamp,
-      Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
-    ),
+      beforeTimestamp,
+      top: Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
+    }),
+  );
+}
+
+export function fetchOpenHouses(
+  osn: string,
+  options?: FetchResourceOptions,
+): AsyncGenerator<ODataPageBatch<MlsOpenHousePayload>> {
+  const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
+  return paginate<MlsOpenHousePayload>(
+    startUrl ??
+    buildResourceUrl({
+      resource: 'OpenHouse',
+      osn,
+      afterTimestamp,
+      beforeTimestamp,
+      top: Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
+    }),
   );
 }

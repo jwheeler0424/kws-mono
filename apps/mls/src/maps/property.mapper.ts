@@ -2,74 +2,21 @@ import type { NWM_Property, NWM_PropertyUnitType } from '@/types/property';
 import type { properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
 
 import { computePropertyCells } from '@/lib/h3';
-import { NWM_PropertySchema, NWM_PropertyUnitTypeSchema } from '@/types/property';
 
 import type { MlsPropertyPayload, MlsRoomPayload, MlsUnitTypePayload } from '@/types';
 
 import {
   parseBoolean,
   parseIntegerValue,
+  parseLocalFields,
   parseNullableString,
   parseNumeric,
   parseRealNumber,
   parseStringArray,
   parseTimestamp,
 } from '@/lib/utils';
-import { extractSchemaMetadata } from './nwm';
-
-const STANDARD_STATUS_MAP = {
-  active: 'Active',
-  activeundercontract: 'ActiveUnderContract',
-  canceled: 'Canceled',
-  cancelled: 'Canceled',
-  closed: 'Closed',
-  comingsoon: 'ComingSoon',
-  delete: 'Delete',
-  expired: 'Expired',
-  hold: 'Hold',
-  incomplete: 'Incomplete',
-  pending: 'Pending',
-  withdrawn: 'Withdrawn',
-} as const;
-
-const PROPERTY_TYPE_MAP = {
-  businessopportunity: 'BusinessOpportunity',
-  commerciallease: 'CommercialLease',
-  commercialsale: 'CommercialSale',
-  farm: 'Farm',
-  land: 'Land',
-  manufacturedinpark: 'ManufacturedInPark',
-  residential: 'Residential',
-  residentialincome: 'ResidentialIncome',
-  residentiallease: 'ResidentialLease',
-} as const;
-
-type StandardStatusValue = (typeof STANDARD_STATUS_MAP)[keyof typeof STANDARD_STATUS_MAP];
-type PropertyTypeValue = (typeof PROPERTY_TYPE_MAP)[keyof typeof PROPERTY_TYPE_MAP];
-
-function normalizeEnumToken(value: string | null): string | null {
-  if (!value) return null;
-  return value.replace(/[^A-Za-z0-9]+/g, '').toLowerCase();
-}
-
-function toStandardStatus(value: unknown): StandardStatusValue | null {
-  const raw = parseNullableString(value, 64);
-  const token = normalizeEnumToken(raw);
-  if (token && token in STANDARD_STATUS_MAP) {
-    return STANDARD_STATUS_MAP[token as keyof typeof STANDARD_STATUS_MAP];
-  }
-  return null;
-}
-
-function toPropertyType(value: unknown): PropertyTypeValue | null {
-  const raw = parseNullableString(value, 64);
-  const token = normalizeEnumToken(raw);
-  if (token && token in PROPERTY_TYPE_MAP) {
-    return PROPERTY_TYPE_MAP[token as keyof typeof PROPERTY_TYPE_MAP];
-  }
-  return null;
-}
-
+import type { PropertyType, StandardStatus } from '@kws/types';
+import { mapMedia, type MappedMedia } from './media.mapper';
 // ---------------------------------------------------------------------------
 // Output types
 // ---------------------------------------------------------------------------
@@ -83,6 +30,9 @@ export type MappedProperty = Omit<
   'createdAt' | 'searchVector' | 'featuredListingYN'
 > & {
   NWM: NWM_Property | null;
+  media: MappedMedia[];
+  rooms: MappedPropertyRoom[];
+  unitTypes: MappedPropertyUnitType[];
 };
 
 export type MappedPropertyRoom = Omit<PropertyRoomInsert, 'createdAt' | 'searchVector'>;
@@ -96,8 +46,13 @@ export type MappedPropertyUnitType = Omit<PropertyUnitTypeInsert, 'createdAt' | 
 // ---------------------------------------------------------------------------
 
 export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
-  const canView = payload.MlgCanView !== false;
+  const canView = parseBoolean(payload.MlgCanView) === true;
+  const nwm = parseLocalFields(payload, 'NWM_')
   const now = new Date();
+
+  const media = payload.Media?.map((mediaPayload => mapMedia(mediaPayload, payload.ListingKey))) ?? [];
+  const rooms = payload.Rooms?.map((roomPayload => mapPropertyRoom(roomPayload, payload.ListingKey))) ?? []
+  const unitTypes = payload.UnitTypes?.map((unitTypePayload => mapPropertyUnitType(unitTypePayload, payload.ListingKey))) ?? []
 
   const lat = parseRealNumber(payload.Latitude);
   const lng = parseRealNumber(payload.Longitude);
@@ -107,9 +62,9 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     listingKey: payload.ListingKey,
     listingId: parseNullableString(payload.ListingId, 64),
     originatingSystemName: parseNullableString(payload.OriginatingSystemName, 32) ?? 'nwmls',
-    standardStatus: toStandardStatus(payload.StandardStatus),
+    standardStatus: payload.StandardStatus as StandardStatus,
     mlsStatus: parseNullableString(payload.MlsStatus, 64),
-    propertyType: toPropertyType(payload.PropertyType),
+    propertyType: payload.PropertyType as PropertyType,
     propertySubType: parseNullableString(payload.PropertySubType, 128),
     mlgCanView: canView,
     modificationTimestamp: parseTimestamp(payload.ModificationTimestamp),
@@ -381,9 +336,13 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     greenBuildingVerificationType: parseStringArray(payload.GreenBuildingVerificationType),
     greenEnergyEfficient: parseStringArray(payload.GreenEnergyEfficient),
     greenEnergyGeneration: parseStringArray(payload.GreenEnergyGeneration),
-    NWM: extractSchemaMetadata(payload, NWM_PropertySchema),
     deletedAt: canView ? null : now,
     updatedAt: now,
+    /* extensions */
+    NWM: nwm,
+    media,
+    rooms,
+    unitTypes,
   };
 }
 
@@ -414,13 +373,14 @@ export function mapPropertyUnitType(
   payload: MlsUnitTypePayload,
   listingKey: string,
 ): MappedPropertyUnitType {
+  const nwm = parseLocalFields(payload, 'NWM_')
   return {
     unitTypeKey: payload.UnitTypeKey,
     listingKey,
     unitTypeBedsTotal: parseIntegerValue(payload.UnitTypeBedsTotal),
     unitTypeBathsTotal: parseIntegerValue(payload.UnitTypeBathsTotal),
     unitTypeActualRent: parseNumeric(payload.UnitTypeActualRent),
-    NWM: extractSchemaMetadata(payload, NWM_PropertyUnitTypeSchema),
+    NWM: nwm,
     updatedAt: new Date(),
   };
 }

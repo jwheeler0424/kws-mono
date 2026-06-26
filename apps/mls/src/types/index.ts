@@ -4,6 +4,10 @@
 // mapper layer's responsibility.
 // ---------------------------------------------------------------------------
 
+import type { MLS_RESOURCE_NAMES } from "@/lib/constants";
+
+export type MlsResource = typeof MLS_RESOURCE_NAMES[number];
+
 // ---------------------------------------------------------------------------
 // OData envelope
 // ---------------------------------------------------------------------------
@@ -95,8 +99,8 @@ export interface MlsLookupPayload {
 }
 
 export interface MlsMemberPayload {
-  MemberKey: string;
-  MemberMlsId?: string;
+  MemberMlsId: string;
+  MemberKey?: string;
   OriginatingSystemName?: string;
   MemberFullName?: string;
   MemberFirstName?: string;
@@ -123,8 +127,8 @@ export interface MlsMemberPayload {
 }
 
 export interface MlsOfficePayload {
-  OfficeKey: string;
-  OfficeMlsId?: string;
+  OfficeMlsId: string;
+  OfficeKey?: string;
   OriginatingSystemName?: string;
   OfficeName?: string;
   OfficePhone?: string;
@@ -437,6 +441,7 @@ export interface MlsPropertyPayload {
   GreenBuildingVerificationType?: string[];
   GreenEnergyEfficient?: string[];
   GreenEnergyGeneration?: string[];
+
   /** Expanded child collections */
   Media?: MlsMediaPayload[];
   Rooms?: MlsRoomPayload[];

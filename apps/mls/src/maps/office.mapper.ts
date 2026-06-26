@@ -2,17 +2,16 @@ import type { offices } from '@kws/schema';
 
 import type { MlsOfficePayload } from '../types';
 
-import { parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
+import { parseBoolean, parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
 
 type OfficeInsert = typeof offices.$inferInsert;
 
 export type MappedOffice = Omit<OfficeInsert, 'createdAt' | 'searchVector'>;
 
 export function mapOffice(payload: MlsOfficePayload): MappedOffice {
-  const canView = payload.MlgCanView !== false;
+  const canView = parseBoolean(payload.MlgCanView) === true;
   const now = new Date();
-  const officeMlsId =
-    parseNullableString(payload.OfficeMlsId, 25) ?? payload.OfficeKey.slice(0, 25);
+  const officeMlsId = payload.OfficeMlsId;
 
   return {
     officeMlsId,

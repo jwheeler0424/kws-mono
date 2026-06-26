@@ -3,9 +3,10 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/database';
 import { lookups } from '@kws/schema';
 
+import { chunkArray, getUpsertSetFields } from '@/lib/utils/helpers';
 import type { MappedLookup } from '../maps/lookup.mapper';
 
-export async function upsertLookup(record: MappedLookup): Promise<void> {
+export async function upsertSingleLookup(record: MappedLookup): Promise<void> {
   const { lookupKey, ...rest } = record;
   await db
     .insert(lookups)
@@ -22,4 +23,26 @@ export async function deactivateLookup(lookupKey: string): Promise<void> {
     .update(lookups)
     .set({ mlgCanView: false, deletedAt: now, updatedAt: now })
     .where(eq(lookups.lookupKey, lookupKey));
+}
+
+
+export async function upsertLookups(
+  data: (typeof lookups.$inferInsert)[]
+) {
+  if (data.length === 0) return;
+
+  const batches = chunkArray(data, 1000);
+  const setFields = getUpsertSetFields(lookups, ['lookupKey', 'createdAt', 'searchVector']);
+
+  await db.transaction(async (tx) => {
+    for (const batch of batches) {
+      await tx
+        .insert(lookups)
+        .values(batch)
+        .onConflictDoUpdate({
+          target: lookups.lookupKey,
+          set: setFields,
+        });
+    }
+  });
 }
