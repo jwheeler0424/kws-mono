@@ -1,6 +1,8 @@
-console.log("Hello, MLS Grid Application!");
+import { logger } from '@/lib/logger';
+
+logger.info("Hello, MLS Grid Application!");
 
 process.on("SIGINT", () => {
-  console.log("Ctrl-C was pressed");
+  logger.info("Ctrl-C was pressed");
   process.exit();
 });

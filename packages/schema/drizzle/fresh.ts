@@ -1,8 +1,6 @@
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { rm } from 'node:fs/promises';
 
-
-
 import { db } from './client';
 import { generate, resetDatabase } from './helpers';
 

@@ -15,6 +15,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@kws/config": "*",
     "@kws/logger": "*",
     "@kws/schema": "*",
     "@kws/typescript": "*",

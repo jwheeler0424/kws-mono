@@ -2,11 +2,11 @@ import { render } from '@react-email/render';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
-import { env } from '@/config/env';
 import { ContactRequestEmail } from '@/emails/contact';
 import { db } from '@/lib/database';
 import { nodemailerClient } from '@/lib/nodemailer';
-import { queueClient } from '@/lib/queue';
+// import { queueClient } from '@/lib/queue';
+import { env } from '@kws/config/env';
 import { contactEmails, contactNewsletter, contactRequests, contacts, notifications } from '@kws/schema';
 
 import { contactFormSchema } from './contact.schema';
@@ -95,15 +95,18 @@ export const submitContactFn = createServerFn({ method: 'POST' })
       }),
     );
 
-    await queueClient.enqueue(
-      await nodemailerClient.sendMail({
-        from: env.EMAIL_FROM,
-        to:
-          process.env.NODE_ENV === 'production'
-            ? 'jonathan@designersimage.io'
-            : 'contact@designersimage.io',
-        subject,
-        html: emailHTML,
-      }),
-    );
+    await nodemailerClient.sendMail({
+      from: env.EMAIL_FROM,
+      to:
+        process.env.NODE_ENV === 'production'
+          ? 'jonathan@designersimage.io'
+          : 'contact@designersimage.io',
+      subject,
+      html: emailHTML,
+    })
+
+    return {
+      success: true,
+      message: 'Contact request submitted successfully',
+    };
   });

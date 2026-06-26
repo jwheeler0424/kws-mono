@@ -1,0 +1,26 @@
+{
+  "name": "@kws/config",
+  "private": true,
+  "type": "module",
+  "module": "index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./constants": "./src/constants/index.ts",
+    "./constants/*": "./src/constants/*.ts",
+    "./env": "./src/env/index.ts",
+    "./env/*": "./src/env/*.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "dotenv-expand": "^13.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@kws/schema": "*",
+    "@kws/typescript": "*",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^6"
+  }
+}

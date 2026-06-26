@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import coreEnv from '@/config/env/core';
+import { env } from '@kws/config';
 
 import type { LoggerConfig, LoggerFileConfig, LogLevel } from './types';
 
@@ -63,7 +63,7 @@ function buildFileConfig(appName: string): LoggerFileConfig {
   };
 }
 
-export function loadLoggerConfig(source: LoggerEnvSource = coreEnv): LoggerConfig {
+export function loadLoggerConfig(source: LoggerEnvSource = env): LoggerConfig {
   const nodeEnv = source.NODE_ENV?.trim() || 'development';
   const appName = source.APP_NAME?.trim() || 'app';
   const pretty = source.LOG_PRETTY ?? nodeEnv !== 'production';

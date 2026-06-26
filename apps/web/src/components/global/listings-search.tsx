@@ -1,6 +1,11 @@
 import type { CheckboxRootState } from '@base-ui/react/checkbox';
 import type { TPropertyCard } from '@kws/types';
 
+import {
+  DEFAULT_POSITION,
+  FILTER_LIMITS,
+  PROPERTY_IMAGE_PLACEHOLDER_URL,
+} from '@kws/config/constants/properties';
 import { Checkbox } from '@kws/design/ui/checkbox';
 import { Combobox, ComboboxContent, ComboboxInputDebounced } from '@kws/design/ui/combobox';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@kws/design/ui/empty';
@@ -32,11 +37,6 @@ import { Search, X } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/global/button';
-import {
-  DEFAULT_POSITION,
-  FILTER_LIMITS,
-  PROPERTY_IMAGE_PLACEHOLDER_URL,
-} from '@/config/constants/properties';
 import { cn, numberFormatInternational } from '@/lib/utils';
 import { getAddressStreet, numberFormat } from '@/lib/utils/properties';
 import {

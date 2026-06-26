@@ -1,5 +1,5 @@
-import { env } from '@/config/env';
 import { shuffle } from '@/lib/tools/shuffle';
+import { env } from '@kws/config';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { getAvailableProperties, getFeaturedProperties, getPendingProperties, getSoldProperties } from '../queries';

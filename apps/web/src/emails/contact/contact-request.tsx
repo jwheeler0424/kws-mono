@@ -1,6 +1,5 @@
+import { env } from '@kws/config/env';
 import { Body, Font, Head, Html, Img, Preview, Tailwind } from '@react-email/components';
-
-import { env } from '@/config/env';
 
 import { Card, CardContent, CardHeader, Heading, Link, Separator, Text } from '../_components';
 import { getAuthAppName, getEmailLogoSrc, sharedEmailTailwindConfig } from '../_shared';

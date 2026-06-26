@@ -1,12 +1,10 @@
-import dotenv from 'dotenv';
+import { env } from '@kws/config';
 import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as fsp from 'node:fs/promises';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { Client } from 'pg';
-
-dotenv.config({ path: ['.env.local', '.env'] });
 
 const MIGRATIONS_DIR = path.join(process.cwd(), 'drizzle', 'migrations');
 
@@ -22,7 +20,7 @@ async function removeMigrationsFolder() {
 export async function resetDatabase() {
   console.log('⚠️  Resetting database...');
 
-  const DATABASE_URL = process.env.DATABASE_URL;
+  const DATABASE_URL = env.DATABASE_URL;
   if (!DATABASE_URL) {
     throw new Error(`[resetDatabase] Missing required environment variable: DATABASE_URL`);
   }

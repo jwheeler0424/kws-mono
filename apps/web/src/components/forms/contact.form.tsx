@@ -10,7 +10,7 @@ import React from 'react';
 
 import { Button } from '@/components/global/button';
 import { Input } from '@/components/global/input';
-// import { env } from '@/config/env';
+// import { env } from '@kws/config/env';
 import { cn } from '@/lib/utils';
 
 import { submitContactFn } from './contact.functions';
@@ -28,7 +28,9 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
       name: '',
       email: '',
       phone: '',
-      message: '',
+      message: propertyAddress
+        ? `Hello, I'm interested in learning more about the property located at ${propertyAddress}. Could you please provide me with additional information? Thank you.`
+        : '',
     },
     validators: {
       onSubmit: contactFormSchema,
@@ -182,11 +184,6 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
                   'focus:border-gray min-h-20 w-full resize-none! rounded-md! border border-gray-200! px-2.5 py-1.5 text-sm text-gray-900 shadow ring-offset-0 placeholder:text-gray-200 placeholder:italic focus-visible:ring-1! focus-visible:ring-black! focus-visible:ring-offset-0 disabled:cursor-default disabled:opacity-100',
                 )}
                 placeholder={'Ask us a question directly...'}
-                defaultValue={
-                  propertyAddress
-                    ? `Hello, I'm interested in learning more about the property located at ${propertyAddress}. Could you please provide me with additional information? Thank you.`
-                    : ''
-                }
                 disabled={isSubmitting}
               />
 

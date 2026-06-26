@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { z } from 'zod';
 
+import ContactForm from '@/components/forms/contact.form';
+
 const contactSearchSchema = z.object({
   address: z.string().optional(),
 });

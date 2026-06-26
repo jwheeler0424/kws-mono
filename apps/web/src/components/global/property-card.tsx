@@ -1,5 +1,6 @@
 import type { TPropertyCard } from '@kws/types';
 
+import { PROPERTY_IMAGE_PLACEHOLDER_URL } from '@kws/config/constants/properties';
 import { Separator } from '@kws/design/ui/separator';
 import { Link } from '@tanstack/react-router';
 import { BathIcon, BedDoubleIcon, LayersIcon, MapPinnedIcon } from 'lucide-react';
@@ -8,7 +9,6 @@ import {
   PROPERTY_CARD_HEIGHT,
   PROPERTY_CARD_MAX_WIDTH,
 } from '@/components/global/property-card.constants';
-import { PROPERTY_IMAGE_PLACEHOLDER_URL } from '@/config/constants/properties';
 import { cn } from '@/lib/utils';
 import {
   getAddressCityStateZip,

@@ -1,5 +1,6 @@
 import type { PropertyMapMarker } from '@kws/types';
 
+import { DEFAULT_POSITION } from '@kws/config/constants/properties';
 import { useQueryClient } from '@tanstack/react-query';
 import 'leaflet-edgebuffer';
 import 'leaflet/dist/leaflet.css';
@@ -9,7 +10,6 @@ import { createPortal } from 'react-dom';
 import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 
-import { DEFAULT_POSITION } from '@/config/constants/properties';
 import { abbreviateNumber } from '@/lib/utils';
 import { markerCardByListingKeyOptions } from '@/packages/mls/search.options';
 import { useMapActions, useMapStore } from '@/stores/map.store';

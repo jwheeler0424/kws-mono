@@ -24,6 +24,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@kws/config": "*",
     "@kws/typescript": "*",
     "@types/bun": "latest",
     "@types/pg": "^8.20.0",
