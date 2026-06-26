@@ -2,7 +2,7 @@
 node_modules
 
 # media
-apps/web/public/media/**
+public/media
 
 # output
 out
