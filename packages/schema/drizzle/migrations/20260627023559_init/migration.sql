@@ -1109,6 +1109,24 @@ CREATE TABLE "property_unit_types" (
         setweight(to_tsvector('english'::regconfig, coalesce("unit_type_beds_total"::text, '') || ' ' || coalesce("unit_type_baths_total"::text, '') || ' ' || coalesce("unit_type_actual_rent"::text, '')), 'B')) STORED
 );
 --> statement-breakpoint
+CREATE TABLE "mls_sync_cursors" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "mls_sync_cursors_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"resource" varchar(64) NOT NULL,
+	"originating_system_name" varchar(32) NOT NULL,
+	"last_modified_timestamp" timestamp with time zone,
+	"last_run_at" timestamp with time zone,
+	"last_run_status" varchar(32),
+	"last_run_error" text,
+	"checkpoint_request_url" text,
+	"checkpoint_next_url" text,
+	"checkpoint_recent_request_urls" text,
+	"checkpointed_at" timestamp with time zone,
+	"total_records_processed" integer DEFAULT 0,
+	"last_run_records_processed" integer DEFAULT 0,
+	"phase" varchar(32) DEFAULT 'delta',
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "notifications" (
 	"id" uuid PRIMARY KEY DEFAULT pg_catalog.uuidv7(),
 	"user_id" uuid,
@@ -1572,6 +1590,7 @@ CREATE INDEX "idx_property_rooms_listing_key" ON "property_rooms" ("listing_key"
 CREATE INDEX "idx_property_rooms_search_vector" ON "property_rooms" USING gin ("search_vector");--> statement-breakpoint
 CREATE INDEX "idx_property_unit_types_listing_key" ON "property_unit_types" ("listing_key");--> statement-breakpoint
 CREATE INDEX "idx_property_unit_types_search_vector" ON "property_unit_types" USING gin ("search_vector");--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_mls_sync_cursors_resource_unique" ON "mls_sync_cursors" ("resource","originating_system_name");--> statement-breakpoint
 CREATE INDEX "email_bounces_send_idx" ON "email_bounces" ("send_id");--> statement-breakpoint
 CREATE INDEX "email_bounces_next_retry_idx" ON "email_bounces" ("next_retry_at");--> statement-breakpoint
 CREATE INDEX "email_campaigns_created_id_idx" ON "email_campaigns" ("created_at","id");--> statement-breakpoint

@@ -350,6 +350,7 @@ export function fetchOpenHouses(
 function buildPropertySeedFilter(
   osn: string,
   options?: {
+    officeMlsId?: string;
     standardStatuses?: string[];
     propertyTypes?: string[];
     afterTimestamp?: Date;
@@ -383,6 +384,10 @@ function buildPropertySeedFilter(
     }
   }
 
+  if (options?.officeMlsId) {
+    parts.push(`ListOfficeMlsId eq '${escapeODataString(options.officeMlsId)}'`);
+  }
+
   if (options?.afterTimestamp) {
     parts.push(`ModificationTimestamp gt ${options.afterTimestamp.toISOString()}`);
   }
@@ -397,7 +402,7 @@ export function buildPropertySeedUrl(
   osn: string,
   top: number,
   options?: {
-    officeMlsId?: string
+    officeMlsId?: string;
     standardStatuses?: string[];
     propertyTypes?: string[];
     afterTimestamp?: Date;
@@ -425,7 +430,7 @@ export function fetchPropertiesByOffice(
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
   return paginate<MlsPropertyPayload>(
     options?.startUrl ??
-    buildPropertySeedUrl(osn, Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000), {
+    buildPropertySeedUrl(osn, getPropertySeedTop(), {
       officeMlsId,
     }),
   )
@@ -439,7 +444,7 @@ export function fetchPropertiesByType(
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
   return paginate<MlsPropertyPayload>(
     options?.startUrl ??
-    buildPropertySeedUrl(osn, Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000), {
+    buildPropertySeedUrl(osn, getPropertySeedTop(), {
       propertyTypes: [propertyType],
     }),
   )
@@ -507,6 +512,11 @@ const RESIDENTIAL_PROPERTY_TYPES = [
   'ResidentialLease',
 ] as const;
 
+function getPropertySeedTop(): number {
+  // Expanded Property pages are heavy; a conservative cap keeps memory and write bursts stable.
+  return Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, env.MLS_PAGE_SIZE, 500);
+}
+
 /**
  * Fetch Property records scoped to residential property types for delta sync.
  * Includes records where MlgCanView is false so that deactivations are
@@ -563,7 +573,7 @@ export async function* fetchViewablePropertiesByTypesAndStatuses(
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
   yield* paginate<MlsPropertyPayload>(
     options?.startUrl ??
-    buildPropertySeedUrl(osn, Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000), {
+    buildPropertySeedUrl(osn, getPropertySeedTop(), {
       propertyTypes: propertyTypes ? [...propertyTypes] : undefined,
       standardStatuses: standardStatuses ? [...standardStatuses] : undefined,
       afterTimestamp: options?.afterTimestamp,

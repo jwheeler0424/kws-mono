@@ -4,7 +4,7 @@ import { env } from '@kws/config';
 import { mlsMedia, properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
 
 import { db } from '@/lib/database';
-import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
+import { dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
 import type { MappedMedia } from '../maps/media.mapper';
 import type {
   MappedProperty,
@@ -12,6 +12,11 @@ import type {
   MappedPropertyUnitType,
 } from '../maps/property.mapper';
 import { upsertMlsMedia } from './media.repository';
+
+const PROPERTY_BATCH_SIZE = 100;
+const PROPERTY_UPSERT_BATCH_SIZE = 150;
+const CHILD_UPSERT_BATCH_SIZE = 750;
+const CHILD_UPSERT_CONCURRENCY = 2;
 
 export interface PropertyChildren {
   media: MappedMedia[];
@@ -65,11 +70,11 @@ export async function upsertProperties(
   if (data.length === 0) return;
 
   const deduped = dedupeByKey(data, (row) => row.listingKey);
-  const batches = chunkArray(deduped, 200);
   const setFields = getUpsertSetFields(properties, ['listingKey', 'createdAt', 'searchVector']);
 
-  await db.transaction(async (tx) => {
-    for (const batch of batches) {
+  for (let i = 0; i < deduped.length; i += PROPERTY_UPSERT_BATCH_SIZE) {
+    const batch = deduped.slice(i, i + PROPERTY_UPSERT_BATCH_SIZE);
+    await db.transaction(async (tx) => {
       await tx
         .insert(properties)
         .values(batch)
@@ -77,39 +82,27 @@ export async function upsertProperties(
           target: properties.listingKey,
           set: setFields,
         });
-      /**
-       * try {
-      await tx
-        .insert(properties)
-        .values(batch)
-        .onConflictDoUpdate({
-          target: properties.listingKey,
-          set: setFields,
-        });
-    } catch (error) {
-      const pgCode =
-        (error as { cause?: { code?: string }; code?: string })?.cause?.code ??
-        (error as { code?: string })?.code;
+    });
+  }
+}
 
-      // Bun + pg can intermittently fail wide batched upserts with protocol 08P01.
-      // Fallback to per-row upserts for the affected batch to preserve progress.
-      if (pgCode !== '08P01') {
-        throw error;
-      }
+async function runWithConcurrencyLimit(tasks: Array<() => Promise<void>>, limit: number): Promise<void> {
+  if (tasks.length === 0) return;
 
-      for (const row of batch) {
-        await tx
-          .insert(properties)
-          .values(row)
-          .onConflictDoUpdate({
-            target: properties.listingKey,
-            set: setFields,
-          });
-      }
+  const active = new Set<Promise<void>>();
+
+  for (const task of tasks) {
+    const promise = task().finally(() => {
+      active.delete(promise);
+    });
+    active.add(promise);
+
+    if (active.size >= limit) {
+      await Promise.race(active);
     }
-       */
-    }
-  });
+  }
+
+  await Promise.all(active);
 }
 
 
@@ -117,11 +110,11 @@ export async function upsertPropertyRooms(data: (typeof propertyRooms.$inferInse
   if (data.length === 0) return;
 
   const deduped = dedupeByKey(data, (row) => row.roomKey);
-  const batches = chunkArray(deduped, 2000);
   const setFields = getUpsertSetFields(propertyRooms, ['roomKey', 'searchVector', 'createdAt']);
 
-  await db.transaction(async (tx) => {
-    for (const batch of batches) {
+  for (let i = 0; i < deduped.length; i += CHILD_UPSERT_BATCH_SIZE) {
+    const batch = deduped.slice(i, i + CHILD_UPSERT_BATCH_SIZE);
+    await db.transaction(async (tx) => {
       await tx
         .insert(propertyRooms)
         .values(batch)
@@ -129,19 +122,19 @@ export async function upsertPropertyRooms(data: (typeof propertyRooms.$inferInse
           target: propertyRooms.roomKey,
           set: setFields,
         });
-    }
-  });
+    });
+  }
 }
 
 export async function upsertPropertyUnitTypes(data: (typeof propertyUnitTypes.$inferInsert)[]) {
   if (data.length === 0) return;
 
   const deduped = dedupeByKey(data, (row) => row.unitTypeKey);
-  const batches = chunkArray(deduped, 2000);
   const setFields = getUpsertSetFields(propertyUnitTypes, ['unitTypeKey', 'searchVector', 'createdAt']);
 
-  await db.transaction(async (tx) => {
-    for (const batch of batches) {
+  for (let i = 0; i < deduped.length; i += CHILD_UPSERT_BATCH_SIZE) {
+    const batch = deduped.slice(i, i + CHILD_UPSERT_BATCH_SIZE);
+    await db.transaction(async (tx) => {
       await tx
         .insert(propertyUnitTypes)
         .values(batch)
@@ -149,55 +142,49 @@ export async function upsertPropertyUnitTypes(data: (typeof propertyUnitTypes.$i
           target: propertyUnitTypes.unitTypeKey,
           set: setFields,
         });
-    }
-  });
+    });
+  }
 }
 
 export async function processMlsPropertiesPayload(data: MappedProperty[]) {
   if (data.length === 0) return;
 
-  // 1. Initialize empty arrays to hold our flattened, normalized data
-  const allProperties: (typeof properties.$inferInsert)[] = [];
-  const allMedia: (typeof mlsMedia.$inferInsert)[] = [];
-  const allRooms: (typeof propertyRooms.$inferInsert)[] = [];
-  const allUnitTypes: (typeof propertyUnitTypes.$inferInsert)[] = [];
+  for (let i = 0; i < data.length; i += PROPERTY_BATCH_SIZE) {
+    const chunk = data.slice(i, i + PROPERTY_BATCH_SIZE);
 
-  // 2. Extract and separate the data
-  for (const item of data) {
-    // Destructure out the relations. 
-    // 'propertyData' now strictly contains ONLY valid columns for the properties table.
-    const { media, rooms, unitTypes, ...propertyData } = item;
+    const chunkProperties: (typeof properties.$inferInsert)[] = [];
+    const chunkMedia: (typeof mlsMedia.$inferInsert)[] = [];
+    const chunkRooms: (typeof propertyRooms.$inferInsert)[] = [];
+    const chunkUnitTypes: (typeof propertyUnitTypes.$inferInsert)[] = [];
 
-    allProperties.push(propertyData);
+    for (const item of chunk) {
+      const { media, rooms, unitTypes, ...propertyData } = item;
+      chunkProperties.push(propertyData);
 
-    // 3. Extract, flatten, and strictly enforce Foreign Keys
-    if (media && media.length > 0) {
-      allMedia.push(...media);
+      if (media.length > 0) {
+        chunkMedia.push(...media);
+      }
+      if (rooms.length > 0) {
+        chunkRooms.push(...rooms);
+      }
+      if (unitTypes.length > 0) {
+        chunkUnitTypes.push(...unitTypes);
+      }
     }
 
-    if (rooms && rooms.length > 0) {
-      allRooms.push(...rooms);
+    await upsertProperties(chunkProperties);
+
+    const childTasks: Array<() => Promise<void>> = [];
+    if (chunkMedia.length > 0) {
+      childTasks.push(() => upsertMlsMedia(chunkMedia));
+    }
+    if (chunkRooms.length > 0) {
+      childTasks.push(() => upsertPropertyRooms(chunkRooms));
+    }
+    if (chunkUnitTypes.length > 0) {
+      childTasks.push(() => upsertPropertyUnitTypes(chunkUnitTypes));
     }
 
-    if (unitTypes && unitTypes.length > 0) {
-      allUnitTypes.push(...unitTypes);
-    }
+    await runWithConcurrencyLimit(childTasks, CHILD_UPSERT_CONCURRENCY);
   }
-
-  // 4. Execute the Upserts in relational order
-  console.log(`Upserting ${allProperties.length} properties...`);
-
-  // MUST await the parent table first to satisfy foreign key constraints
-  await upsertProperties(allProperties);
-
-  console.log(`Properties complete. Upserting nested relational data...`);
-
-  // Children can be upserted concurrently since they don't depend on each other
-  await Promise.all([
-    allMedia.length > 0 ? upsertMlsMedia(allMedia) : Promise.resolve(),
-    allRooms.length > 0 ? upsertPropertyRooms(allRooms) : Promise.resolve(),
-    allUnitTypes.length > 0 ? upsertPropertyUnitTypes(allUnitTypes) : Promise.resolve(),
-  ]);
-
-  console.log('✅ Mass upsert pipeline complete!');
 }

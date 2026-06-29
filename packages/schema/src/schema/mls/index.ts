@@ -7,4 +7,5 @@ export * from './properties.schema';
 export * from './property-rooms.schema';
 export * from './property-unit-types.schema';
 export * from './relations';
+export * from './sync-cursors.schema';
 

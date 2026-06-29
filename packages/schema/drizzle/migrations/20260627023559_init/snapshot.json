@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "1219b520-2083-4491-9932-b505111ee942",
+  "id": "708d0c01-a2e2-4f37-8459-c248947b285d",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -712,6 +712,12 @@
     {
       "isRlsEnabled": false,
       "name": "property_unit_types",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "mls_sync_cursors",
       "entityType": "tables",
       "schema": "public"
     },
@@ -12437,6 +12443,210 @@
       "table": "property_unit_types"
     },
     {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": {
+        "type": "always",
+        "name": "mls_sync_cursors_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "2147483647",
+        "cache": 1,
+        "cycle": false
+      },
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "varchar(64)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "resource",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "varchar(32)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "originating_system_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "last_modified_timestamp",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "last_run_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "varchar(32)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "last_run_status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "last_run_error",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "checkpoint_request_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "checkpoint_next_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "checkpoint_recent_request_urls",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "checkpointed_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "total_records_processed",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "last_run_records_processed",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "varchar(32)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "'delta'",
+      "generated": null,
+      "identity": null,
+      "name": "phase",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -19270,6 +19480,34 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "resource",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "originating_system_name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "idx_mls_sync_cursors_resource_unique",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "mls_sync_cursors"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "send_id",
           "isExpression": false,
           "asc": true,
@@ -22717,6 +22955,16 @@
       "name": "property_unit_types_pkey",
       "schema": "public",
       "table": "property_unit_types",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "mls_sync_cursors_pkey",
+      "schema": "public",
+      "table": "mls_sync_cursors",
       "entityType": "pks"
     },
     {
