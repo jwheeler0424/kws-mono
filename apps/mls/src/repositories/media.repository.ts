@@ -29,11 +29,15 @@ export async function deactivateMlsMedia(mediaKey: string): Promise<void> {
 export async function upsertMlsMedia(
   data: (typeof mlsMedia.$inferInsert)[]
 ) {
-  if (data.length === 0) return;
+  if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.mediaKey);
   const batches = chunkArray(deduped, 1000);
   const setFields = getUpsertSetFields(mlsMedia, ['mediaKey', 'createdAt', 'searchVector']);
+  const maxTimestamp = deduped.reduce((max, row) => {
+    const rowTimestamp = row.mediaModificationTimestamp ? new Date(row.mediaModificationTimestamp) : new Date(0);
+    return rowTimestamp > max ? rowTimestamp : max;
+  }, new Date(0));
 
   await db.transaction(async (tx) => {
     for (const batch of batches) {
@@ -46,4 +50,6 @@ export async function upsertMlsMedia(
         });
     }
   });
+
+  return maxTimestamp;
 }

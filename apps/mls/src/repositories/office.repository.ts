@@ -31,11 +31,15 @@ export async function deactivateOffice(officeKey: string): Promise<void> {
 export async function upsertOffices(
   data: (typeof offices.$inferInsert)[]
 ) {
-  if (data.length === 0) return;
+  if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.officeMlsId);
   const batches = chunkArray(deduped, 1000);
   const setFields = getUpsertSetFields(offices, ['officeMlsId', 'createdAt', 'searchVector']);
+  const maxTimestamp = deduped.reduce((max, row) => {
+    const rowTimestamp = row.modificationTimestamp ? new Date(row.modificationTimestamp) : new Date(0);
+    return rowTimestamp > max ? rowTimestamp : max;
+  }, new Date(0));
 
   await db.transaction(async (tx) => {
     for (const batch of batches) {
@@ -48,10 +52,12 @@ export async function upsertOffices(
         });
     }
   });
+
+  return maxTimestamp;
 }
 
 export async function processMlsOfficesPayload(data: MappedOffice[]) {
-  if (data.length === 0) return;
+  if (data.length === 0) return new Date(0);
 
   // 1. Initialize empty arrays to hold our flattened, normalized data
   const allOffices: (typeof offices.$inferInsert)[] = [];
@@ -71,18 +77,13 @@ export async function processMlsOfficesPayload(data: MappedOffice[]) {
     }
   }
 
-  // 4. Execute the Upserts in relational order
-  console.log(`Upserting ${allOffices.length} offices...`);
-
   // MUST await the parent table first to satisfy foreign key constraints
-  await upsertOffices(allOffices);
-
-  console.log(`Offices complete. Upserting nested relational data...`);
+  const maxTimestamp = await upsertOffices(allOffices);
 
   // Children can be upserted concurrently since they don't depend on each other
   await Promise.all([
     allMedia.length > 0 ? upsertMlsMedia(allMedia) : Promise.resolve(),
   ]);
 
-  console.log('✅ Mass upsert pipeline complete!');
+  return maxTimestamp;
 }

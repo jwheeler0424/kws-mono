@@ -23,42 +23,6 @@ import {
   startCursorRun,
 } from '../repositories/cursor.repository'
 
-function formatErrorDetail(err: unknown): {
-  message: string
-  stack?: string
-  meta?: Record<string, unknown>
-} {
-  if (!(err instanceof Error)) {
-    return { message: String(err) }
-  }
-
-  const cause = (err as Error & { cause?: unknown }).cause
-  const causeObj =
-    cause && typeof cause === 'object' ? (cause as Record<string, unknown>) : undefined
-
-  // Drizzle wraps the underlying PG error on `cause`.
-  const causeMessage =
-    causeObj && typeof causeObj.message === 'string' ? causeObj.message : undefined
-
-  const meta: Record<string, unknown> = {}
-  if (causeObj && typeof causeObj.code === 'string') meta.code = causeObj.code
-  if (causeObj && typeof causeObj.detail === 'string') {
-    meta.detail = causeObj.detail
-  }
-  if (causeObj && typeof causeObj.constraint === 'string') {
-    meta.constraint = causeObj.constraint
-  }
-  if (causeObj && typeof causeObj.column === 'string') {
-    meta.column = causeObj.column
-  }
-
-  return {
-    message: causeMessage ?? err.message,
-    stack: err.stack,
-    meta: Object.keys(meta).length > 0 ? meta : undefined,
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Configuration contract
 // ---------------------------------------------------------------------------
@@ -72,6 +36,7 @@ export interface SyncResourceConfig<TPayload extends Record<string, unknown>> {
     osn: string,
     options?: {
       afterTimestamp?: Date
+      beforeTimestamp?: Date
       startUrl?: string
     },
   ) => AsyncGenerator<ODataPageBatch<TPayload>>
@@ -82,9 +47,7 @@ export interface SyncResourceConfig<TPayload extends Record<string, unknown>> {
   /** Extract the modification timestamp string for cursor advancement */
   getTimestamp: (record: TPayload) => string | undefined
   /** Upsert a visible record */
-  upsert: (record: TPayload) => Promise<void>
-  /** Deactivate a hidden record */
-  deactivate: (key: string) => Promise<void>
+  upsert: (records: TPayload[]) => Promise<Date>
 }
 
 function parseCheckpointRequestUrlHistory(raw: string | null | undefined): string[] {
@@ -108,17 +71,12 @@ function resolveResumeStartUrl(params: {
   checkpointNextUrl?: string | null
   checkpointRequestUrl?: string | null
   checkpointRequestUrlHistory: string[]
-  overlapPages: number
 }): string | undefined {
-  const { checkpointNextUrl, checkpointRequestUrl, checkpointRequestUrlHistory, overlapPages } =
+  const { checkpointNextUrl, checkpointRequestUrl, checkpointRequestUrlHistory } =
     params
 
-  if (overlapPages <= 0) {
-    return checkpointNextUrl ?? undefined
-  }
-
   if (checkpointRequestUrlHistory.length > 0) {
-    const rewindCount = Math.min(overlapPages, checkpointRequestUrlHistory.length)
+    const rewindCount = Math.min(0, checkpointRequestUrlHistory.length)
     return checkpointRequestUrlHistory[checkpointRequestUrlHistory.length - rewindCount]
   }
 
@@ -158,7 +116,6 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
   const startedAt = Date.now()
 
   let upserted = 0
-  let deactivated = 0
   let errors = 0
   let maxTimestamp: Date | null = null
   const errorDetails: ErrorDetail[] = []
@@ -176,14 +133,12 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
       resource,
       osn,
       upserted: 0,
-      deactivated: 0,
       errors: 0,
       durationMs: Date.now() - startedAt,
     }
   }
 
   const cursor = await getCursor(resource, osn)
-  const isInitial = !cursor?.lastModifiedTimestamp || cursor.phase === 'initial'
 
   logger.debug('sync cursor loaded', {
     resource,
@@ -193,7 +148,6 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
     lastRunStatus: cursor?.lastRunStatus,
   })
 
-  const overlapPages = isInitial && resource === 'Property' ? 0 : 0
   const checkpointRequestUrlHistory = parseCheckpointRequestUrlHistory(
     cursor?.checkpointRecentRequestUrls,
   )
@@ -203,16 +157,11 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
     checkpointNextUrl: cursor?.checkpointNextUrl,
     checkpointRequestUrl: cursor?.checkpointRequestUrl,
     checkpointRequestUrlHistory,
-    overlapPages,
   })
 
   if (cursor?.lastModifiedTimestamp) {
     // Prefer cursor marker whenever present.
     resumeAfterTimestamp = new Date(cursor.lastModifiedTimestamp)
-    if (!isInitial && env.MLS_DELTA_OVERLAP_MS > 0) {
-      // Delta replays a small overlap window to reduce boundary misses.
-      resumeAfterTimestamp = new Date(resumeAfterTimestamp.getTime() - env.MLS_DELTA_OVERLAP_MS)
-    }
   } else if (env.MLS_START_DATE) {
     // Fallback floor for first sync when no marker exists yet.
     resumeAfterTimestamp = env.MLS_START_DATE
@@ -221,11 +170,10 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
   let activeStartUrl = resumeStartUrl
   let activeAfterTimestamp = activeStartUrl ? undefined : resumeAfterTimestamp
 
-  logger.info(isInitial ? 'initial sync' : 'delta sync', {
+  logger.info('delta sync', {
     resource,
     osn,
     ...(activeStartUrl ? { resumeFromUrl: activeStartUrl } : {}),
-    ...(overlapPages > 0 ? { resumeOverlapPages: overlapPages } : {}),
     ...(activeAfterTimestamp ? { afterTimestamp: activeAfterTimestamp.toISOString() } : {}),
   })
 
@@ -239,57 +187,13 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
           startUrl: activeStartUrl,
         })) {
           const batch = pageBatch.value
+          maxTimestamp = await config.upsert(batch)
           page++
-          let batchUpserted = 0
-          let batchDeactivated = 0
 
-          for (const record of batch) {
-            try {
-              const ts = config.getTimestamp(record)
-              if (config.canView(record)) {
-                await config.upsert(record)
-                batchUpserted++
-              } else {
-                await config.deactivate(config.getKey(record))
-                batchDeactivated++
-              }
-
-              // Only advance cursor timestamps from records that were processed
-              // successfully to avoid skipping failed records on the next delta run.
-              if (ts) {
-                const d = new Date(ts)
-                if (!maxTimestamp || d > maxTimestamp) maxTimestamp = d
-              }
-            } catch (err) {
-              errors++
-              let key = 'unknown'
-              try {
-                key = config.getKey(record)
-              } catch {
-                /* ignore secondary error */
-              }
-              const formatted = formatErrorDetail(err)
-              const detail: ErrorDetail = {
-                key,
-                message: formatted.message,
-                stack: formatted.stack,
-              }
-              errorDetails.push(detail)
-              logger.error('record error', {
-                resource,
-                osn,
-                key,
-                message: detail.message,
-                ...(formatted.meta ?? {}),
-              })
-            }
-          }
-
-          upserted += batchUpserted
-          deactivated += batchDeactivated
+          upserted += batch.length
 
           // Checkpoint page-level counts and pagination URLs for exact retry continuation.
-          await advanceCursor(resource, osn, maxTimestamp?.toISOString() ?? null, batchUpserted + batchDeactivated, {
+          await advanceCursor(resource, osn, maxTimestamp?.toISOString() ?? null, batch.length, {
             requestUrl: pageBatch.requestUrl,
             nextUrl: pageBatch.nextUrl ?? null,
           })
@@ -298,9 +202,8 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
             resource,
             osn,
             page,
-            upserted: batchUpserted,
-            deactivated: batchDeactivated,
-            maxTimestamp: maxTimestamp?.toISOString(),
+            upserted: batch.length,
+            maxTimestamp: maxTimestamp,
             checkpointRequestUrl: pageBatch.requestUrl,
             checkpointNextUrl: pageBatch.nextUrl,
           })
@@ -344,7 +247,6 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
         resource,
         osn,
         upserted,
-        deactivated,
         errors,
         durationMs: Date.now() - startedAt,
         error: message,
@@ -352,7 +254,7 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
       }
     }
 
-    await completeCursorRun(resource, osn, maxTimestamp)
+    await completeCursorRun(resource, osn, maxTimestamp?.toISOString() ?? null)
     const finalTimestampIso = maxTimestamp ? (maxTimestamp as Date).toISOString() : undefined
     logger.debug('sync cursor marked complete', {
       resource,
@@ -366,7 +268,6 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
       resource,
       osn,
       upserted,
-      deactivated,
       errors,
       durationMs: Date.now() - startedAt,
       errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
@@ -380,7 +281,6 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
       resource,
       osn,
       upserted,
-      deactivated,
       errors: errors + 1,
       durationMs: Date.now() - startedAt,
       error: message,

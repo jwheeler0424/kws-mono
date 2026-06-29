@@ -29,11 +29,15 @@ export async function deactivateMember(memberKey: string): Promise<void> {
 export async function upsertMembers(
   data: (typeof members.$inferInsert)[]
 ) {
-  if (data.length === 0) return;
+  if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.memberMlsId);
   const batches = chunkArray(deduped, 1000);
   const setFields = getUpsertSetFields(members, ['memberMlsId', 'createdAt', 'searchVector']);
+  const maxTimestamp = deduped.reduce((max, row) => {
+    const rowTimestamp = row.modificationTimestamp ? new Date(row.modificationTimestamp) : new Date(0);
+    return rowTimestamp > max ? rowTimestamp : max;
+  }, new Date(0));
 
   await db.transaction(async (tx) => {
     for (const batch of batches) {
@@ -46,10 +50,12 @@ export async function upsertMembers(
         });
     }
   });
+
+  return maxTimestamp;
 }
 
 export async function processMlsMembersPayload(data: MappedMember[]) {
-  if (data.length === 0) return;
+  if (data.length === 0) return new Date(0);
 
   // 1. Initialize empty arrays to hold our flattened, normalized data
   const allMembers: (typeof members.$inferInsert)[] = [];
@@ -69,18 +75,13 @@ export async function processMlsMembersPayload(data: MappedMember[]) {
     }
   }
 
-  // 4. Execute the Upserts in relational order
-  console.log(`Upserting ${allMembers.length} members...`);
-
   // MUST await the parent table first to satisfy foreign key constraints
-  await upsertMembers(allMembers);
-
-  console.log(`Members complete. Upserting nested relational data...`);
+  const maxTimestamp = await upsertMembers(allMembers);
 
   // Children can be upserted concurrently since they don't depend on each other
   await Promise.all([
     allMedia.length > 0 ? upsertMlsMedia(allMedia) : Promise.resolve(),
   ]);
 
-  console.log('✅ Mass upsert pipeline complete!');
+  return maxTimestamp;
 }

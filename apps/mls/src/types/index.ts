@@ -463,7 +463,6 @@ export interface SyncResult {
   resource: string;
   osn: string;
   upserted: number;
-  deactivated: number;
   errors: number;
   durationMs: number;
   error?: string;

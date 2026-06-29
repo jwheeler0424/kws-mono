@@ -67,10 +67,14 @@ export async function deactivateProperty(listingKey: string): Promise<void> {
 export async function upsertProperties(
   data: (typeof properties.$inferInsert)[]
 ) {
-  if (data.length === 0) return;
+  if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.listingKey);
   const setFields = getUpsertSetFields(properties, ['listingKey', 'createdAt', 'searchVector']);
+  const maxTimestamp = deduped.reduce((max, row) => {
+    const rowTimestamp = row.modificationTimestamp ? new Date(row.modificationTimestamp) : new Date(0);
+    return rowTimestamp > max ? rowTimestamp : max;
+  }, new Date(0));
 
   for (let i = 0; i < deduped.length; i += PROPERTY_UPSERT_BATCH_SIZE) {
     const batch = deduped.slice(i, i + PROPERTY_UPSERT_BATCH_SIZE);
@@ -84,12 +88,14 @@ export async function upsertProperties(
         });
     });
   }
+
+  return maxTimestamp;
 }
 
-async function runWithConcurrencyLimit(tasks: Array<() => Promise<void>>, limit: number): Promise<void> {
+async function runWithConcurrencyLimit(tasks: Array<() => Promise<Date | void>>, limit: number): Promise<void> {
   if (tasks.length === 0) return;
 
-  const active = new Set<Promise<void>>();
+  const active = new Set<Promise<Date | void>>();
 
   for (const task of tasks) {
     const promise = task().finally(() => {
@@ -107,7 +113,7 @@ async function runWithConcurrencyLimit(tasks: Array<() => Promise<void>>, limit:
 
 
 export async function upsertPropertyRooms(data: (typeof propertyRooms.$inferInsert)[]) {
-  if (data.length === 0) return;
+  if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.roomKey);
   const setFields = getUpsertSetFields(propertyRooms, ['roomKey', 'searchVector', 'createdAt']);
@@ -147,7 +153,8 @@ export async function upsertPropertyUnitTypes(data: (typeof propertyUnitTypes.$i
 }
 
 export async function processMlsPropertiesPayload(data: MappedProperty[]) {
-  if (data.length === 0) return;
+  if (data.length === 0) return new Date(0);
+  let maxTimestamp = new Date(0);
 
   for (let i = 0; i < data.length; i += PROPERTY_BATCH_SIZE) {
     const chunk = data.slice(i, i + PROPERTY_BATCH_SIZE);
@@ -172,9 +179,9 @@ export async function processMlsPropertiesPayload(data: MappedProperty[]) {
       }
     }
 
-    await upsertProperties(chunkProperties);
+    const localMaxTimestamp = await upsertProperties(chunkProperties);
 
-    const childTasks: Array<() => Promise<void>> = [];
+    const childTasks: Array<() => Promise<Date | void>> = [];
     if (chunkMedia.length > 0) {
       childTasks.push(() => upsertMlsMedia(chunkMedia));
     }
@@ -186,5 +193,8 @@ export async function processMlsPropertiesPayload(data: MappedProperty[]) {
     }
 
     await runWithConcurrencyLimit(childTasks, CHILD_UPSERT_CONCURRENCY);
+
+    maxTimestamp = localMaxTimestamp > maxTimestamp ? localMaxTimestamp : maxTimestamp;
   }
+  return maxTimestamp;
 }

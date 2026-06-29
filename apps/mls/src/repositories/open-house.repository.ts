@@ -29,7 +29,7 @@ export async function deactivateOpenHouse(openHouseKey: string): Promise<void> {
 export async function upsertOpenHouses(
   data: (typeof openHouses.$inferInsert)[]
 ) {
-  if (data.length === 0) return;
+  if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.openHouseKey);
   const referencedListingKeys = [
@@ -39,6 +39,10 @@ export async function upsertOpenHouses(
         .filter((listingKey): listingKey is string => typeof listingKey === 'string' && listingKey.length > 0),
     ),
   ];
+  const maxTimestamp = deduped.reduce((max, row) => {
+    const rowTimestamp = row.modificationTimestamp ? new Date(row.modificationTimestamp) : new Date(0);
+    return rowTimestamp > max ? rowTimestamp : max;
+  }, new Date(0));
 
   const validListingKeys = new Set<string>();
   for (const listingKeyBatch of chunkArray(referencedListingKeys, 1000)) {
@@ -68,7 +72,7 @@ export async function upsertOpenHouses(
     });
   }
 
-  if (filtered.length === 0) return;
+  if (filtered.length === 0) return maxTimestamp;
 
   const batches = chunkArray(filtered, 1000);
   const setFields = getUpsertSetFields(openHouses, ['openHouseKey', 'createdAt', 'searchVector']);
@@ -84,4 +88,6 @@ export async function upsertOpenHouses(
         });
     }
   });
+
+  return maxTimestamp;
 }

@@ -61,7 +61,7 @@ export interface SeedResourceConfig<TPayload extends Record<string, unknown>> {
     },
   ) => AsyncGenerator<ODataPageBatch<TPayload>>
   /** Upsert a visible record */
-  upsert: (records: TPayload[]) => Promise<void>
+  upsert: (records: TPayload[]) => Promise<Date>
 }
 
 function toMb(bytes: number): number {
@@ -89,7 +89,6 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
   const startedAt = Date.now()
 
   let upserted = 0
-  let deactivated = 0
   let errors = 0
   let maxTimestamp: Date | null = null
   const errorDetails: ErrorDetail[] = [];
@@ -107,7 +106,6 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
       resource,
       osn,
       upserted: 0,
-      deactivated: 0,
       errors: 0,
       durationMs: Date.now() - startedAt,
     }
@@ -118,11 +116,11 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
 
   if (!isInitial) {
     logger.info('seed complete', { resource, osn });
+    await completeCursorRun(resource, osn, cursor?.lastModifiedTimestamp ?? null)
     return {
       resource,
       osn,
       upserted: 0,
-      deactivated: 0,
       errors: 0,
       durationMs: Date.now() - startedAt,
     }
@@ -179,14 +177,14 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
           const pageStartedAt = Date.now()
           const memoryBefore = getMemorySnapshot()
           const batch = pageBatch.value
-          await config.upsert(batch)
+          maxTimestamp = await config.upsert(batch)
           page++
 
           upserted += batch.length
           const memoryAfter = getMemorySnapshot()
 
           // Checkpoint page-level counts and pagination URLs for exact retry continuation.
-          await advanceCursor(resource, osn, maxTimestamp, upserted, {
+          await advanceCursor(resource, osn, maxTimestamp?.toISOString() ?? null, upserted, {
             requestUrl: pageBatch.requestUrl,
             nextUrl: pageBatch.nextUrl ?? null,
           })
@@ -242,7 +240,6 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
         resource,
         osn,
         upserted,
-        deactivated,
         errors,
         durationMs: Date.now() - startedAt,
         error: message,
@@ -250,7 +247,7 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
       }
     }
 
-    await completeCursorRun(resource, osn, maxTimestamp)
+    await completeCursorRun(resource, osn, maxTimestamp?.toISOString() ?? null)
     const finalTimestampIso = maxTimestamp ? (maxTimestamp as Date).toISOString() : undefined
     logger.debug('sync cursor marked complete', {
       resource,
@@ -264,7 +261,6 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
       resource,
       osn,
       upserted,
-      deactivated,
       errors,
       durationMs: Date.now() - startedAt,
       errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
@@ -277,7 +273,6 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
       resource,
       osn,
       upserted,
-      deactivated,
       errors: errors + 1,
       durationMs: Date.now() - startedAt,
       error: message,
