@@ -11,7 +11,7 @@
   "dependencies": {
     "@tanstack/pacer": "^0.21.1",
     "date-fns": "^4.4.0",
-    "drizzle-orm": "^1.0.0-beta.22",
+    "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
     "h3-js": "^4.4.0",
     "pg": "^8.22.0",
     "zod": "^4.4.3"
@@ -25,9 +25,9 @@
     "@kws/utils": "*",
     "@types/bun": "latest",
     "@types/pg": "^8.20.0",
-    "drizzle-kit": "^1.0.0-beta.22"
+    "drizzle-kit": "^1.0.0-rc.4-ca0f029"
   },
   "peerDependencies": {
-    "typescript": "^6"
+    "typescript": "^6.0.3"
   }
 }
