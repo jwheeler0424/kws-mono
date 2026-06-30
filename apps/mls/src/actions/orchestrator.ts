@@ -74,7 +74,7 @@ function officeSeedConfig(osn: string) {
   })
 }
 
-function officeMediaSeedConfig(osn: string): Promise<SyncResult> {
+async function officeMediaSeedConfig(osn: string): Promise<SyncResult> {
   const startedAt = new Date();
   return runInitialMlsMediaSync({ filterEntityTypes: ['offices'] }).then((summary) =>
     mediaSummaryToSyncResult('Office:Media', osn, summary, startedAt),
@@ -90,7 +90,7 @@ function memberSeedConfig(osn: string) {
   })
 }
 
-function memberMediaSeedConfig(osn: string): Promise<SyncResult> {
+async function memberMediaSeedConfig(osn: string): Promise<SyncResult> {
   const startedAt = new Date();
   return runInitialMlsMediaSync({ filterEntityTypes: ['members'] }).then((summary) =>
     mediaSummaryToSyncResult('Member:Media', osn, summary, startedAt),
@@ -113,15 +113,16 @@ function propertySeedConfig(
   })
 }
 
-function propertyMediaSeedConfig(osn: string): Promise<SyncResult> {
+async function propertyMediaSeedConfig(osn: string): Promise<SyncResult> {
   const startedAt = new Date();
   return runInitialMlsMediaSync({
     filterEntityTypes: ['properties'],
     primaryOnlyForNonPrioritizedProperties: true,
+    associationMode: 'unprocessed-only',
   }).then((summary) => mediaSummaryToSyncResult('Property:Media', osn, summary, startedAt));
 }
 
-function memberPropertyMediaSeedConfig(osn: string): Promise<SyncResult> {
+async function memberPropertyMediaSeedConfig(osn: string): Promise<SyncResult> {
   const startedAt = new Date();
   const memberKeys = env.MLS_MEMBER_ID ?? [];
 
@@ -139,6 +140,7 @@ function memberPropertyMediaSeedConfig(osn: string): Promise<SyncResult> {
   return runInitialMlsMediaSync({
     filterEntityTypes: ['properties'],
     restrictToMemberPropertyKeys: memberKeys,
+    primaryOnlyForNonPrioritizedProperties: false,
   }).then((summary) => mediaSummaryToSyncResult('Property:MemberMedia', osn, summary, startedAt));
 }
 

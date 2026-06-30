@@ -6,6 +6,7 @@ import { db } from '@/lib/database';
 import { media, members, mlsMedia, offices, properties } from '@kws/schema';
 
 export type MlsMediaEntityType = 'properties' | 'members' | 'offices';
+export type MlsMediaAssociationMode = 'stale-or-unprocessed' | 'unprocessed-only';
 
 export interface MlsMediaSyncCandidate {
   mediaKey: string;
@@ -49,6 +50,12 @@ export interface ListMlsMediaSyncCandidatesOptions {
    * Has no effect unless `filterEntityTypes` includes `'properties'`.
    */
   restrictToMemberPropertyKeys?: string[];
+  /**
+   * Candidate eligibility mode:
+   * - `stale-or-unprocessed` includes unprocessed rows and stale linked rows.
+   * - `unprocessed-only` includes only rows without a media association.
+   */
+  associationMode?: MlsMediaAssociationMode;
 }
 
 type CandidateRow = {
@@ -64,9 +71,9 @@ type CandidateRow = {
   photoOrder: number | null;
   listingKey: string | null;
   memberFullName: string | null;
-  memberKey: string | null;
+  memberMlsId: string | null;
   officeName: string | null;
-  officeKey: string | null;
+  officeMlsId: string | null;
 };
 
 function toMlsMediaSyncCandidates(rows: CandidateRow[]): MlsMediaSyncCandidate[] {
@@ -77,8 +84,8 @@ function toMlsMediaSyncCandidates(rows: CandidateRow[]): MlsMediaSyncCandidate[]
 
     const entityType = resolveEntityType({
       listingKey: row.listingKey,
-      memberKey: row.memberKey,
-      officeKey: row.officeKey,
+      memberMlsId: row.memberMlsId,
+      officeMlsId: row.officeMlsId,
     });
 
     if (!entityType) {
@@ -106,16 +113,16 @@ function toMlsMediaSyncCandidates(rows: CandidateRow[]): MlsMediaSyncCandidate[]
 
 function resolveEntityType(input: {
   listingKey: string | null;
-  memberKey: string | null;
-  officeKey: string | null;
+  memberMlsId: string | null;
+  officeMlsId: string | null;
 }): MlsMediaEntityType | null {
   if (input.listingKey) {
     return 'properties';
   }
-  if (input.memberKey) {
+  if (input.memberMlsId) {
     return 'members';
   }
-  if (input.officeKey) {
+  if (input.officeMlsId) {
     return 'offices';
   }
   return null;
@@ -130,14 +137,27 @@ export async function listMlsMediaSyncCandidates(
   const primaryOnlyForNonPrioritizedProperties =
     options.primaryOnlyForNonPrioritizedProperties ?? false;
   const filterEntityTypes = options.filterEntityTypes ?? [];
+  const associationMode = options.associationMode ?? 'stale-or-unprocessed';
   const restrictToMemberPropertyKeys = [
     ...new Set((options.restrictToMemberPropertyKeys ?? []).filter(Boolean)),
   ];
 
-  const stalenessWhereClause = and(
-    isNull(mlsMedia.deletedAt),
+  const baseMediaRowEligibilityClause = and(
+    or(
+      isNull(mlsMedia.deletedAt),
+      and(isNotNull(mlsMedia.deletedAt), isNull(mlsMedia.mediaId)),
+    ),
     isNotNull(mlsMedia.mediaURL),
     isNotNull(mlsMedia.resourceRecordKey),
+  );
+
+  const unprocessedAssociationClause = and(
+    baseMediaRowEligibilityClause,
+    isNull(mlsMedia.mediaId),
+  );
+
+  const stalenessWhereClause = and(
+    baseMediaRowEligibilityClause,
     or(
       isNull(mlsMedia.mediaId),
       isNull(media.id),
@@ -149,6 +169,9 @@ export async function listMlsMediaSyncCandidates(
       ),
     ),
   );
+
+  const baseEligibilityClause =
+    associationMode === 'unprocessed-only' ? unprocessedAssociationClause : stalenessWhereClause;
 
   const prioritizedMemberPropertyMatchClause =
     prioritizedMemberKeys.length > 0
@@ -175,7 +198,7 @@ export async function listMlsMediaSyncCandidates(
       ? or(prioritizedMemberPropertyMatchClause, prioritizedOfficePropertyMatchClause)
       : (prioritizedMemberPropertyMatchClause ?? prioritizedOfficePropertyMatchClause);
 
-  const isEntityMediaClause = or(isNotNull(members.memberKey), isNotNull(offices.officeKey));
+  const isEntityMediaClause = or(isNotNull(members.memberMlsId), isNotNull(offices.officeMlsId));
   const prioritizedPropertyListingClause = prioritizedPropertyMatchClause
     ? and(isNotNull(properties.listingKey), prioritizedPropertyMatchClause)
     : undefined;
@@ -186,7 +209,7 @@ export async function listMlsMediaSyncCandidates(
 
   const candidateWhereClause = primaryOnlyForNonPrioritizedProperties
     ? and(
-      stalenessWhereClause,
+      baseEligibilityClause,
       prioritizedPropertyListingClause
         ? or(
           isEntityMediaClause,
@@ -195,14 +218,14 @@ export async function listMlsMediaSyncCandidates(
         )
         : or(isEntityMediaClause, and(nonPrioritizedPropertyListingClause, primaryPhotoClause)),
     )
-    : stalenessWhereClause;
+    : baseEligibilityClause;
 
   const entityTypeFilterClause =
     filterEntityTypes.length > 0
       ? or(
         filterEntityTypes.includes('properties') ? isNotNull(properties.listingKey) : undefined,
-        filterEntityTypes.includes('members') ? isNotNull(members.memberKey) : undefined,
-        filterEntityTypes.includes('offices') ? isNotNull(offices.officeKey) : undefined,
+        filterEntityTypes.includes('members') ? isNotNull(members.memberMlsId) : undefined,
+        filterEntityTypes.includes('offices') ? isNotNull(offices.officeMlsId) : undefined,
       )
       : undefined;
 
@@ -227,12 +250,12 @@ export async function listMlsMediaSyncCandidates(
 
   const priorityBucket = prioritizedPropertyMatchClause
     ? sql<number>`case
-        when ${isNotNull(members.memberKey)} or ${isNotNull(offices.officeKey)} then 0
+        when ${isNotNull(members.memberMlsId)} or ${isNotNull(offices.officeMlsId)} then 0
         when ${and(isNotNull(properties.listingKey), prioritizedPropertyMatchClause)} then 1
         else 2
       end`
     : sql<number>`case
-        when ${isNotNull(members.memberKey)} or ${isNotNull(offices.officeKey)} then 0
+        when ${isNotNull(members.memberMlsId)} or ${isNotNull(offices.officeMlsId)} then 0
         else 1
       end`;
 
@@ -250,15 +273,15 @@ export async function listMlsMediaSyncCandidates(
       photoOrder: mlsMedia.order,
       listingKey: properties.listingKey,
       memberFullName: members.memberFullName,
-      memberKey: members.memberKey,
+      memberMlsId: members.memberMlsId,
       officeName: offices.officeName,
-      officeKey: offices.officeKey,
+      officeMlsId: offices.officeMlsId,
     })
     .from(mlsMedia)
     .leftJoin(media, eq(mlsMedia.mediaId, media.id))
     .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
-    .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberKey))
-    .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeKey));
+    .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberMlsId))
+    .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeMlsId));
 
   const rows: CandidateRow[] =
     limit > 0
@@ -292,19 +315,22 @@ export async function listUnsyncedMediaForListing(
       photoOrder: mlsMedia.order,
       listingKey: properties.listingKey,
       memberFullName: members.memberFullName,
-      memberKey: members.memberKey,
+      memberMlsId: members.memberMlsId,
       officeName: offices.officeName,
-      officeKey: offices.officeKey,
+      officeMlsId: offices.officeMlsId,
     })
     .from(mlsMedia)
     .leftJoin(media, eq(mlsMedia.mediaId, media.id))
     .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
-    .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberKey))
-    .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeKey))
+    .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberMlsId))
+    .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeMlsId))
     .where(
       and(
         eq(mlsMedia.resourceRecordKey, listingKey),
-        isNull(mlsMedia.deletedAt),
+        or(
+          isNull(mlsMedia.deletedAt),
+          and(isNotNull(mlsMedia.deletedAt), isNull(mlsMedia.mediaId)),
+        ),
         isNotNull(mlsMedia.mediaURL),
         isNotNull(mlsMedia.resourceRecordKey),
         or(

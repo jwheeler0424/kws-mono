@@ -15,7 +15,9 @@ type MediaInsert = typeof mlsMedia.$inferInsert;
 export type MappedMedia = Omit<MediaInsert, 'createdAt' | 'searchVector'>;
 
 export function mapMedia(payload: MlsMediaPayload, resourceRecordKey: string): MappedMedia {
-  const canView = parseBoolean(payload.MlgCanView) === true;
+  // Media payloads often omit MlgCanView. Treat missing/indeterminate as visible
+  // and only soft-delete when the feed explicitly sets MlgCanView = false.
+  const canView = parseBoolean(payload.MlgCanView) !== false;
 
   return {
     mediaKey: payload.MediaKey,

@@ -9,6 +9,7 @@ import { deltaSyncResource } from '@/app/sync'
 import { MLS_RESOURCE_NAMES } from '@/lib/constants'
 import type { MlsResource } from '@/types'
 import { runMlsCleanup } from './cleanup'
+import { runMlsMediaSync } from './seed-media'
 
 export const MLS_INITIAL_TRIGGER_JOB_TYPE = 'mls.sync.initial.trigger'
 export const MLS_INITIAL_PIPELINE_JOB_TYPE = 'mls.sync.initial.pipeline'
@@ -20,6 +21,12 @@ export const MLS_CLEANUP_JOB_TYPE = 'mls.sync.cleanup'
 export const MLS_CLEANUP_HOURLY_SCHEDULE_ID = 'mls.cleanup.hourly'
 export const MLS_OPENHOUSE_RECONCILE_JOB_TYPE = 'mls.sync.openhouse.reconcile'
 export const MLS_OPENHOUSE_RECONCILE_HOURLY_SCHEDULE_ID = 'mls.openhouse.reconcile.hourly'
+export const MLS_MEDIA_SYNC_JOB_TYPE = 'mls.sync.media'
+export const MLS_MEDIA_SYNC_SCHEDULE_ID = 'mls.media.sync'
+
+const DEFAULT_SCHEDULED_MEDIA_SYNC_BATCH_SIZE = 50
+const DEFAULT_SCHEDULED_MEDIA_SYNC_MAX_BATCHES = 5
+const DEFAULT_SCHEDULED_MEDIA_SYNC_PROCESS_CONCURRENCY = 3
 
 const DEFAULT_RESOURCE_CRON: Record<MlsResource, string> = {
   Lookup: '0 6 * * *',
@@ -69,6 +76,39 @@ function resolveMlsCleanupSchedule() {
   }
 }
 
+function resolveMlsMediaSyncSchedule() {
+  const enabled = true
+  const cronExpression = env.MLS_QUEUE_MEDIA_SYNC_CRON || '*/15 * * * *'
+
+  return {
+    scheduleId: MLS_MEDIA_SYNC_SCHEDULE_ID,
+    cronExpression,
+    enabled,
+  }
+}
+
+function resolveScheduledMediaSyncBatchSize() {
+  return Math.max(
+    1,
+    env.MLS_QUEUE_MEDIA_SYNC_BATCH_SIZE ?? DEFAULT_SCHEDULED_MEDIA_SYNC_BATCH_SIZE,
+  )
+}
+
+function resolveScheduledMediaSyncMaxBatches() {
+  return Math.max(
+    1,
+    env.MLS_QUEUE_MEDIA_SYNC_MAX_BATCHES ?? DEFAULT_SCHEDULED_MEDIA_SYNC_MAX_BATCHES,
+  )
+}
+
+function resolveScheduledMediaSyncProcessConcurrency() {
+  return Math.max(
+    1,
+    env.MLS_QUEUE_MEDIA_SYNC_PROCESS_CONCURRENCY ??
+    DEFAULT_SCHEDULED_MEDIA_SYNC_PROCESS_CONCURRENCY,
+  )
+}
+
 
 export function listMlsDeltaScheduleIds() {
   return resolveMlsDeltaResourceSchedules().map((entry) => entry.scheduleId)
@@ -78,6 +118,7 @@ export function listMlsManagedScheduleIds() {
   return [
     ...listMlsDeltaScheduleIds(),
     resolveMlsCleanupSchedule().scheduleId,
+    resolveMlsMediaSyncSchedule().scheduleId,
   ]
 }
 
@@ -85,6 +126,10 @@ export function listMlsManagedScheduleIds() {
 export function registerMlsSyncJobTypes() {
   const scheduleEntries = resolveMlsDeltaResourceSchedules()
   const cleanupSchedule = resolveMlsCleanupSchedule()
+  const mediaSyncSchedule = resolveMlsMediaSyncSchedule()
+  const mediaSyncBatchSize = resolveScheduledMediaSyncBatchSize()
+  const mediaSyncMaxBatches = resolveScheduledMediaSyncMaxBatches()
+  const mediaSyncProcessConcurrency = resolveScheduledMediaSyncProcessConcurrency()
 
 
   for (const entry of scheduleEntries) {
@@ -110,6 +155,23 @@ export function registerMlsSyncJobTypes() {
     await cleanupSchedule.cleanupFunction()
   })
 
+  Bun.cron(mediaSyncSchedule.cronExpression, async () => {
+    if (!mediaSyncSchedule.enabled) {
+      syncMlsLogger.debug('skipping disabled media sync schedule', {
+        scheduleId: mediaSyncSchedule.scheduleId,
+      })
+      return
+    }
+
+    await runMlsMediaSync({
+      batchSize: mediaSyncBatchSize,
+      maxBatches: mediaSyncMaxBatches,
+      processConcurrency: mediaSyncProcessConcurrency,
+      prioritizeMemberKeys: env.MLS_MEMBER_ID ?? [],
+      prioritizeOfficeKeys: env.MLS_OFFICE_ID ?? [],
+    })
+  })
+
   syncMlsLogger.info('MLS sync schedule job types registered', {
     deltaSchedules: scheduleEntries.map((entry) => ({
       scheduleId: entry.scheduleId,
@@ -121,6 +183,16 @@ export function registerMlsSyncJobTypes() {
       scheduleId: cleanupSchedule.scheduleId,
       cronExpression: cleanupSchedule.cronExpression,
       enabled: cleanupSchedule.enabled,
+    },
+    mediaSyncSchedule: {
+      scheduleId: mediaSyncSchedule.scheduleId,
+      cronExpression: mediaSyncSchedule.cronExpression,
+      enabled: mediaSyncSchedule.enabled,
+      batchSize: mediaSyncBatchSize,
+      maxBatches: mediaSyncMaxBatches,
+      processConcurrency: mediaSyncProcessConcurrency,
+      prioritizedMemberKeysCount: (env.MLS_MEMBER_ID ?? []).length,
+      prioritizedOfficeKeysCount: (env.MLS_OFFICE_ID ?? []).length,
     },
   })
 }

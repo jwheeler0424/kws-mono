@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 import type { UUIDv7 } from '@kws/types';
@@ -12,6 +13,7 @@ import { mlsLogger } from '@/lib/logger';
 import {
   listMlsMediaSyncCandidates,
   listUnsyncedMediaForListing,
+  type MlsMediaAssociationMode,
   type MlsMediaEntityType,
   type MlsMediaSyncCandidate,
 } from '../repositories/media-sync.repository';
@@ -48,6 +50,10 @@ export interface MlsMediaSyncOptions {
    * or co-list agent matches one of the provided member keys / MLS IDs.
    */
   restrictToMemberPropertyKeys?: string[];
+  /**
+   * Candidate eligibility mode for media association checks.
+   */
+  associationMode?: MlsMediaAssociationMode;
 }
 
 export interface MlsMediaSyncSummary {
@@ -89,8 +95,33 @@ function inferOriginalFilename(urlOrPath: string, fallbackKey: string): string {
   }
 }
 
+function findWorkspaceRoot(startDir: string): string {
+  let current = startDir;
+
+  while (true) {
+    if (existsSync(path.join(current, 'turbo.json'))) {
+      return current;
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return startDir;
+    }
+
+    current = parent;
+  }
+}
+
 function resolveLocalMediaBasePath(): string {
-  return env.MLS_MEDIA_STORE_PATH ?? path.join(process.cwd(), 'store', 'media');
+  const workspaceRoot = findWorkspaceRoot(process.cwd());
+
+  if (env.MLS_MEDIA_STORE_PATH) {
+    return path.isAbsolute(env.MLS_MEDIA_STORE_PATH)
+      ? env.MLS_MEDIA_STORE_PATH
+      : path.resolve(workspaceRoot, env.MLS_MEDIA_STORE_PATH);
+  }
+
+  return path.join(workspaceRoot, 'store', 'media');
 }
 
 function localBasePath(entityType: MlsMediaEntityType): string {
@@ -357,6 +388,7 @@ export async function runMlsMediaSync(
   const prioritizeOfficeKeys = options.prioritizeOfficeKeys ?? [];
   const primaryOnlyForNonPrioritizedProperties =
     options.primaryOnlyForNonPrioritizedProperties ?? false;
+  const associationMode = options.associationMode ?? 'stale-or-unprocessed';
   const filterEntityTypes = options.filterEntityTypes;
   const restrictToMemberPropertyKeys = options.restrictToMemberPropertyKeys;
 
@@ -458,6 +490,7 @@ export async function runMlsMediaSync(
       prioritizeMemberKeys,
       prioritizeOfficeKeys,
       primaryOnlyForNonPrioritizedProperties,
+      associationMode,
       filterEntityTypes,
       restrictToMemberPropertyKeys,
     });
