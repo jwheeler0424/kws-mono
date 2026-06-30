@@ -1,12 +1,12 @@
 {
   "hour": {
-    "startedAtMs": 1782774000000,
-    "requests": 43,
-    "bytes": 188176181
+    "startedAtMs": 1782831600000,
+    "requests": 1,
+    "bytes": 0
   },
   "day": {
-    "startedAtMs": 1782691200000,
-    "requests": 134,
-    "bytes": 488936211
+    "startedAtMs": 1782777600000,
+    "requests": 3,
+    "bytes": 715783
   }
 }
