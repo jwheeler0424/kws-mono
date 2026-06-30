@@ -29,8 +29,28 @@ import {
 import {
   processMlsPropertiesPayload
 } from '../repositories/property.repository';
+import { runInitialMlsMediaSync, type MlsMediaSyncSummary } from './seed-media';
 import { seedResource } from './seed-resource';
 import { syncResource } from './sync-resource';
+
+// ---------------------------------------------------------------------------
+// Media seed phase adapter
+// ---------------------------------------------------------------------------
+
+function mediaSummaryToSyncResult(
+  resource: string,
+  osn: string,
+  summary: MlsMediaSyncSummary,
+  startedAt: Date,
+): SyncResult {
+  return {
+    resource,
+    osn,
+    upserted: summary.processed,
+    errors: summary.failed,
+    durationMs: Date.now() - startedAt.getTime(),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Wired-up seed configs per resource
@@ -54,6 +74,13 @@ function officeSeedConfig(osn: string) {
   })
 }
 
+function officeMediaSeedConfig(osn: string): Promise<SyncResult> {
+  const startedAt = new Date();
+  return runInitialMlsMediaSync({ filterEntityTypes: ['offices'] }).then((summary) =>
+    mediaSummaryToSyncResult('Office:Media', osn, summary, startedAt),
+  );
+}
+
 function memberSeedConfig(osn: string) {
   return seedResource({
     resource: 'Member',
@@ -61,6 +88,13 @@ function memberSeedConfig(osn: string) {
     fetchFn: fetchMembers,
     upsert: async (payload) => processMlsMembersPayload(payload.map(mapMember)),
   })
+}
+
+function memberMediaSeedConfig(osn: string): Promise<SyncResult> {
+  const startedAt = new Date();
+  return runInitialMlsMediaSync({ filterEntityTypes: ['members'] }).then((summary) =>
+    mediaSummaryToSyncResult('Member:Media', osn, summary, startedAt),
+  );
 }
 
 function propertySeedConfig(
@@ -77,6 +111,35 @@ function propertySeedConfig(
     fetchFn: fetchPropertiesForInitialSeed,
     upsert: async (payload) => processMlsPropertiesPayload(payload.map(mapProperty)),
   })
+}
+
+function propertyMediaSeedConfig(osn: string): Promise<SyncResult> {
+  const startedAt = new Date();
+  return runInitialMlsMediaSync({
+    filterEntityTypes: ['properties'],
+    primaryOnlyForNonPrioritizedProperties: true,
+  }).then((summary) => mediaSummaryToSyncResult('Property:Media', osn, summary, startedAt));
+}
+
+function memberPropertyMediaSeedConfig(osn: string): Promise<SyncResult> {
+  const startedAt = new Date();
+  const memberKeys = env.MLS_MEMBER_ID ?? [];
+
+  if (memberKeys.length === 0) {
+    return Promise.resolve(
+      mediaSummaryToSyncResult(
+        'Property:MemberMedia',
+        osn,
+        { scanned: 0, processed: 0, created: 0, updated: 0, skipped: 0, failed: 0 },
+        startedAt,
+      ),
+    );
+  }
+
+  return runInitialMlsMediaSync({
+    filterEntityTypes: ['properties'],
+    restrictToMemberPropertyKeys: memberKeys,
+  }).then((summary) => mediaSummaryToSyncResult('Property:MemberMedia', osn, summary, startedAt));
 }
 
 function openHouseSeedConfig(osn: string) {
@@ -271,20 +334,47 @@ async function runAllResources(osn: string, mode: 'initial' | 'delta'): Promise<
   return summary
 }
 
+async function runSeedInitialMedia(osn: string, mode: 'initial' | 'delta'): Promise<SyncSummary> {
+  const startedAt = new Date()
+  logger.info(`initial media sync started`, { osn })
+
+  // Phases run sequentially in priority order:
+  //   1. Full media for properties listed by configured member IDs
+  //   2. Office entity media (logos / photos)
+  //   3. Member entity media (headshots)
+  //   4. Primary image for all remaining active properties
+  const results: SyncResult[] = []
+  results.push(await memberPropertyMediaSeedConfig(osn))
+  results.push(await officeMediaSeedConfig(osn))
+  results.push(await memberMediaSeedConfig(osn))
+  results.push(await propertyMediaSeedConfig(osn))
+
+  const completedAt = new Date()
+  const summary: SyncSummary = {
+    osn,
+    mode,
+    results,
+    totalDurationMs: completedAt.getTime() - startedAt.getTime(),
+    startedAt,
+    completedAt,
+  }
+
+  logger.info(`${mode} sync finished`, {
+    osn,
+    totalDurationMs: summary.totalDurationMs,
+  })
+
+  return summary
+}
+
 // ---------------------------------------------------------------------------
 // Public orchestration functions
 // ---------------------------------------------------------------------------
 
-export async function runFullSeed(
+export async function runInitialDataSeed(
   osn: string = env.MLS_ORIGINATING_SYSTEM_NAME,
 ): Promise<SyncSummary> {
   return runSeedAllResources(osn, 'initial')
-}
-
-export async function runFullSync(
-  osn: string = env.MLS_ORIGINATING_SYSTEM_NAME,
-): Promise<SyncSummary> {
-  return runAllResources(osn, 'initial')
 }
 
 export async function runDeltaSync(
@@ -293,7 +383,11 @@ export async function runDeltaSync(
   return runAllResources(osn, 'delta')
 }
 
-
+export async function runInitialMediaSeed(
+  osn: string = env.MLS_ORIGINATING_SYSTEM_NAME,
+): Promise<SyncSummary> {
+  return runSeedInitialMedia(osn, 'initial')
+}
 
 const RESOURCE_LABELS = new Set<string>(MLS_RESOURCE_NAMES)
 

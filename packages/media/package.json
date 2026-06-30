@@ -1,17 +1,18 @@
 {
-  "name": "@kws/types",
+  "name": "@kws/media",
   "private": true,
   "type": "module",
   "module": "index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+    "./media": "./src/media/index.ts",
+    "./media/*": "./src/media/*.ts"
   },
   "dependencies": {
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@kws/schema": "*",
+    "@kws/config": "*",
     "@kws/typescript": "*",
     "@types/bun": "latest"
   },

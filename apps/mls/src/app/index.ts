@@ -1,17 +1,23 @@
-import { registerMlsSyncQueueJobTypes } from '@/actions/integration';
+import { registerMlsSyncJobTypes } from '@/actions/integration';
 import { logger } from '@/lib/logger';
-import { initialSeed } from './seed';
+import { initialDataSeed, initialMediaSeed } from './seed';
 
 
 export async function main() {
   try {
-    const seedSuccess = await initialSeed();
-    if (!seedSuccess) {
+    const dataSeedSuccess = await initialDataSeed();
+    if (!dataSeedSuccess) {
       logger.error('MLS full seed completed with errors. Please check the logs for details.');
       process.exit(1);
     }
 
-    registerMlsSyncQueueJobTypes();
+    const mediaSeedSuccess = await initialMediaSeed();
+    if (!mediaSeedSuccess) {
+      logger.error('MLS initial media seed completed with errors. Please check the logs for details.');
+      process.exit(1);
+    }
+
+    registerMlsSyncJobTypes();
 
   } catch (error) {
     logger.fatal('MLS Grid sync application crashed', {

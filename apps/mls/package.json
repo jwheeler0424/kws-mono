@@ -19,6 +19,7 @@
   "devDependencies": {
     "@kws/config": "*",
     "@kws/logger": "*",
+    "@kws/media": "*",
     "@kws/schema": "*",
     "@kws/types": "*",
     "@kws/typescript": "*",

@@ -128,6 +128,7 @@ const envSchema = z.object({
   MLS_BYTES_PER_DAY_LIMIT: z.coerce.number().int().positive(),
   MLS_QUOTA_WARN_THRESHOLD_RATIO: z.coerce.number().nonnegative(),
   MLS_QUOTA_STATE_FILE: z.string().min(1),
+  MLS_MEDIA_STORE_PATH: z.string().min(1).optional(),
   MLS_CLEANUP_RETENTION_DAYS: z.coerce.number().int().positive(),
 
   /* -- MLS Scheduler config -- */

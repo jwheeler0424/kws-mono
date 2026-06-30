@@ -82,7 +82,7 @@ export function listMlsManagedScheduleIds() {
 }
 
 
-export function registerMlsSyncQueueJobTypes() {
+export function registerMlsSyncJobTypes() {
   const scheduleEntries = resolveMlsDeltaResourceSchedules()
   const cleanupSchedule = resolveMlsCleanupSchedule()
 

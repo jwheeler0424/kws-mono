@@ -31,10 +31,10 @@ function parseCheckpointRequestUrlHistory(raw: string | null | undefined): strin
 
 function buildCheckpointRequestUrlHistory(
   current: string | null | undefined,
-  nextRequestUrl: string,
+  nextRequestUrl: string | null | undefined,
 ): string {
   const existing = parseCheckpointRequestUrlHistory(current)
-  if (existing.at(-1) !== nextRequestUrl) {
+  if (nextRequestUrl && existing.at(-1) !== nextRequestUrl) {
     existing.push(nextRequestUrl)
   }
 
@@ -114,7 +114,7 @@ export async function advanceCursor(
   osn: string,
   lastTimestamp: string | null,
   pageRecords: number,
-  checkpoint: {
+  checkpoint?: {
     requestUrl: string
     nextUrl: string | null
   },
@@ -125,7 +125,7 @@ export async function advanceCursor(
   const lastRunSoFar = (cursor?.lastRunRecordsProcessed ?? 0) + pageRecords
   const checkpointRequestUrlHistory = buildCheckpointRequestUrlHistory(
     cursor?.checkpointRecentRequestUrls,
-    checkpoint.requestUrl,
+    checkpoint?.requestUrl,
   )
 
   await db
@@ -134,8 +134,8 @@ export async function advanceCursor(
       resource,
       originatingSystemName: osn,
       lastModifiedTimestamp: lastTimestamp,
-      checkpointRequestUrl: checkpoint.requestUrl,
-      checkpointNextUrl: checkpoint.nextUrl,
+      checkpointRequestUrl: checkpoint?.requestUrl,
+      checkpointNextUrl: checkpoint?.nextUrl,
       checkpointRecentRequestUrls: checkpointRequestUrlHistory,
       checkpointedAt: now,
       totalRecordsProcessed: totalSoFar,
@@ -146,8 +146,8 @@ export async function advanceCursor(
       target: [mlsSyncCursors.resource, mlsSyncCursors.originatingSystemName],
       set: {
         ...(lastTimestamp ? { lastModifiedTimestamp: lastTimestamp } : {}),
-        checkpointRequestUrl: checkpoint.requestUrl,
-        checkpointNextUrl: checkpoint.nextUrl,
+        checkpointRequestUrl: checkpoint?.requestUrl,
+        checkpointNextUrl: checkpoint?.nextUrl,
         checkpointRecentRequestUrls: checkpointRequestUrlHistory,
         checkpointedAt: now,
         totalRecordsProcessed: totalSoFar,
