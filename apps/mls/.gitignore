@@ -5,6 +5,8 @@ node_modules
 out
 dist
 *.tgz
+.mls-quota-state.json
+.mls-sync-errors.json
 
 # code coverage
 coverage
