@@ -20,6 +20,8 @@ import {
 
 const syncLogger = mlsLogger.child('media-sync');
 const MAX_STALLED_BATCHES_PER_PHASE = 3;
+const SLOW_CANDIDATE_SELECTION_WARN_MS = 10_000;
+const SLOW_REPAIR_HEALTH_CHECK_WARN_MS = 10_000;
 
 export interface MlsMediaSyncOptions {
   batchSize?: number;
@@ -553,6 +555,8 @@ export async function runMlsMediaSync(
   let stalledBatches = 0;
 
   for (let batch = 0; batch < maxBatches; batch += 1) {
+    const selectionStartedAt = Date.now();
+
     const candidates = await listMlsMediaSyncCandidates(batchSize, {
       prioritizeMemberKeys,
       prioritizeOfficeKeys,
@@ -561,6 +565,22 @@ export async function runMlsMediaSync(
       filterEntityTypes,
       restrictToMemberPropertyKeys,
     });
+    const elapsedMsSelection = Date.now() - selectionStartedAt;
+
+    if (elapsedMsSelection >= SLOW_CANDIDATE_SELECTION_WARN_MS) {
+      syncLogger.warn('media batch candidate selection slow', {
+        phase: 'main',
+        batchNumber: batch + 1,
+        maxBatches,
+        batchSize,
+        candidateCount: candidates.length,
+        elapsedMsSelection,
+        associationMode,
+        filterEntityTypes,
+        restrictToMemberPropertyKeysCount: restrictToMemberPropertyKeys?.length ?? 0,
+        processConcurrency,
+      });
+    }
 
     if (candidates.length === 0) {
       break;
@@ -613,6 +633,8 @@ export async function runMlsMediaSync(
     let repairStalledBatches = 0;
 
     for (let batch = 0; batch < repairMaxBatches; batch += 1) {
+      const repairSelectionStartedAt = Date.now();
+
       const repairCandidates = await listMlsMediaSyncCandidates(batchSize, {
         prioritizeMemberKeys,
         prioritizeOfficeKeys,
@@ -621,6 +643,21 @@ export async function runMlsMediaSync(
         filterEntityTypes,
         restrictToMemberPropertyKeys,
       });
+      const elapsedMsRepairSelection = Date.now() - repairSelectionStartedAt;
+
+      if (elapsedMsRepairSelection >= SLOW_CANDIDATE_SELECTION_WARN_MS) {
+        syncLogger.warn('media repair candidate selection slow', {
+          phase: 'repair',
+          batchNumber: batch + 1,
+          maxBatches: repairMaxBatches,
+          batchSize,
+          candidateCount: repairCandidates.length,
+          elapsedMsSelection: elapsedMsRepairSelection,
+          filterEntityTypes,
+          restrictToMemberPropertyKeysCount: restrictToMemberPropertyKeys?.length ?? 0,
+          processConcurrency,
+        });
+      }
 
       if (repairCandidates.length === 0) {
         break;
@@ -629,6 +666,7 @@ export async function runMlsMediaSync(
       summary.repairScanned += repairCandidates.length;
 
       const missingFilesOnlyCandidates: MlsMediaSyncCandidate[] = [];
+      const repairHealthCheckStartedAt = Date.now();
       for (const candidate of repairCandidates) {
         const isHealthy = await areAllCanonicalVariantsPresent(candidate);
         if (isHealthy) {
@@ -636,6 +674,18 @@ export async function runMlsMediaSync(
         } else {
           missingFilesOnlyCandidates.push(candidate);
         }
+      }
+      const elapsedMsHealthCheck = Date.now() - repairHealthCheckStartedAt;
+
+      if (elapsedMsHealthCheck >= SLOW_REPAIR_HEALTH_CHECK_WARN_MS) {
+        syncLogger.warn('media repair health-check slow', {
+          phase: 'repair',
+          batchNumber: batch + 1,
+          repairCandidatesCount: repairCandidates.length,
+          missingFilesCandidatesCount: missingFilesOnlyCandidates.length,
+          repairSkippedHealthyTotal: summary.repairSkippedHealthy,
+          elapsedMsHealthCheck,
+        });
       }
 
       if (missingFilesOnlyCandidates.length === 0) {

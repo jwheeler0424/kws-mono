@@ -361,16 +361,42 @@ async function runSeedInitialMedia(osn: string, mode: 'initial' | 'delta'): Prom
   const startedAt = new Date()
   logger.info(`initial media sync started`, { osn })
 
+  const runMediaPhase = async (
+    phase: 'Property:MemberMedia' | 'Office:Media' | 'Member:Media' | 'Property:Media',
+    fn: () => Promise<SyncResult>,
+  ): Promise<SyncResult> => {
+    const phaseStartedAt = Date.now()
+    logger.info('initial media phase started', {
+      osn,
+      phase,
+    })
+
+    const result = await fn()
+
+    logger.info('initial media phase completed', {
+      osn,
+      phase,
+      durationMs: Date.now() - phaseStartedAt,
+      upserted: result.upserted,
+      errors: result.errors,
+      resource: result.resource,
+    })
+
+    return result
+  }
+
   // Phases run sequentially in priority order:
   //   1. Full media for properties listed by configured member IDs
   //   2. Office entity media (logos / photos)
   //   3. Member entity media (headshots)
   //   4. Primary image for all remaining active properties
   const results: SyncResult[] = []
-  results.push(await memberPropertyMediaSeedConfig(osn))
-  results.push(await officeMediaSeedConfig(osn))
-  results.push(await memberMediaSeedConfig(osn))
-  results.push(await propertyMediaSeedConfig(osn))
+  results.push(
+    await runMediaPhase('Property:MemberMedia', () => memberPropertyMediaSeedConfig(osn)),
+  )
+  results.push(await runMediaPhase('Office:Media', () => officeMediaSeedConfig(osn)))
+  results.push(await runMediaPhase('Member:Media', () => memberMediaSeedConfig(osn)))
+  results.push(await runMediaPhase('Property:Media', () => propertyMediaSeedConfig(osn)))
 
   const completedAt = new Date()
   const summary: SyncSummary = {
