@@ -2,6 +2,8 @@
 
 import type { UseEmblaCarouselType } from 'embla-carousel-react';
 
+import { mergeProps } from '@base-ui/react/merge-props';
+import { useRender } from '@base-ui/react/use-render';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import * as React from 'react';
@@ -167,60 +169,86 @@ function CarouselPrevious({
   className,
   variant = 'outline',
   size = 'icon-sm',
+  render,
   ...props
-}: React.ComponentProps<typeof Button>) {
+}: useRender.ComponentProps<typeof Button>) {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel();
 
-  return (
-    <Button
-      data-slot='carousel-previous'
-      aria-label='Previous slide'
-      title='Previous slide'
-      variant={variant}
-      size={size}
-      className={cn(
-        'absolute touch-manipulation rounded-full border border-border bg-background/95 text-foreground shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80 [&_svg]:size-5',
-        orientation === 'horizontal'
-          ? 'top-1/2 -left-12 -translate-y-1/2'
-          : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
-        className,
-      )}
-      disabled={!canScrollPrev}
-      onClick={scrollPrev}
-      {...props}>
-      <ChevronLeftIcon />
-    </Button>
-  );
+  return useRender({
+    props: mergeProps<typeof Button>(
+      {
+        className: cn(
+          'absolute touch-manipulation rounded-full border border-border bg-background/95 text-foreground shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80 [&_svg]:size-5',
+          orientation === 'horizontal'
+            ? 'top-1/2 -left-12 -translate-y-1/2'
+            : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
+          className,
+        ),
+        disabled: !canScrollPrev,
+        onClick: scrollPrev,
+      },
+      props,
+    ),
+    render: render
+      ? render
+      : (props) => (
+          <Button
+            data-slot='carousel-previous'
+            aria-label='Previous slide'
+            title='Previous slide'
+            {...props}>
+            <ChevronLeftIcon />
+          </Button>
+        ),
+    state: {
+      ariaLabel: 'Previous slide',
+      title: 'Previous slide',
+      slot: 'carousel-previous',
+      variant,
+      size,
+    },
+  });
 }
 
 function CarouselNext({
   className,
   variant = 'outline',
   size = 'icon-sm',
+  render,
   ...props
-}: React.ComponentProps<typeof Button>) {
+}: useRender.ComponentProps<typeof Button>) {
   const { orientation, scrollNext, canScrollNext } = useCarousel();
 
-  return (
-    <Button
-      data-slot='carousel-next'
-      aria-label='Next slide'
-      title='Next slide'
-      variant={variant}
-      size={size}
-      className={cn(
-        'absolute touch-manipulation rounded-full border border-border bg-background/95 text-foreground shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80 [&_svg]:size-5',
-        orientation === 'horizontal'
-          ? 'top-1/2 -right-12 -translate-y-1/2'
-          : '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',
-        className,
-      )}
-      disabled={!canScrollNext}
-      onClick={scrollNext}
-      {...props}>
-      <ChevronRightIcon />
-    </Button>
-  );
+  return useRender({
+    props: mergeProps<typeof Button>(
+      {
+        className: cn(
+          'absolute touch-manipulation rounded-full border border-border bg-background/95 text-foreground shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80 [&_svg]:size-5',
+          orientation === 'horizontal'
+            ? 'top-1/2 -right-12 -translate-y-1/2'
+            : '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',
+          className,
+        ),
+        disabled: !canScrollNext,
+        onClick: scrollNext,
+      },
+      props,
+    ),
+    render: render
+      ? render
+      : (props) => (
+          <Button data-slot='carousel-next' aria-label='Next slide' title='Next slide' {...props}>
+            <ChevronRightIcon />
+          </Button>
+        ),
+    state: {
+      ariaLabel: 'Next slide',
+      title: 'Next slide',
+      slot: 'carousel-next',
+      variant,
+      size,
+    },
+  });
 }
 
 export {

@@ -175,7 +175,7 @@
   --breakpoint-mdmb: 24rem;
   --breakpoint-lgmb: 25rem;
   --breakpoint-xlmb: 25.75rem;
-  --breakpoint-2xlmb: 26.875rem;
+  --breakpoint-2xlmb: 28.5rem;
   --breakpoint-sm: 30rem; /* Default small screen size */
   --breakpoint-2xstb: 30rem;
   --breakpoint-xstb: 33.75rem;
@@ -197,6 +197,8 @@
   --breakpoint-2xldt: 106.25rem;
   --breakpoint-3xldt: 112.5rem;
   --breakpoint-4xldt: 120rem;
+  --breakpoint-5xldt: 132rem;
+  --breakpoint-6xldt: 156rem;
 }
 
 @layer base {

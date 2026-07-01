@@ -97,13 +97,13 @@ function Home() {
         </ParallaxMediaLayer>
         <ParallaxContentLayer>
           <article
-            className='banner banner-title'
+            className='banner banner-title h-full max-h-4/5'
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: 'rgba(0,0,0,0.15)',
-              padding: 'clamp(6rem, 3.25vw - 2.16rem,12rem) 0',
+              padding: 'clamp(6rem, 3.25vw - 2.16rem,24rem) 0',
             }}>
             <main
               style={{
@@ -124,13 +124,7 @@ function Home() {
                 }}>
                 Our Properties
               </h1>
-              <section
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '100%',
-                }}>
+              <section className='w-full h-full flex grow items-center justify-center'>
                 <FeaturedProperties autoplay autoPlaySpeed={4000} />
               </section>
               <section
