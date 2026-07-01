@@ -76,7 +76,10 @@ function officeSeedConfig(osn: string) {
 
 async function officeMediaSeedConfig(osn: string): Promise<SyncResult> {
   const startedAt = new Date();
-  return runInitialMlsMediaSync({ filterEntityTypes: ['offices'] }).then((summary) =>
+  return runInitialMlsMediaSync({
+    filterEntityTypes: ['offices'],
+    includeMissingFilesRepair: true,
+  }).then((summary) =>
     mediaSummaryToSyncResult('Office:Media', osn, summary, startedAt),
   );
 }
@@ -92,7 +95,10 @@ function memberSeedConfig(osn: string) {
 
 async function memberMediaSeedConfig(osn: string): Promise<SyncResult> {
   const startedAt = new Date();
-  return runInitialMlsMediaSync({ filterEntityTypes: ['members'] }).then((summary) =>
+  return runInitialMlsMediaSync({
+    filterEntityTypes: ['members'],
+    includeMissingFilesRepair: true,
+  }).then((summary) =>
     mediaSummaryToSyncResult('Member:Media', osn, summary, startedAt),
   );
 }
@@ -119,6 +125,7 @@ async function propertyMediaSeedConfig(osn: string): Promise<SyncResult> {
     filterEntityTypes: ['properties'],
     primaryOnlyForNonPrioritizedProperties: true,
     associationMode: 'unprocessed-only',
+    includeMissingFilesRepair: true,
   }).then((summary) => mediaSummaryToSyncResult('Property:Media', osn, summary, startedAt));
 }
 
@@ -131,7 +138,20 @@ async function memberPropertyMediaSeedConfig(osn: string): Promise<SyncResult> {
       mediaSummaryToSyncResult(
         'Property:MemberMedia',
         osn,
-        { scanned: 0, processed: 0, created: 0, updated: 0, skipped: 0, failed: 0 },
+        {
+          scanned: 0,
+          processed: 0,
+          created: 0,
+          updated: 0,
+          skipped: 0,
+          failed: 0,
+          localSourceUsed: 0,
+          remoteSourceUsed: 0,
+          repairScanned: 0,
+          repairProcessed: 0,
+          repairSkippedHealthy: 0,
+          repairFailed: 0,
+        },
         startedAt,
       ),
     );
@@ -141,6 +161,7 @@ async function memberPropertyMediaSeedConfig(osn: string): Promise<SyncResult> {
     filterEntityTypes: ['properties'],
     restrictToMemberPropertyKeys: memberKeys,
     primaryOnlyForNonPrioritizedProperties: false,
+    includeMissingFilesRepair: true,
   }).then((summary) => mediaSummaryToSyncResult('Property:MemberMedia', osn, summary, startedAt));
 }
 

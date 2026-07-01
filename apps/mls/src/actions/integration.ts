@@ -109,6 +109,18 @@ function resolveScheduledMediaSyncProcessConcurrency() {
   )
 }
 
+function resolveScheduledMediaSyncIncludeMissingFilesRepair() {
+  return env.MLS_QUEUE_MEDIA_SYNC_INCLUDE_MISSING_FILES_REPAIR ?? false
+}
+
+function resolveScheduledMediaSyncRepairMaxBatches(maxBatches: number) {
+  const configured = env.MLS_QUEUE_MEDIA_SYNC_REPAIR_MAX_BATCHES
+  if (!configured) {
+    return Math.min(2, maxBatches)
+  }
+  return Math.max(1, Math.min(configured, maxBatches))
+}
+
 
 export function listMlsDeltaScheduleIds() {
   return resolveMlsDeltaResourceSchedules().map((entry) => entry.scheduleId)
@@ -130,6 +142,8 @@ export function registerMlsSyncJobTypes() {
   const mediaSyncBatchSize = resolveScheduledMediaSyncBatchSize()
   const mediaSyncMaxBatches = resolveScheduledMediaSyncMaxBatches()
   const mediaSyncProcessConcurrency = resolveScheduledMediaSyncProcessConcurrency()
+  const mediaSyncIncludeMissingFilesRepair = resolveScheduledMediaSyncIncludeMissingFilesRepair()
+  const mediaSyncRepairMaxBatches = resolveScheduledMediaSyncRepairMaxBatches(mediaSyncMaxBatches)
 
 
   for (const entry of scheduleEntries) {
@@ -169,6 +183,8 @@ export function registerMlsSyncJobTypes() {
       processConcurrency: mediaSyncProcessConcurrency,
       prioritizeMemberKeys: env.MLS_MEMBER_ID ?? [],
       prioritizeOfficeKeys: env.MLS_OFFICE_ID ?? [],
+      includeMissingFilesRepair: mediaSyncIncludeMissingFilesRepair,
+      repairMaxBatches: mediaSyncRepairMaxBatches,
     })
   })
 
@@ -191,6 +207,8 @@ export function registerMlsSyncJobTypes() {
       batchSize: mediaSyncBatchSize,
       maxBatches: mediaSyncMaxBatches,
       processConcurrency: mediaSyncProcessConcurrency,
+      includeMissingFilesRepair: mediaSyncIncludeMissingFilesRepair,
+      repairMaxBatches: mediaSyncRepairMaxBatches,
       prioritizedMemberKeysCount: (env.MLS_MEMBER_ID ?? []).length,
       prioritizedOfficeKeysCount: (env.MLS_OFFICE_ID ?? []).length,
     },

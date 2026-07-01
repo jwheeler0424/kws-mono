@@ -146,6 +146,10 @@ const envSchema = z.object({
   MLS_QUEUE_MEDIA_SYNC_MAX_BATCHES: z.coerce.number().int().positive().optional(),
   MLS_QUEUE_MEDIA_SYNC_PROCESS_CONCURRENCY: z.coerce.number().int().positive().optional(),
   MLS_QUEUE_MEDIA_SYNC_JOB_CONCURRENCY: z.coerce.number().int().positive().optional(),
+  MLS_QUEUE_MEDIA_SYNC_INCLUDE_MISSING_FILES_REPAIR: z
+    .union([z.boolean(), z.stringbool()])
+    .optional(),
+  MLS_QUEUE_MEDIA_SYNC_REPAIR_MAX_BATCHES: z.coerce.number().int().positive().optional(),
   MLS_QUEUE_MEDIA_RECONCILE_CRON: cronScheduleSchema.optional(),
 });
 

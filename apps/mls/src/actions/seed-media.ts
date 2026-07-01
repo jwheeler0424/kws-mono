@@ -54,6 +54,15 @@ export interface MlsMediaSyncOptions {
    * Candidate eligibility mode for media association checks.
    */
   associationMode?: MlsMediaAssociationMode;
+  /**
+   * When true, run a linked-media repair pass that only reprocesses rows
+   * whose canonical local media variants are missing on disk.
+   */
+  includeMissingFilesRepair?: boolean;
+  /**
+   * Optional batch cap for the missing-files repair pass.
+   */
+  repairMaxBatches?: number;
 }
 
 export interface MlsMediaSyncSummary {
@@ -63,6 +72,12 @@ export interface MlsMediaSyncSummary {
   updated: number;
   skipped: number;
   failed: number;
+  localSourceUsed: number;
+  remoteSourceUsed: number;
+  repairScanned: number;
+  repairProcessed: number;
+  repairSkippedHealthy: number;
+  repairFailed: number;
 }
 
 interface BatchOutcome {
@@ -145,6 +160,47 @@ function resolveExpectedFullPath(candidate: MlsMediaSyncCandidate): string {
   return path.join(basePath, ns, filename);
 }
 
+type VariantName = 'thumbnail' | 'preview' | 'full';
+
+function resolveExpectedVariantPath(
+  candidate: MlsMediaSyncCandidate,
+  variantName: VariantName,
+): string {
+  const basePath = localBasePath(candidate.entityType);
+  const ns = candidate.resourceRecordKey;
+  const filename = `${sanitizeBaseFilename(candidate.mediaKey)}_${variantName}.webp`;
+  return path.join(basePath, ns, filename);
+}
+
+async function areAllCanonicalVariantsPresent(candidate: MlsMediaSyncCandidate): Promise<boolean> {
+  const variants: VariantName[] = ['thumbnail', 'preview', 'full'];
+  const checks = variants.map((variantName) =>
+    Bun.file(resolveExpectedVariantPath(candidate, variantName)).exists(),
+  );
+  const results = await Promise.all(checks);
+  return results.every(Boolean);
+}
+
+async function resolvePipelineSource(candidate: MlsMediaSyncCandidate): Promise<{
+  source: string | Blob;
+  sourceOrigin: 'local' | 'remote';
+}> {
+  const expectedFullPath = resolveExpectedFullPath(candidate);
+  const localFileExists = await Bun.file(expectedFullPath).exists();
+
+  if (localFileExists) {
+    return {
+      source: expectedFullPath,
+      sourceOrigin: 'local',
+    };
+  }
+
+  return {
+    source: await fetchMlsMediaBlob(candidate.mediaURL),
+    sourceOrigin: 'remote',
+  };
+}
+
 function buildPhotoLabel(candidate: MlsMediaSyncCandidate): string | null {
   const order = candidate.photoOrder;
   return typeof order === 'number' && order > 0 ? `${order}` : null;
@@ -220,22 +276,16 @@ async function markMlsMediaRowAsUnprocessable(candidate: MlsMediaSyncCandidate):
 
 async function upsertProcessedMedia(
   candidate: MlsMediaSyncCandidate,
-): Promise<'created' | 'updated'> {
+): Promise<{ mode: 'created' | 'updated'; sourceOrigin: 'local' | 'remote' }> {
   // ── Pre-download existence check ─────────────────────────────────────────
   // If the full-size WebP already exists on disk, use the local file as the
   // pipeline source instead of re-downloading from the MLS URL.  This keeps
   // the DB in sync without a network round-trip and is safe on repeated runs
   // (the variants are overwritten with identical content).
-  const expectedFullPath = resolveExpectedFullPath(candidate);
-  const localFileExists = await Bun.file(expectedFullPath).exists();
-  // When no local copy exists, download with the required User-Agent header
-  // (MLS Grid requires the OAuth2 access token; plain URLs are blocked).
-  const pipelineSource = localFileExists
-    ? expectedFullPath
-    : await fetchMlsMediaBlob(candidate.mediaURL);
+  const pipelineSource = await resolvePipelineSource(candidate);
 
   const result = await processImage({
-    source: pipelineSource,
+    source: pipelineSource.source,
     filename: sanitizeBaseFilename(candidate.mediaKey),
     organizationId: candidate.resourceRecordKey,
     storage: {
@@ -332,7 +382,10 @@ async function upsertProcessedMedia(
         ),
       );
 
-    return mediaId ? 'updated' : 'created';
+    return {
+      mode: mediaId ? 'updated' : 'created',
+      sourceOrigin: pipelineSource.sourceOrigin,
+    };
   });
 }
 
@@ -381,6 +434,7 @@ export async function syncListingMedia(listingKey: string): Promise<void> {
 export async function runMlsMediaSync(
   options: MlsMediaSyncOptions = {},
 ): Promise<MlsMediaSyncSummary> {
+  const runStartedAt = Date.now();
   const batchSize = options.batchSize ?? 50;
   const maxBatches = options.maxBatches ?? 200;
   const processConcurrency = Math.max(1, options.processConcurrency ?? 3);
@@ -391,6 +445,8 @@ export async function runMlsMediaSync(
   const associationMode = options.associationMode ?? 'stale-or-unprocessed';
   const filterEntityTypes = options.filterEntityTypes;
   const restrictToMemberPropertyKeys = options.restrictToMemberPropertyKeys;
+  const includeMissingFilesRepair = options.includeMissingFilesRepair ?? false;
+  const repairMaxBatches = Math.max(1, options.repairMaxBatches ?? maxBatches);
 
   const summary: MlsMediaSyncSummary = {
     scanned: 0,
@@ -399,6 +455,12 @@ export async function runMlsMediaSync(
     updated: 0,
     skipped: 0,
     failed: 0,
+    localSourceUsed: 0,
+    remoteSourceUsed: 0,
+    repairScanned: 0,
+    repairProcessed: 0,
+    repairSkippedHealthy: 0,
+    repairFailed: 0,
   };
 
   const processCandidate = async (
@@ -410,9 +472,14 @@ export async function runMlsMediaSync(
     }
 
     try {
-      const mode = await upsertProcessedMedia(candidate);
+      const outcome = await upsertProcessedMedia(candidate);
       summary.processed += 1;
-      if (mode === 'created') {
+      if (outcome.sourceOrigin === 'local') {
+        summary.localSourceUsed += 1;
+      } else {
+        summary.remoteSourceUsed += 1;
+      }
+      if (outcome.mode === 'created') {
         summary.created += 1;
       } else {
         summary.updated += 1;
@@ -499,7 +566,23 @@ export async function runMlsMediaSync(
       break;
     }
 
+    const batchStartedAt = Date.now();
     const outcome = await runBatch(candidates);
+    syncLogger.info('media batch complete', {
+      phase: 'main',
+      batchNumber: batch + 1,
+      maxBatches,
+      candidateCount: candidates.length,
+      processedInBatch: outcome.processed,
+      skippedInBatch: outcome.skipped,
+      failedInBatch: outcome.failed,
+      scannedTotal: summary.scanned,
+      processedTotal: summary.processed,
+      skippedTotal: summary.skipped,
+      failedTotal: summary.failed,
+      elapsedMsBatch: Date.now() - batchStartedAt,
+      elapsedMsRun: Date.now() - runStartedAt,
+    });
 
     if (outcome.processed === 0 && outcome.skipped === 0 && outcome.failed > 0) {
       stalledBatches += 1;
@@ -526,6 +609,92 @@ export async function runMlsMediaSync(
     }
   }
 
+  if (includeMissingFilesRepair) {
+    let repairStalledBatches = 0;
+
+    for (let batch = 0; batch < repairMaxBatches; batch += 1) {
+      const repairCandidates = await listMlsMediaSyncCandidates(batchSize, {
+        prioritizeMemberKeys,
+        prioritizeOfficeKeys,
+        primaryOnlyForNonPrioritizedProperties,
+        associationMode: 'repair-missing-files',
+        filterEntityTypes,
+        restrictToMemberPropertyKeys,
+      });
+
+      if (repairCandidates.length === 0) {
+        break;
+      }
+
+      summary.repairScanned += repairCandidates.length;
+
+      const missingFilesOnlyCandidates: MlsMediaSyncCandidate[] = [];
+      for (const candidate of repairCandidates) {
+        const isHealthy = await areAllCanonicalVariantsPresent(candidate);
+        if (isHealthy) {
+          summary.repairSkippedHealthy += 1;
+        } else {
+          missingFilesOnlyCandidates.push(candidate);
+        }
+      }
+
+      if (missingFilesOnlyCandidates.length === 0) {
+        if (repairCandidates.length < batchSize) {
+          break;
+        }
+        continue;
+      }
+
+      const repairBatchStartedAt = Date.now();
+      const repairOutcome = await runBatch(missingFilesOnlyCandidates);
+      summary.repairProcessed += repairOutcome.processed;
+      summary.repairFailed += repairOutcome.failed;
+      syncLogger.info('media repair batch complete', {
+        phase: 'repair',
+        batchNumber: batch + 1,
+        maxBatches: repairMaxBatches,
+        candidateCount: missingFilesOnlyCandidates.length,
+        processedInBatch: repairOutcome.processed,
+        skippedInBatch: repairOutcome.skipped,
+        failedInBatch: repairOutcome.failed,
+        repairScannedTotal: summary.repairScanned,
+        repairProcessedTotal: summary.repairProcessed,
+        repairSkippedHealthyTotal: summary.repairSkippedHealthy,
+        repairFailedTotal: summary.repairFailed,
+        scannedTotal: summary.scanned,
+        processedTotal: summary.processed,
+        skippedTotal: summary.skipped,
+        failedTotal: summary.failed,
+        elapsedMsBatch: Date.now() - repairBatchStartedAt,
+        elapsedMsRun: Date.now() - runStartedAt,
+      });
+
+      if (repairOutcome.processed === 0 && repairOutcome.skipped === 0 && repairOutcome.failed > 0) {
+        repairStalledBatches += 1;
+        syncLogger.warn('mls media repair pass stalled on repeatedly failing candidates', {
+          batchNumber: batch + 1,
+          failedInBatch: repairOutcome.failed,
+          stalledBatches: repairStalledBatches,
+          maxStalledBatches: MAX_STALLED_BATCHES_PER_PHASE,
+        });
+
+        if (repairStalledBatches >= MAX_STALLED_BATCHES_PER_PHASE) {
+          syncLogger.error('aborting mls media repair pass to prevent cpu runaway', {
+            failedInBatch: repairOutcome.failed,
+            maxStalledBatches: MAX_STALLED_BATCHES_PER_PHASE,
+          });
+          break;
+        }
+      } else {
+        repairStalledBatches = 0;
+      }
+
+      if (repairCandidates.length < batchSize) {
+        break;
+      }
+    }
+  }
+
   syncLogger.info('MLS media sync completed', {
     scanned: summary.scanned,
     processed: summary.processed,
@@ -533,6 +702,12 @@ export async function runMlsMediaSync(
     updated: summary.updated,
     skipped: summary.skipped,
     failed: summary.failed,
+    localSourceUsed: summary.localSourceUsed,
+    remoteSourceUsed: summary.remoteSourceUsed,
+    repairScanned: summary.repairScanned,
+    repairProcessed: summary.repairProcessed,
+    repairSkippedHealthy: summary.repairSkippedHealthy,
+    repairFailed: summary.repairFailed,
   });
   return summary;
 }

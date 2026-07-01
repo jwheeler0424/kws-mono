@@ -6,7 +6,10 @@ import { db } from '@/lib/database';
 import { media, members, mlsMedia, offices, properties } from '@kws/schema';
 
 export type MlsMediaEntityType = 'properties' | 'members' | 'offices';
-export type MlsMediaAssociationMode = 'stale-or-unprocessed' | 'unprocessed-only';
+export type MlsMediaAssociationMode =
+  | 'stale-or-unprocessed'
+  | 'unprocessed-only'
+  | 'repair-missing-files';
 
 export interface MlsMediaSyncCandidate {
   mediaKey: string;
@@ -54,6 +57,8 @@ export interface ListMlsMediaSyncCandidatesOptions {
    * Candidate eligibility mode:
    * - `stale-or-unprocessed` includes unprocessed rows and stale linked rows.
    * - `unprocessed-only` includes only rows without a media association.
+   * - `repair-missing-files` includes only linked active rows so callers can
+   *   decide whether on-disk media variants need repair.
    */
   associationMode?: MlsMediaAssociationMode;
 }
@@ -170,8 +175,19 @@ export async function listMlsMediaSyncCandidates(
     ),
   );
 
+  const repairMissingFilesClause = and(
+    baseMediaRowEligibilityClause,
+    isNotNull(mlsMedia.mediaId),
+    isNotNull(media.id),
+    isNull(media.deletedAt),
+  );
+
   const baseEligibilityClause =
-    associationMode === 'unprocessed-only' ? unprocessedAssociationClause : stalenessWhereClause;
+    associationMode === 'unprocessed-only'
+      ? unprocessedAssociationClause
+      : associationMode === 'repair-missing-files'
+        ? repairMissingFilesClause
+        : stalenessWhereClause;
 
   const prioritizedMemberPropertyMatchClause =
     prioritizedMemberKeys.length > 0
