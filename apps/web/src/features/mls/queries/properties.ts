@@ -1,205 +1,451 @@
-import { mediaVariants, mlsMedia, properties } from '@kws/schema';
-import type { StandardStatus, TPropertyCard, TPropertyNwmFlags } from '@kws/types';
+import type { TPropertyCard, TPropertyNwmFlags } from '@kws/types';
 
 import { db } from '@/lib/database';
-import { and, eq, inArray, isNull, or, Placeholder, SQL, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { DEFAULT_ACTIVE_STATUSES, DEFAULT_FEATURED_STATUSES, DEFAULT_PENDING_STATUSES, DEFAULT_SOLD_STATUSES } from './constants';
 
-const preferredMedia = db.$with("preferred_media").as(
-  db
-    .select({
-      resourceRecordKey: mlsMedia.resourceRecordKey,
-      mediaId: mlsMedia.mediaId,
+const preparedActiveProperties = db.query.properties.findMany({
+  columns: {
+    listingId: true,
+    listingKey: true,
 
-      rn: sql<number>`
-        row_number() over (
-          partition by ${mlsMedia.resourceRecordKey}
-          order by ${mlsMedia.order} asc nulls last
-        )
-      `.as("rn"),
-    })
-    .from(mlsMedia)
-    .where(
-      and(
-        eq(mlsMedia.preferredPhotoYN, true),
-        isNull(mlsMedia.deletedAt),
-      )
-    )
-);
+    livingArea: true,
+    livingAreaUnits: true,
 
-const preferredMediaFiltered = db.$with("preferred_media_filtered").as(
-  db
-    .select()
-    .from(preferredMedia)
-    .where(sql`rn = 1`)
-);
+    bathroomsFull: true,
+    bathroomsHalf: true,
+    bathroomsThreeQuarter: true,
 
-const variantPivot = db.$with("variant_pivot").as(
-  db
-    .select({
-      mediaId: mediaVariants.mediaId,
+    bedroomsTotal: true,
+    buildingAreaTotal: true,
 
-      fullUrl: sql<string | null>`
-        max(case when ${mediaVariants.variantName} = 'full' then ${mediaVariants.url} end)
-      `.as("fullUrl"),
+    featuredListingYN: true,
+    internetAddressDisplayYN: true,
+    internetAutomatedValuationDisplayYN: true,
 
-      previewUrl: sql<string | null>`
-        max(case when ${mediaVariants.variantName} = 'preview' then ${mediaVariants.url} end)
-      `.as("previewUrl"),
+    levels: true,
+    latitude: true,
+    longitude: true,
+    listPrice: true,
 
-      thumbnailUrl: sql<string | null>`
-        max(case when ${mediaVariants.variantName} = 'thumbnail' then ${mediaVariants.url} end)
-      `.as("thumbnailUrl"),
-    })
-    .from(mediaVariants)
-    .groupBy(mediaVariants.mediaId)
-);
+    propertySubType: true,
+    propertyType: true,
+    standardStatus: true,
 
-const whereClauseFilters = ({ officeIds, memberIds, statuses }: {
-  /** Office MLS IDs or keys to filter by. Falls back to env.MLS_OFFICE_ID when omitted. */
-  officeIds?: Placeholder<"officeIds", string[] | undefined>;
-  /** Member/agent MLS IDs or keys to filter by. Falls back to env.MLS_MEMBER_ID when omitted. */
-  memberIds?: Placeholder<"memberIds", string[] | undefined>;
-  /** Property statuses to filter by. */
-  statuses?: Placeholder<"statuses", StandardStatus[] | undefined>;
-}) => {
-  const conditions: SQL[] = [
-    eq(properties.mlgCanView, true),
-    isNull(properties.deletedAt),
-  ];
+    streetDirPrefix: true,
+    streetDirSuffix: true,
+    streetName: true,
+    streetNumber: true,
+    streetSuffix: true,
+    unitNumber: true,
 
-  if (statuses?.protected?.length) conditions.push(inArray(properties.standardStatus, statuses))
+    city: true,
+    postalCode: true,
+    stateOrProvince: true,
+    unparsedAddress: true,
 
-  const orConditions: SQL[] = [];
-
-  if (officeIds?.protected?.length) {
-    orConditions.push(sql`
-    ARRAY[
-      ${properties.listOfficeMlsId},
-      ${properties.coListOfficeMlsId},
-      ${properties.buyerOfficeMlsId},
-      ${properties.coBuyerOfficeMlsId}
-    ] && ${officeIds}
-  `);
-  }
-
-  if (memberIds?.protected?.length) {
-    orConditions.push(sql`
-    ARRAY[
-      ${properties.listAgentMlsId},
-      ${properties.coListAgentMlsId},
-      ${properties.buyerAgentMlsId},
-      ${properties.coBuyerAgentMlsId}
-    ] && ${memberIds}
-  `);
-  }
-
-  const orClause =
-    orConditions.length > 0 ? or(...orConditions) : undefined;
-
-  if (orClause) {
-    conditions.push(orClause);
-  }
-
-  return and(...conditions);
-}
-
-const getPropertiesPrepared = db
-  .with(preferredMedia, preferredMediaFiltered, variantPivot)
-  .select({
-    listingId: properties.listingId,
-    listingKey: properties.listingKey,
-
-    livingArea: properties.livingArea,
-    livingAreaUnits: properties.livingAreaUnits,
-
-    bathroomsFull: properties.bathroomsFull,
-    bathroomsHalf: properties.bathroomsHalf,
-    bathroomsThreeQuarter: properties.bathroomsThreeQuarter,
-
-    bedroomsTotal: properties.bedroomsTotal,
-    buildingAreaTotal: properties.buildingAreaTotal,
-
-    featuredListingYN: properties.featuredListingYN,
-    internetAddressDisplayYN: properties.internetAddressDisplayYN,
-    internetAutomatedValuationDisplayYN:
-      properties.internetAutomatedValuationDisplayYN,
-
-    levels: properties.levels,
-    latitude: properties.latitude,
-    longitude: properties.longitude,
-    listPrice: properties.listPrice,
-
-    propertySubType: properties.propertySubType,
-    propertyType: properties.propertyType,
-    standardStatus: properties.standardStatus,
-
-    streetDirPrefix: properties.streetDirPrefix,
-    streetDirSuffix: properties.streetDirSuffix,
-    streetName: properties.streetName,
-    streetNumber: properties.streetNumber,
-    streetSuffix: properties.streetSuffix,
-    unitNumber: properties.unitNumber,
-
-    city: properties.city,
-    postalCode: properties.postalCode,
-    stateOrProvince: properties.stateOrProvince,
-    unparsedAddress: properties.unparsedAddress,
-
-    yearBuilt: properties.yearBuilt,
-
-    listAgentFullName: properties.listAgentFullName,
-    listOfficeName: properties.listOfficeName,
-
-    memberFullName: properties.listAgentFullName,
-    officeName: properties.listOfficeName,
-
-    onMarketDate: properties.onMarketDate,
-    modificationTimestamp: properties.modificationTimestamp,
-
-    // ONLY base media reference
-    mediaId: preferredMediaFiltered.mediaId,
-
-    primaryPhotoFullUrl: variantPivot.fullUrl,
-    primaryPhotoPreviewUrl: variantPivot.previewUrl,
-    primaryPhotoThumbnailUrl: variantPivot.thumbnailUrl,
-
-    primaryPhotoUrl: sql<string | null>`
-        coalesce(
-          ${variantPivot.fullUrl},
-          ${variantPivot.previewUrl},
-          ${variantPivot.thumbnailUrl}
-        )
-      `.as("primaryPhotoUrl"),
-
-    NWM: sql<TPropertyNwmFlags>`
+    yearBuilt: true,
+  },
+  extras: {
+    memberFullName: (table) => sql<string | null>`${table.listAgentFullName}`,
+    officeName: (table) => sql<string | null>`${table.listOfficeName}`,
+    NWM: (table) => sql<TPropertyNwmFlags>`
         jsonb_build_object(
           'NWM_IDXMustRemovePrimaryPhotoYN',
-          ${properties.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
+          ${table.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
 
           'NWM_IDXMustRemovePhotosYN',
-          ${properties.NWM}->>'NWM_IDXMustRemovePhotosYN',
+          ${table.NWM}->>'NWM_IDXMustRemovePhotosYN',
 
           'NWM_ShowMapLink',
-          ${properties.NWM}->>'NWM_ShowMapLink',
+          ${table.NWM}->>'NWM_ShowMapLink',
 
           'NWM_StyleCode',
-          ${properties.NWM}->>'NWM_StyleCode'
+          ${table.NWM}->>'NWM_StyleCode'
         )
-      `.as("NWM"),
-  })
-  .from(properties)
-  .where(whereClauseFilters({ officeIds: sql.placeholder("officeIds"), memberIds: sql.placeholder("memberIds"), statuses: sql.placeholder("statuses") }))
-  .leftJoin(
-    preferredMediaFiltered,
-    eq(preferredMediaFiltered.resourceRecordKey, properties.listingKey)
-  )
-  .leftJoin(
-    variantPivot,
-    eq(variantPivot.mediaId, preferredMediaFiltered.mediaId)
-  )
-  .prepare("get_properties");
+      `,
+  },
+  where: {
+    AND: [
+      {
+        mlgCanView: true,
+        deletedAt: { isNull: true },
+        standardStatus: { in: [...DEFAULT_ACTIVE_STATUSES] },
+      },
+      {
+        RAW: (table) => sql`(
+          ${table.listOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.coListOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.listAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+          ${table.coListAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+          ${table.buyerAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder("memberIds")})
+        )`,
+      }
+    ]
+  },
+  with: {
+    media: {
+      limit: 1,
+      where: {
+        preferredPhotoYN: true,
+        deletedAt: { isNull: true },
+      },
+      with: {
+        media: {
+          with: {
+            variants: {
+              where: {
+                variantName: { in: ['full', 'preview', 'thumbnail'] }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}).prepare("get_active_properties");
 
+const preparedPendingProperties = db.query.properties.findMany({
+  columns: {
+    listingId: true,
+    listingKey: true,
+
+    livingArea: true,
+    livingAreaUnits: true,
+
+    bathroomsFull: true,
+    bathroomsHalf: true,
+    bathroomsThreeQuarter: true,
+
+    bedroomsTotal: true,
+    buildingAreaTotal: true,
+
+    featuredListingYN: true,
+    internetAddressDisplayYN: true,
+    internetAutomatedValuationDisplayYN: true,
+
+    levels: true,
+    latitude: true,
+    longitude: true,
+    listPrice: true,
+
+    propertySubType: true,
+    propertyType: true,
+    standardStatus: true,
+
+    streetDirPrefix: true,
+    streetDirSuffix: true,
+    streetName: true,
+    streetNumber: true,
+    streetSuffix: true,
+    unitNumber: true,
+
+    city: true,
+    postalCode: true,
+    stateOrProvince: true,
+    unparsedAddress: true,
+
+    yearBuilt: true,
+  },
+  extras: {
+    memberFullName: (table) => sql<string | null>`${table.listAgentFullName}`,
+    officeName: (table) => sql<string | null>`${table.listOfficeName}`,
+    NWM: (table) => sql<TPropertyNwmFlags>`
+        jsonb_build_object(
+          'NWM_IDXMustRemovePrimaryPhotoYN',
+          ${table.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
+
+          'NWM_IDXMustRemovePhotosYN',
+          ${table.NWM}->>'NWM_IDXMustRemovePhotosYN',
+
+          'NWM_ShowMapLink',
+          ${table.NWM}->>'NWM_ShowMapLink',
+
+          'NWM_StyleCode',
+          ${table.NWM}->>'NWM_StyleCode'
+        )
+      `,
+  },
+  where: {
+    AND: [
+      {
+        mlgCanView: true,
+        deletedAt: { isNull: true },
+        standardStatus: { in: [...DEFAULT_PENDING_STATUSES] },
+      },
+      {
+        RAW: (table) => sql`(
+          ${table.listOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.coListOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.listAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+          ${table.coListAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+          ${table.buyerAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder("memberIds")})
+        )`,
+      }
+    ]
+  },
+  with: {
+    media: {
+      limit: 1,
+      where: {
+        preferredPhotoYN: true,
+        deletedAt: { isNull: true },
+      },
+      with: {
+        media: {
+          with: {
+            variants: {
+              where: {
+                variantName: { in: ['full', 'preview', 'thumbnail'] }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}).prepare("get_pending_properties");
+
+const preparedSoldProperties = db.query.properties.findMany({
+  columns: {
+    listingId: true,
+    listingKey: true,
+
+    livingArea: true,
+    livingAreaUnits: true,
+
+    bathroomsFull: true,
+    bathroomsHalf: true,
+    bathroomsThreeQuarter: true,
+
+    bedroomsTotal: true,
+    buildingAreaTotal: true,
+
+    featuredListingYN: true,
+    internetAddressDisplayYN: true,
+    internetAutomatedValuationDisplayYN: true,
+
+    levels: true,
+    latitude: true,
+    longitude: true,
+    listPrice: true,
+
+    propertySubType: true,
+    propertyType: true,
+    standardStatus: true,
+
+    streetDirPrefix: true,
+    streetDirSuffix: true,
+    streetName: true,
+    streetNumber: true,
+    streetSuffix: true,
+    unitNumber: true,
+
+    city: true,
+    postalCode: true,
+    stateOrProvince: true,
+    unparsedAddress: true,
+
+    yearBuilt: true,
+  },
+  extras: {
+    memberFullName: (table) => sql<string | null>`${table.listAgentFullName}`,
+    officeName: (table) => sql<string | null>`${table.listOfficeName}`,
+    NWM: (table) => sql<TPropertyNwmFlags>`
+        jsonb_build_object(
+          'NWM_IDXMustRemovePrimaryPhotoYN',
+          ${table.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
+
+          'NWM_IDXMustRemovePhotosYN',
+          ${table.NWM}->>'NWM_IDXMustRemovePhotosYN',
+
+          'NWM_ShowMapLink',
+          ${table.NWM}->>'NWM_ShowMapLink',
+
+          'NWM_StyleCode',
+          ${table.NWM}->>'NWM_StyleCode'
+        )
+      `,
+  },
+  where: {
+    AND: [
+      {
+        mlgCanView: true,
+        deletedAt: { isNull: true },
+        standardStatus: { in: [...DEFAULT_SOLD_STATUSES] },
+      },
+      {
+        RAW: (table) => sql`(
+          ${table.listOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.coListOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+          ${table.listAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+          ${table.coListAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+          ${table.buyerAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder("memberIds")})
+        )`,
+      }
+    ]
+  },
+  with: {
+    media: {
+      limit: 1,
+      where: {
+        preferredPhotoYN: true,
+        deletedAt: { isNull: true },
+      },
+      with: {
+        media: {
+          with: {
+            variants: {
+              where: {
+                variantName: { in: ['full', 'preview', 'thumbnail'] }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}).prepare("get_sold_properties");
+
+const preparedFeaturedProperties = db.query.properties.findMany({
+  columns: {
+    listingId: true,
+    listingKey: true,
+
+    livingArea: true,
+    livingAreaUnits: true,
+
+    bathroomsFull: true,
+    bathroomsHalf: true,
+    bathroomsThreeQuarter: true,
+
+    bedroomsTotal: true,
+    buildingAreaTotal: true,
+
+    featuredListingYN: true,
+    internetAddressDisplayYN: true,
+    internetAutomatedValuationDisplayYN: true,
+
+    levels: true,
+    latitude: true,
+    longitude: true,
+    listPrice: true,
+
+    propertySubType: true,
+    propertyType: true,
+    standardStatus: true,
+
+    streetDirPrefix: true,
+    streetDirSuffix: true,
+    streetName: true,
+    streetNumber: true,
+    streetSuffix: true,
+    unitNumber: true,
+
+    city: true,
+    postalCode: true,
+    stateOrProvince: true,
+    unparsedAddress: true,
+
+    yearBuilt: true,
+  },
+  extras: {
+    memberFullName: (table) => sql<string | null>`${table.listAgentFullName}`,
+    officeName: (table) => sql<string | null>`${table.listOfficeName}`,
+    NWM: (table) => sql<TPropertyNwmFlags>`
+        jsonb_build_object(
+          'NWM_IDXMustRemovePrimaryPhotoYN',
+          ${table.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
+
+          'NWM_IDXMustRemovePhotosYN',
+          ${table.NWM}->>'NWM_IDXMustRemovePhotosYN',
+
+          'NWM_ShowMapLink',
+          ${table.NWM}->>'NWM_ShowMapLink',
+
+          'NWM_StyleCode',
+          ${table.NWM}->>'NWM_StyleCode'
+        )
+      `,
+  },
+  where: {
+    OR: [
+      {
+        featuredListingYN: true,
+        mlgCanView: true,
+        deletedAt: { isNull: true },
+        standardStatus: { in: [...DEFAULT_FEATURED_STATUSES] },
+      },
+      {
+        AND: [
+          {
+            mlgCanView: true,
+            deletedAt: { isNull: true },
+            standardStatus: { in: [...DEFAULT_FEATURED_STATUSES] },
+          },
+          {
+            RAW: (table) => sql`(
+              ${table.listOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+              ${table.coListOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+              ${table.buyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+              ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
+              ${table.listAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+              ${table.coListAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+              ${table.buyerAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
+              ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder("memberIds")})
+            )`,
+          }
+        ]
+      },
+    ]
+  },
+  with: {
+    media: {
+      limit: 1,
+      where: {
+        preferredPhotoYN: true,
+        deletedAt: { isNull: true },
+      },
+      with: {
+        media: {
+          with: {
+            variants: {
+              where: {
+                variantName: { in: ['full', 'preview', 'thumbnail'] }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}).prepare("get_featured_properties");
+
+const formatPropertyCardData = (property: Awaited<ReturnType<typeof preparedActiveProperties.execute>>[number]): TPropertyCard => {
+  const { NWM, media, ...rest } = property;
+  const primaryMedia = media?.[0]?.media;
+  const variantMap = Object.fromEntries(
+    (primaryMedia?.variants ?? []).map((v) => [v.variantName, v.url])
+  );
+
+  return {
+    ...rest,
+    ...NWM,
+    primaryPhotoFullUrl: variantMap['full'] ?? null,
+    primaryPhotoPreviewUrl: variantMap['preview'] ?? null,
+    primaryPhotoThumbnailUrl: variantMap['thumbnail'] ?? null,
+    primaryPhotoUrl: variantMap['full'] ?? variantMap['preview'] ?? variantMap['thumbnail'] ?? null,
+  };
+};
 
 export async function getAvailableProperties(
   { officeIds, memberIds }: {
@@ -209,11 +455,14 @@ export async function getAvailableProperties(
     memberIds?: string[];
   }
 ): Promise<TPropertyCard[]> {
-  return getPropertiesPrepared.execute({
+  if (!officeIds?.length && !memberIds?.length) return [];
+
+  const results = await preparedActiveProperties.execute({
     officeIds: officeIds ?? [],
     memberIds: memberIds ?? [],
-    statuses: [...DEFAULT_ACTIVE_STATUSES],
   });
+
+  return results.map(formatPropertyCardData);
 }
 
 export async function getPendingProperties(
@@ -224,11 +473,14 @@ export async function getPendingProperties(
     memberIds?: string[];
   }
 ): Promise<TPropertyCard[]> {
-  return getPropertiesPrepared.execute({
+  if (!officeIds?.length && !memberIds?.length) return [];
+
+  const results = await preparedPendingProperties.execute({
     officeIds: officeIds ?? [],
     memberIds: memberIds ?? [],
-    statuses: [...DEFAULT_PENDING_STATUSES],
   });
+
+  return results.map(formatPropertyCardData);
 }
 
 export async function getSoldProperties(
@@ -239,11 +491,14 @@ export async function getSoldProperties(
     memberIds?: string[];
   }
 ): Promise<TPropertyCard[]> {
-  return getPropertiesPrepared.execute({
+  if (!officeIds?.length && !memberIds?.length) return [];
+
+  const results = await preparedSoldProperties.execute({
     officeIds: officeIds ?? [],
     memberIds: memberIds ?? [],
-    statuses: [...DEFAULT_SOLD_STATUSES],
   });
+
+  return results.map(formatPropertyCardData);
 }
 
 export async function getFeaturedProperties(
@@ -254,9 +509,10 @@ export async function getFeaturedProperties(
     memberIds?: string[];
   }
 ): Promise<TPropertyCard[]> {
-  return getPropertiesPrepared.execute({
+  const results = await preparedFeaturedProperties.execute({
     officeIds: officeIds ?? [],
     memberIds: memberIds ?? [],
-    statuses: [...DEFAULT_FEATURED_STATUSES],
   });
+
+  return results.map(formatPropertyCardData);
 }

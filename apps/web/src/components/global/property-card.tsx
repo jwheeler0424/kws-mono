@@ -46,7 +46,7 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
       params={{ listingKey: listing.listingKey }}
       preload='intent'
       className={cn(
-        'group flex h-(--property-card-height) min-w-72 w-full max-w-(--property-card-width) flex-col rounded-none bg-white p-2 no-underline! shadow-md',
+        'group flex h-(--property-card-height) min-w-70 w-full max-w-(--property-card-width) flex-col rounded-none bg-white p-2 no-underline! shadow-md',
         className,
       )}
       style={cardStyles}

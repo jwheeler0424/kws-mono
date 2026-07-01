@@ -77,7 +77,7 @@ function Carousel({
   }, [api]);
 
   const handleKeyDown = React.useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
+    (event: React.KeyboardEvent<HTMLElement>) => {
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
         scrollPrev();
@@ -96,11 +96,15 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return;
+
     onSelect(api);
+    api.on('init', onSelect);
     api.on('reInit', onSelect);
     api.on('select', onSelect);
 
     return () => {
+      api.off('init', onSelect);
+      api.off('reInit', onSelect);
       api.off('select', onSelect);
     };
   }, [api, onSelect]);
@@ -150,7 +154,7 @@ function CarouselItem({ className, ...props }: React.ComponentProps<'fieldset'>)
       aria-roledescription='slide'
       data-slot='carousel-item'
       className={cn(
-        'min-w-0 shrink-0 grow-0 basis-full',
+        'm-0 min-w-0 shrink-0 grow-0 basis-full border-0 bg-transparent p-0',
         orientation === 'horizontal' ? 'pl-4' : 'pt-4',
         className,
       )}
@@ -170,10 +174,12 @@ function CarouselPrevious({
   return (
     <Button
       data-slot='carousel-previous'
+      aria-label='Previous slide'
+      title='Previous slide'
       variant={variant}
       size={size}
       className={cn(
-        'absolute touch-manipulation rounded-full',
+        'absolute touch-manipulation rounded-full border border-border bg-background/95 text-foreground shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80 [&_svg]:size-5',
         orientation === 'horizontal'
           ? 'top-1/2 -left-12 -translate-y-1/2'
           : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
@@ -183,7 +189,6 @@ function CarouselPrevious({
       onClick={scrollPrev}
       {...props}>
       <ChevronLeftIcon />
-      <span className='sr-only'>Previous slide</span>
     </Button>
   );
 }
@@ -199,10 +204,12 @@ function CarouselNext({
   return (
     <Button
       data-slot='carousel-next'
+      aria-label='Next slide'
+      title='Next slide'
       variant={variant}
       size={size}
       className={cn(
-        'absolute touch-manipulation rounded-full',
+        'absolute touch-manipulation rounded-full border border-border bg-background/95 text-foreground shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80 [&_svg]:size-5',
         orientation === 'horizontal'
           ? 'top-1/2 -right-12 -translate-y-1/2'
           : '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',
@@ -212,7 +219,6 @@ function CarouselNext({
       onClick={scrollNext}
       {...props}>
       <ChevronRightIcon />
-      <span className='sr-only'>Next slide</span>
     </Button>
   );
 }
