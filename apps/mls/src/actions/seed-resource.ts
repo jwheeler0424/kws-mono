@@ -1,8 +1,13 @@
 import type { ErrorDetail, ODataPageBatch, SyncResult } from '@/types';
 import { env } from '@kws/config';
 
+import {
+  persistHistoryPage,
+  quarantineInvalidTimestampRecords,
+  replayHistoryResource,
+} from '@/lib/history-store';
 import { logger } from '@/lib/logger';
-import { advanceCursor, completeCursorRun, failCursorRun, getCursor, startCursorRun } from '@/repositories/cursor.repository';
+import type { MlsResource } from '@/types';
 
 function formatErrorDetail(err: unknown): {
   message: string
@@ -45,8 +50,8 @@ function formatErrorDetail(err: unknown): {
 // ---------------------------------------------------------------------------
 
 export interface SeedResourceConfig<TPayload extends Record<string, unknown>> {
-  /** MLS Grid resource name — must match mls_sync_cursors.resource */
-  resource: string
+  /** MLS Grid resource name */
+  resource: MlsResource
   osn: string
   afterTimestamp?: Date
   beforeTimestamp?: Date
@@ -60,8 +65,27 @@ export interface SeedResourceConfig<TPayload extends Record<string, unknown>> {
       startUrl?: string
     },
   ) => AsyncGenerator<ODataPageBatch<TPayload>>
+  /** DB high-watermark for this resource */
+  getLatestTimestamp: () => Promise<Date | string | null | undefined>
+  /** Extract the source modification timestamp from payload records */
+  getTimestamp: (record: TPayload) => string | undefined
+  /** Primary key extractor used for local replay dedupe */
+  getKey: (record: TPayload) => string
   /** Upsert a visible record */
   upsert: (records: TPayload[]) => Promise<Date>
+}
+
+function normalizeTimestamp(input: Date | string | null | undefined): Date | undefined {
+  if (!input) {
+    return undefined
+  }
+
+  if (input instanceof Date) {
+    return Number.isNaN(input.getTime()) ? undefined : input
+  }
+
+  const parsed = new Date(input)
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed
 }
 
 function toMb(bytes: number): number {
@@ -85,152 +109,223 @@ function getMemorySnapshot() {
 export async function seedResource<TPayload extends Record<string, unknown>>(
   config: SeedResourceConfig<TPayload>,
 ): Promise<SyncResult> {
-  const { resource, osn, afterTimestamp, beforeTimestamp, startUrl } = config
+  const {
+    resource,
+    osn,
+    afterTimestamp,
+    beforeTimestamp,
+    startUrl,
+    getLatestTimestamp,
+    getTimestamp,
+    getKey,
+  } = config
   const startedAt = Date.now()
 
   let upserted = 0
   let errors = 0
+  let quarantined = 0
   let maxTimestamp: Date | null = null
   const errorDetails: ErrorDetail[] = [];
 
   logger.info('seed started', { resource, osn })
 
-  const runLeaseAcquired = await startCursorRun(resource, osn)
-  if (!runLeaseAcquired) {
-    logger.warn('sync skipped because another run is already active', {
-      resource,
-      osn,
-    })
-
-    return {
-      resource,
-      osn,
-      upserted: 0,
-      errors: 0,
-      durationMs: Date.now() - startedAt,
-    }
-  }
-
-  const cursor = await getCursor(resource, osn)
-  const isInitial = !cursor?.lastModifiedTimestamp || cursor.phase === 'initial'
-
-  if (!isInitial) {
-    logger.info('seed complete', { resource, osn });
-    await completeCursorRun(resource, osn, cursor?.lastModifiedTimestamp ?? null)
-    return {
-      resource,
-      osn,
-      upserted: 0,
-      errors: 0,
-      durationMs: Date.now() - startedAt,
-    }
-  }
-
-  logger.debug('sync cursor loaded', {
-    resource,
-    osn,
-    phase: cursor?.phase ?? 'initial',
-    lastModifiedTimestamp: cursor?.lastModifiedTimestamp,
-    lastRunStatus: cursor?.lastRunStatus,
-  })
-
-  const overlapPages = isInitial && resource === 'Property' ? 0 : 0
-
-
   let resumeAfterTimestamp: Date | undefined
-  const resumeStartUrl = cursor?.checkpointNextUrl ?? startUrl
-
-  if (cursor?.lastModifiedTimestamp) {
-    // Prefer cursor marker whenever present.
-    resumeAfterTimestamp = new Date(cursor.lastModifiedTimestamp)
-    if (!isInitial && env.MLS_DELTA_OVERLAP_MS > 0) {
-      // Delta replays a small overlap window to reduce boundary misses.
-      resumeAfterTimestamp = new Date(resumeAfterTimestamp.getTime() - env.MLS_DELTA_OVERLAP_MS)
-    }
-  } else if (env.MLS_START_DATE) {
-    // Fallback floor for first sync when no marker exists yet.
+  if (env.MLS_START_DATE) {
     resumeAfterTimestamp = env.MLS_START_DATE
   }
 
-  let activeStartUrl = resumeStartUrl
-  let activeBeforeTimestamp = beforeTimestamp
-  let activeAfterTimestamp = afterTimestamp ?? activeStartUrl ? undefined : resumeAfterTimestamp
+  const dbWatermark = normalizeTimestamp(await getLatestTimestamp())
+  if (dbWatermark && (!resumeAfterTimestamp || dbWatermark > resumeAfterTimestamp)) {
+    resumeAfterTimestamp = dbWatermark
+  }
 
-  logger.info(isInitial ? 'initial sync' : 'delta sync', {
+  const activeStartUrl = startUrl
+  let activeBeforeTimestamp = beforeTimestamp
+  let activeAfterTimestamp = afterTimestamp ?? (activeStartUrl ? undefined : resumeAfterTimestamp)
+
+  logger.info('initial seed', {
     resource,
     osn,
     ...(activeStartUrl ? { resumeFromUrl: activeStartUrl } : {}),
-    ...(overlapPages > 0 ? { resumeOverlapPages: overlapPages } : {}),
     ...(activeAfterTimestamp ? { afterTimestamp: activeAfterTimestamp.toISOString() } : {}),
   })
 
   try {
     let page = 0
 
-    while (true) {
-      for await (const pageBatch of config.fetchFn(osn, {
-        afterTimestamp: activeAfterTimestamp,
-        beforeTimestamp: activeBeforeTimestamp,
-        startUrl: activeStartUrl,
-      })) {
-        try {
-          const pageStartedAt = Date.now()
-          const memoryBefore = getMemorySnapshot()
-          const batch = pageBatch.value
-          maxTimestamp = await config.upsert(batch)
-          page++
+    const pipelinePrefetchEnabled =
+      env.MLS_SEED_FETCH_INGEST_OVERLAP_ENABLED ?? (env.MLS_SEED_PREFETCH_ENABLED ?? true)
+    const pipelineQueueDepth = Math.max(1, env.MLS_SEED_FETCH_INGEST_QUEUE_DEPTH ?? 2)
 
-          upserted += batch.length
-          const memoryAfter = getMemorySnapshot()
+    // Local-first replay: exhaust on-disk history before API calls.
+    for await (const replayBatch of replayHistoryResource<TPayload>({ resource })) {
+      const replaySanitized = await quarantineInvalidTimestampRecords({
+        resource,
+        records: replayBatch,
+        getTimestamp,
+        context: {
+          phase: 'seed-replay',
+          osn,
+          page,
+        },
+      })
+      quarantined += replaySanitized.summary.quarantinedCount
 
-          // Checkpoint page-level counts and pagination URLs for exact retry continuation.
-          await advanceCursor(resource, osn, maxTimestamp?.toISOString() ?? null, upserted, {
+      const deduped = replaySanitized.validRecords.filter((record) => getKey(record).length > 0)
+
+      if (deduped.length === 0) {
+        continue;
+      }
+
+      maxTimestamp = await config.upsert(deduped);
+
+      if (!activeAfterTimestamp || maxTimestamp > activeAfterTimestamp) {
+        activeAfterTimestamp = maxTimestamp;
+      }
+
+      upserted += deduped.length;
+      page++;
+
+      logger.trace('history replay batch complete', {
+        resource,
+        osn,
+        page,
+        recordCount: deduped.length,
+      });
+
+      logger.info('resource batch complete', {
+        resource,
+        osn,
+        page,
+        recordCount: deduped.length,
+        quarantined,
+        source: 'history-replay',
+      })
+    }
+
+    const processPageBatch = async (pageBatch: ODataPageBatch<TPayload>): Promise<void> => {
+      try {
+        const pageStartedAt = Date.now()
+        const memoryBefore = getMemorySnapshot()
+        const pageSanitized = await quarantineInvalidTimestampRecords({
+          resource,
+          records: pageBatch.value,
+          getTimestamp,
+          context: {
+            phase: 'seed-api',
+            osn,
+            page: page + 1,
             requestUrl: pageBatch.requestUrl,
-            nextUrl: pageBatch.nextUrl ?? null,
-          })
+          },
+        })
+        quarantined += pageSanitized.summary.quarantinedCount
 
-          logger.trace('seed page advanced', {
+        const batch = pageSanitized.validRecords
+        if (batch.length === 0) {
+          logger.warn('seed page skipped after timestamp quarantine', {
             resource,
             osn,
-            page,
-            upserted,
-            pageDurationMs: Date.now() - pageStartedAt,
-            memoryBefore,
-            memoryAfter,
-            checkpointRequestUrl: pageBatch.requestUrl,
-            checkpointNextUrl: pageBatch.nextUrl,
+            page: page + 1,
+            requestUrl: pageBatch.requestUrl,
+            quarantinedInPage: pageSanitized.summary.quarantinedCount,
           })
+          return
+        }
 
-          logger.info('page complete', {
-            resource,
-            osn,
-            page,
-            recordCount: batch.length,
-          })
-        } catch (err) {
-          errors++
-          const formatted = formatErrorDetail(err)
-          const detail: ErrorDetail = {
-            message: formatted.message,
-            stack: formatted.stack,
-          }
-          errorDetails.push(detail)
-          logger.error('record error', {
-            resource,
-            osn,
-            message: detail.message,
-            ...(formatted.meta ?? {}),
-          })
+        await persistHistoryPage({
+          resource,
+          records: batch,
+          getTimestamp,
+        })
+
+        maxTimestamp = await config.upsert(batch)
+        page++
+
+        upserted += batch.length
+        const memoryAfter = getMemorySnapshot()
+
+        logger.trace('seed page complete', {
+          resource,
+          osn,
+          page,
+          upserted,
+          quarantined,
+          pageDurationMs: Date.now() - pageStartedAt,
+          memoryBefore,
+          memoryAfter,
+          requestUrl: pageBatch.requestUrl,
+          nextUrl: pageBatch.nextUrl,
+        })
+
+        logger.info('resource batch complete', {
+          resource,
+          osn,
+          page,
+          recordCount: batch.length,
+          quarantined,
+          pageDurationMs: Date.now() - pageStartedAt,
+        })
+      } catch (err) {
+        errors++
+        const formatted = formatErrorDetail(err)
+        const detail: ErrorDetail = {
+          message: formatted.message,
+          stack: formatted.stack,
+        }
+        errorDetails.push(detail)
+        logger.error('record error', {
+          resource,
+          osn,
+          message: detail.message,
+          ...(formatted.meta ?? {}),
+        })
+      }
+    }
+
+    const pageGenerator = config.fetchFn(osn, {
+      afterTimestamp: activeAfterTimestamp,
+      beforeTimestamp: activeBeforeTimestamp,
+      startUrl: activeStartUrl,
+    })
+
+    if (!pipelinePrefetchEnabled) {
+      for await (const pageBatch of pageGenerator) {
+        await processPageBatch(pageBatch)
+      }
+    } else {
+      logger.info('seed fetch/ingest overlap enabled', {
+        resource,
+        osn,
+        queueDepth: pipelineQueueDepth,
+      })
+
+      const iterator = pageGenerator[Symbol.asyncIterator]()
+      const pending: Array<Promise<IteratorResult<ODataPageBatch<TPayload>>>> = []
+      let exhausted = false
+
+      const enqueue = () => {
+        while (!exhausted && pending.length < pipelineQueueDepth) {
+          pending.push(iterator.next())
         }
       }
 
-      break
+      enqueue()
+
+      while (pending.length > 0) {
+        const current = await pending.shift()!
+        if (current.done) {
+          exhausted = true
+          continue
+        }
+
+        enqueue()
+        await processPageBatch(current.value)
+      }
     }
 
     if (errors > 0) {
       const message = `sync finished with ${errors} record error${errors === 1 ? '' : 's'}`
-      await failCursorRun(resource, osn, message)
-      logger.warn('sync finished with record errors; marker not advanced', {
+      logger.warn('seed finished with record errors', {
         resource,
         osn,
         errors,
@@ -242,19 +337,11 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
         upserted,
         errors,
         durationMs: Date.now() - startedAt,
-        error: message,
+        error: `${message}; quarantined=${quarantined}`,
         errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
       }
     }
 
-    await completeCursorRun(resource, osn, maxTimestamp?.toISOString() ?? null)
-    const finalTimestampIso = maxTimestamp ? (maxTimestamp as Date).toISOString() : undefined
-    logger.debug('sync cursor marked complete', {
-      resource,
-      osn,
-      finalTimestamp: finalTimestampIso,
-      durationMs: Date.now() - startedAt,
-    })
     logger.info('seed complete', { resource, osn })
 
     return {
@@ -263,6 +350,7 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
       upserted,
       errors,
       durationMs: Date.now() - startedAt,
+      error: quarantined > 0 ? `quarantined=${quarantined}` : undefined,
       errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
     }
   } catch (err) {

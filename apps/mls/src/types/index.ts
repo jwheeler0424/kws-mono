@@ -470,9 +470,11 @@ export interface SyncResult {
 }
 
 export interface SyncSummary {
+  runId?: string;
   osn: string;
   mode: 'initial' | 'delta';
   results: SyncResult[];
+  stageTimingsMs?: Record<string, number>;
   totalDurationMs: number;
   startedAt: Date;
   completedAt: Date;

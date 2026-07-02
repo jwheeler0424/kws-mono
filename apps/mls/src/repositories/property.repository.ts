@@ -1,9 +1,10 @@
-import { eq } from 'drizzle-orm';
+import { eq, getColumns, sql } from 'drizzle-orm';
 
 import { env } from '@kws/config';
 import { mlsMedia, properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
 
 import { db } from '@/lib/database';
+import { logger } from '@/lib/logger';
 import { dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
 import type { MappedMedia } from '../maps/media.mapper';
 import type {
@@ -13,10 +14,91 @@ import type {
 } from '../maps/property.mapper';
 import { upsertMlsMedia } from './media.repository';
 
-const PROPERTY_BATCH_SIZE = 100;
-const PROPERTY_UPSERT_BATCH_SIZE = 150;
-const CHILD_UPSERT_BATCH_SIZE = 750;
-const CHILD_UPSERT_CONCURRENCY = 2;
+const PROPERTY_BATCH_SIZE = env.MLS_PROPERTY_BATCH_SIZE ?? 100;
+const PROPERTY_UPSERT_BATCH_SIZE = env.MLS_PROPERTY_UPSERT_BATCH_SIZE ?? 150;
+const CHILD_UPSERT_BATCH_SIZE = env.MLS_PROPERTY_CHILD_UPSERT_BATCH_SIZE ?? 750;
+const CHILD_UPSERT_CONCURRENCY = env.MLS_PROPERTY_CHILD_UPSERT_CONCURRENCY ?? 2;
+
+const STAGING_TABLE_NAME = 'mls_property_stage';
+
+const PROPERTY_UPSERT_EXCLUDED_COLUMNS = new Set(['listingKey', 'createdAt', 'searchVector']);
+const PROPERTY_NON_INSERTABLE_COLUMNS = new Set(['searchVector']);
+
+async function applySeedStagingSettings(execute: (query: string) => Promise<unknown>): Promise<void> {
+  if (env.MLS_PROPERTY_SEED_STAGING_SYNC_COMMIT_OFF ?? false) {
+    await execute('SET LOCAL synchronous_commit TO OFF');
+  }
+  if (env.MLS_PROPERTY_SEED_STAGING_STATEMENT_TIMEOUT_MS) {
+    await execute(`SET LOCAL statement_timeout TO '${env.MLS_PROPERTY_SEED_STAGING_STATEMENT_TIMEOUT_MS}ms'`);
+  }
+  if (env.MLS_PROPERTY_SEED_STAGING_LOCK_TIMEOUT_MS) {
+    await execute(`SET LOCAL lock_timeout TO '${env.MLS_PROPERTY_SEED_STAGING_LOCK_TIMEOUT_MS}ms'`);
+  }
+  if (env.MLS_PROPERTY_SEED_STAGING_WORK_MEM_MB) {
+    await execute(`SET LOCAL work_mem TO '${env.MLS_PROPERTY_SEED_STAGING_WORK_MEM_MB}MB'`);
+  }
+  if (env.MLS_PROPERTY_SEED_STAGING_JIT_OFF ?? false) {
+    await execute('SET LOCAL jit TO OFF');
+  }
+}
+
+function getPropertyUpdateWhereSql(): string {
+  return [
+    'excluded.modification_timestamp is distinct from properties.modification_timestamp',
+    'excluded.standard_status is distinct from properties.standard_status',
+    'excluded.mls_status is distinct from properties.mls_status',
+    'excluded.list_price is distinct from properties.list_price',
+    'excluded.close_price is distinct from properties.close_price',
+    'excluded.photos_change_timestamp is distinct from properties.photos_change_timestamp',
+    'excluded.deleted_at is distinct from properties.deleted_at',
+    'excluded.mlg_can_view is distinct from properties.mlg_can_view',
+  ].join(' or ');
+}
+
+function getPropertyInsertColumnNames(): string[] {
+  const columns = getColumns(properties);
+  return Object.entries(columns)
+    .filter(([key]) => !PROPERTY_NON_INSERTABLE_COLUMNS.has(key))
+    .map(([, column]) => column.name);
+}
+
+function getPropertyInsertColumnsSql(): string {
+  return getPropertyInsertColumnNames()
+    .map((name) => `"${name}"`)
+    .join(', ');
+}
+
+function getPropertyUpsertAssignmentsSql(): string {
+  const columns = getColumns(properties);
+  return Object.entries(columns)
+    .filter(([key]) => !PROPERTY_UPSERT_EXCLUDED_COLUMNS.has(key))
+    .map(([, column]) => `"${column.name}" = EXCLUDED."${column.name}"`)
+    .join(', ');
+}
+
+function toDbNamedPropertyRow(row: typeof properties.$inferInsert): Record<string, unknown> {
+  const columns = getColumns(properties);
+  const payload: Record<string, unknown> = {};
+
+  for (const [key, column] of Object.entries(columns)) {
+    if (PROPERTY_NON_INSERTABLE_COLUMNS.has(key)) {
+      continue;
+    }
+
+    const value = row[key as keyof typeof row];
+    if (value !== undefined) {
+      payload[column.name] = value;
+    }
+  }
+
+  return payload;
+}
+
+function getAppliedRowCount(result: unknown): number {
+  const rows = (result as { rows?: unknown[] } | null | undefined)?.rows;
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
 
 export interface PropertyChildren {
   media: MappedMedia[];
@@ -31,7 +113,7 @@ export const getLatestPropertyTimestamp = async () => {
     },
     orderBy: (properties, { desc }) => desc(properties.modificationTimestamp),
   });
-  return result?.modificationTimestamp ?? env.MLS_START_DATE;
+  return result?.modificationTimestamp ?? null;
 };
 
 export async function upsertSingleProperty(record: MappedProperty): Promise<void> {
@@ -65,29 +147,99 @@ export async function deactivateProperty(listingKey: string): Promise<void> {
 }
 
 export async function upsertProperties(
-  data: (typeof properties.$inferInsert)[]
+  data: (typeof properties.$inferInsert)[],
+  options?: {
+    useSeedStaging?: boolean;
+  },
 ) {
   if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.listingKey);
   const setFields = getUpsertSetFields(properties, ['listingKey', 'createdAt', 'searchVector']);
+  const insertColumnNames = getPropertyInsertColumnNames();
+  const insertColumnsSql = getPropertyInsertColumnsSql();
+  const updateWhereSql = getPropertyUpdateWhereSql();
+  const updateWhere = sql`
+    ${sql.raw(updateWhereSql)}
+  `;
   const maxTimestamp = deduped.reduce((max, row) => {
     const rowTimestamp = row.modificationTimestamp ? new Date(row.modificationTimestamp) : new Date(0);
     return rowTimestamp > max ? rowTimestamp : max;
   }, new Date(0));
+  const useSeedStaging = options?.useSeedStaging ?? false;
+  let attempted = 0;
+  let applied = 0;
+
+  if (useSeedStaging) {
+    await db.transaction(async (tx) => {
+      await applySeedStagingSettings((query) => tx.execute(sql.raw(query)));
+
+      await tx.execute(
+        sql.raw(
+          `CREATE TEMP TABLE IF NOT EXISTS ${STAGING_TABLE_NAME} (LIKE properties INCLUDING DEFAULTS) ON COMMIT DROP`,
+        ),
+      );
+
+      for (let i = 0; i < deduped.length; i += PROPERTY_UPSERT_BATCH_SIZE) {
+        const batch = deduped.slice(i, i + PROPERTY_UPSERT_BATCH_SIZE);
+        attempted += batch.length;
+
+        await tx.execute(sql.raw(`TRUNCATE TABLE ${STAGING_TABLE_NAME}`));
+
+        const jsonPayload = JSON.stringify(batch.map(toDbNamedPropertyRow));
+        await tx.execute(sql`
+          INSERT INTO ${sql.raw(STAGING_TABLE_NAME)} (${sql.raw(insertColumnsSql)})
+          SELECT ${sql.raw(insertColumnsSql)}
+          FROM json_populate_recordset(NULL::properties, ${jsonPayload}::json)
+        `);
+
+        const mergeResult = await tx.execute(sql`
+          INSERT INTO properties (${sql.raw(insertColumnsSql)})
+          SELECT ${sql.raw(insertColumnsSql)} FROM ${sql.raw(STAGING_TABLE_NAME)}
+          ON CONFLICT (listing_key) DO UPDATE
+          SET ${sql.raw(getPropertyUpsertAssignmentsSql())}
+          WHERE ${updateWhere}
+          RETURNING listing_key
+        `);
+
+        applied += getAppliedRowCount(mergeResult);
+      }
+    });
+
+    logger.trace('property upsert effectiveness', {
+      path: 'seed-staging',
+      attempted,
+      applied,
+      skippedNoop: Math.max(0, attempted - applied),
+    });
+
+    return maxTimestamp;
+  }
 
   for (let i = 0; i < deduped.length; i += PROPERTY_UPSERT_BATCH_SIZE) {
     const batch = deduped.slice(i, i + PROPERTY_UPSERT_BATCH_SIZE);
+    attempted += batch.length;
     await db.transaction(async (tx) => {
-      await tx
+      const changedRows = await tx
         .insert(properties)
         .values(batch)
         .onConflictDoUpdate({
           target: properties.listingKey,
           set: setFields,
-        });
+          setWhere: updateWhere,
+        })
+        .returning({ listingKey: properties.listingKey });
+
+      applied += changedRows.length;
     });
   }
+
+  logger.trace('property upsert effectiveness', {
+    path: useSeedStaging ? 'seed-staging' : 'direct-upsert',
+    attempted,
+    applied,
+    skippedNoop: Math.max(0, attempted - applied),
+  });
 
   return maxTimestamp;
 }
@@ -117,19 +269,39 @@ export async function upsertPropertyRooms(data: (typeof propertyRooms.$inferInse
 
   const deduped = dedupeByKey(data, (row) => row.roomKey);
   const setFields = getUpsertSetFields(propertyRooms, ['roomKey', 'searchVector', 'createdAt']);
+  const updateWhere = sql`
+    excluded.room_type is distinct from ${propertyRooms.roomType}
+    or excluded.room_dimensions is distinct from ${propertyRooms.roomDimensions}
+    or excluded.room_description is distinct from ${propertyRooms.roomDescription}
+    or excluded.room_level is distinct from ${propertyRooms.roomLevel}
+    or excluded.deleted_at is distinct from ${propertyRooms.deletedAt}
+  `;
+  let attempted = 0;
+  let applied = 0;
 
   for (let i = 0; i < deduped.length; i += CHILD_UPSERT_BATCH_SIZE) {
     const batch = deduped.slice(i, i + CHILD_UPSERT_BATCH_SIZE);
+    attempted += batch.length;
     await db.transaction(async (tx) => {
-      await tx
+      const changedRows = await tx
         .insert(propertyRooms)
         .values(batch)
         .onConflictDoUpdate({
           target: propertyRooms.roomKey,
           set: setFields,
-        });
+          setWhere: updateWhere,
+        })
+        .returning({ roomKey: propertyRooms.roomKey });
+
+      applied += changedRows.length;
     });
   }
+
+  logger.trace('property rooms upsert effectiveness', {
+    attempted,
+    applied,
+    skippedNoop: Math.max(0, attempted - applied),
+  });
 }
 
 export async function upsertPropertyUnitTypes(data: (typeof propertyUnitTypes.$inferInsert)[]) {
@@ -137,22 +309,47 @@ export async function upsertPropertyUnitTypes(data: (typeof propertyUnitTypes.$i
 
   const deduped = dedupeByKey(data, (row) => row.unitTypeKey);
   const setFields = getUpsertSetFields(propertyUnitTypes, ['unitTypeKey', 'searchVector', 'createdAt']);
+  const updateWhere = sql`
+    excluded.unit_type_beds_total is distinct from ${propertyUnitTypes.unitTypeBedsTotal}
+    or excluded.unit_type_baths_total is distinct from ${propertyUnitTypes.unitTypeBathsTotal}
+    or excluded.unit_type_actual_rent is distinct from ${propertyUnitTypes.unitTypeActualRent}
+    or excluded.nwm is distinct from ${propertyUnitTypes.NWM}
+    or excluded.deleted_at is distinct from ${propertyUnitTypes.deletedAt}
+  `;
+  let attempted = 0;
+  let applied = 0;
 
   for (let i = 0; i < deduped.length; i += CHILD_UPSERT_BATCH_SIZE) {
     const batch = deduped.slice(i, i + CHILD_UPSERT_BATCH_SIZE);
+    attempted += batch.length;
     await db.transaction(async (tx) => {
-      await tx
+      const changedRows = await tx
         .insert(propertyUnitTypes)
         .values(batch)
         .onConflictDoUpdate({
           target: propertyUnitTypes.unitTypeKey,
           set: setFields,
-        });
+          setWhere: updateWhere,
+        })
+        .returning({ unitTypeKey: propertyUnitTypes.unitTypeKey });
+
+      applied += changedRows.length;
     });
   }
+
+  logger.trace('property unit types upsert effectiveness', {
+    attempted,
+    applied,
+    skippedNoop: Math.max(0, attempted - applied),
+  });
 }
 
-export async function processMlsPropertiesPayload(data: MappedProperty[]) {
+export async function processMlsPropertiesPayload(
+  data: MappedProperty[],
+  options?: {
+    useSeedStaging?: boolean;
+  },
+) {
   if (data.length === 0) return new Date(0);
   let maxTimestamp = new Date(0);
 
@@ -179,7 +376,7 @@ export async function processMlsPropertiesPayload(data: MappedProperty[]) {
       }
     }
 
-    const localMaxTimestamp = await upsertProperties(chunkProperties);
+    const localMaxTimestamp = await upsertProperties(chunkProperties, options);
 
     const childTasks: Array<() => Promise<Date | void>> = [];
     if (chunkMedia.length > 0) {

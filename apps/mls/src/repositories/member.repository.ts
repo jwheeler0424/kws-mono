@@ -85,3 +85,14 @@ export async function processMlsMembersPayload(data: MappedMember[]) {
 
   return maxTimestamp;
 }
+
+export async function getLatestMemberTimestamp(): Promise<Date | string | null> {
+  const result = await db.query.members.findFirst({
+    columns: {
+      modificationTimestamp: true,
+    },
+    orderBy: (table, { desc }) => desc(table.modificationTimestamp),
+  });
+
+  return result?.modificationTimestamp ?? null;
+}

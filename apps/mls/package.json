@@ -6,6 +6,12 @@
   "scripts": {
     "dev": "bun --bun run /src/index.ts",
     "start": "bun --bun run src/index.ts",
+    "history:verify": "bun --bun run src/index.ts history:verify",
+    "history:compact": "bun --bun run src/index.ts history:compact",
+    "history:recover": "bun --bun run src/index.ts history:recover",
+    "history:quarantine-summary": "bun --bun run src/index.ts history:quarantine-summary",
+    "history:storage-report": "bun --bun run src/index.ts history:storage-report",
+    "benchmark:delta": "bun --bun run src/index.ts benchmark:delta",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

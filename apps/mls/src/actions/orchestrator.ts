@@ -9,6 +9,7 @@ import { startOfYear } from 'date-fns';
 import type { MlsPropertyPayload, MlsResource, ODataPageBatch, SyncResult, SyncSummary } from '../types';
 
 import { logger } from '@/lib/logger';
+import { createRunId } from '@/lib/run-id';
 import { fetchLookups, fetchMembers, fetchOffices, fetchOpenHouses, fetchPropertiesForInitialSeed, fetchResidentialProperties } from '@/lib/utils/fetch';
 import { mapLookup } from '@/maps/lookup.mapper';
 import { mapMember } from '@/maps/member.mapper';
@@ -16,17 +17,21 @@ import { mapOffice } from '@/maps/office.mapper';
 import { mapOpenHouse } from '@/maps/open-house.mapper';
 import { mapProperty } from '@/maps/property.mapper';
 import { env } from '@kws/config/env';
-import { upsertLookups } from '../repositories/lookup.repository';
+import { getLatestLookupTimestamp, upsertLookups } from '../repositories/lookup.repository';
 import {
+  getLatestMemberTimestamp,
   processMlsMembersPayload
 } from '../repositories/member.repository';
 import {
+  getLatestOfficeTimestamp,
   processMlsOfficesPayload
 } from '../repositories/office.repository';
 import {
+  getLatestOpenHouseTimestamp,
   upsertOpenHouses
 } from '../repositories/open-house.repository';
 import {
+  getLatestPropertyTimestamp,
   processMlsPropertiesPayload
 } from '../repositories/property.repository';
 import { runInitialMlsMediaSync, type MlsMediaSyncSummary } from './seed-media';
@@ -61,6 +66,9 @@ function lookupSeedConfig(osn: string) {
     resource: 'Lookup',
     osn,
     fetchFn: fetchLookups,
+    getLatestTimestamp: getLatestLookupTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
+    getKey: (record) => record.LookupKey,
     upsert: async (payload) => upsertLookups(payload.map(mapLookup))
   })
 }
@@ -70,6 +78,9 @@ function officeSeedConfig(osn: string) {
     resource: 'Office',
     osn,
     fetchFn: fetchOffices,
+    getLatestTimestamp: getLatestOfficeTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
+    getKey: (record) => record.OfficeMlsId,
     upsert: async (payload) => processMlsOfficesPayload(payload.map(mapOffice)),
   })
 }
@@ -89,6 +100,9 @@ function memberSeedConfig(osn: string) {
     resource: 'Member',
     osn,
     fetchFn: fetchMembers,
+    getLatestTimestamp: getLatestMemberTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
+    getKey: (record) => record.MemberMlsId,
     upsert: async (payload) => processMlsMembersPayload(payload.map(mapMember)),
   })
 }
@@ -115,7 +129,13 @@ function propertySeedConfig(
     beforeTimestamp: undefined,
     startUrl: undefined,
     fetchFn: fetchPropertiesForInitialSeed,
-    upsert: async (payload) => processMlsPropertiesPayload(payload.map(mapProperty)),
+    getLatestTimestamp: getLatestPropertyTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
+    getKey: (record) => record.ListingKey,
+    upsert: async (payload) =>
+      processMlsPropertiesPayload(payload.map(mapProperty), {
+        useSeedStaging: env.MLS_PROPERTY_SEED_USE_STAGING ?? false,
+      }),
   })
 }
 
@@ -170,6 +190,9 @@ function openHouseSeedConfig(osn: string) {
     resource: 'OpenHouse',
     osn,
     fetchFn: fetchOpenHouses,
+    getLatestTimestamp: getLatestOpenHouseTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
+    getKey: (record) => record.OpenHouseKey,
     upsert: async (payload) => upsertOpenHouses(payload.map(mapOpenHouse)),
   })
 }
@@ -179,9 +202,8 @@ function lookupConfig(osn: string) {
     resource: 'Lookup',
     osn,
     fetchFn: fetchLookups,
-    getKey: (r) => r.LookupKey,
-    canView: (r) => r.MlgCanView !== false,
-    getTimestamp: (r) => r.ModificationTimestamp,
+    getLatestTimestamp: getLatestLookupTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
     upsert: async (payload) => upsertLookups(payload.map(mapLookup))
   })
 }
@@ -191,9 +213,8 @@ function officeConfig(osn: string) {
     resource: 'Office',
     osn,
     fetchFn: fetchOffices,
-    getKey: (r) => r.OfficeMlsId,
-    canView: (r) => r.MlgCanView !== false,
-    getTimestamp: (r) => r.ModificationTimestamp,
+    getLatestTimestamp: getLatestOfficeTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
     upsert: async (payload) => processMlsOfficesPayload(payload.map(mapOffice)),
   })
 }
@@ -203,9 +224,8 @@ function memberConfig(osn: string) {
     resource: 'Member',
     osn,
     fetchFn: fetchMembers,
-    getKey: (r) => r.MemberMlsId,
-    canView: (r) => r.MlgCanView !== false,
-    getTimestamp: (r) => r.ModificationTimestamp,
+    getLatestTimestamp: getLatestMemberTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
     upsert: async (payload) => processMlsMembersPayload(payload.map(mapMember)),
   })
 }
@@ -225,9 +245,8 @@ function propertyConfig(
     resource: 'Property',
     osn,
     fetchFn,
-    getKey: (r) => r.ListingKey,
-    canView: (r) => r.MlgCanView !== false,
-    getTimestamp: (r) => r.ModificationTimestamp,
+    getLatestTimestamp: getLatestPropertyTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
     upsert: async (payload) => processMlsPropertiesPayload(payload.map(mapProperty)),
   })
 }
@@ -238,9 +257,8 @@ function openHouseConfig(osn: string) {
     resource: 'OpenHouse',
     osn,
     fetchFn: fetchOpenHouses,
-    getKey: (r) => r.OpenHouseKey,
-    canView: (r) => r.MlgCanView !== false,
-    getTimestamp: (r) => r.ModificationTimestamp,
+    getLatestTimestamp: getLatestOpenHouseTimestamp,
+    getTimestamp: (record) => record.ModificationTimestamp,
     upsert: async (payload) => upsertOpenHouses(payload.map(mapOpenHouse)),
   })
 }
@@ -253,25 +271,37 @@ function getResourceRunner(resource: MlsResource, osn: string) {
   return openHouseConfig(osn)
 }
 
+function timed<T>(stageTimingsMs: Record<string, number>, stage: string, run: () => Promise<T>): Promise<T> {
+  const startedAt = Date.now();
+  return run().then((result) => {
+    stageTimingsMs[stage] = Date.now() - startedAt;
+    return result;
+  });
+}
+
 async function runSeedAllResources(osn: string, mode: 'initial' | 'delta'): Promise<SyncSummary> {
   const startedAt = new Date()
-  logger.info(`${mode} sync started`, { osn })
+  const runId = createRunId(`${mode}-seed`)
+  logger.info(`${mode} sync started`, { osn, runId })
 
   // Resources run sequentially in dependency order
+  const stageTimingsMs: Record<string, number> = {}
   const results: SyncResult[] = []
-  results.push(await lookupSeedConfig(osn))
-  results.push(await officeSeedConfig(osn))
-  results.push(await memberSeedConfig(osn))
+  results.push(await timed(stageTimingsMs, 'Lookup', () => lookupSeedConfig(osn)))
+  results.push(await timed(stageTimingsMs, 'Office', () => officeSeedConfig(osn)))
+  results.push(await timed(stageTimingsMs, 'Member', () => memberSeedConfig(osn)))
   results.push(
-    await propertySeedConfig(osn),
+    await timed(stageTimingsMs, 'Property', () => propertySeedConfig(osn)),
   )
-  results.push(await openHouseSeedConfig(osn))
+  results.push(await timed(stageTimingsMs, 'OpenHouse', () => openHouseSeedConfig(osn)))
 
   const completedAt = new Date()
   const summary: SyncSummary = {
+    runId,
     osn,
     mode,
     results,
+    stageTimingsMs,
     totalDurationMs: completedAt.getTime() - startedAt.getTime(),
     startedAt,
     completedAt,
@@ -290,15 +320,20 @@ export async function runDeltaSyncResource(
   osn: string = env.MLS_ORIGINATING_SYSTEM_NAME,
 ): Promise<SyncSummary> {
   const startedAt = new Date()
-  logger.info('delta resource sync started', { resource, osn })
+  const runId = createRunId(`delta-${resource.toLowerCase()}`)
+  logger.info('delta resource sync started', { resource, osn, runId })
 
   const result = await getResourceRunner(resource, osn)
   const completedAt = new Date()
 
   const summary: SyncSummary = {
+    runId,
     osn,
     mode: 'delta',
     results: [result],
+    stageTimingsMs: {
+      [resource]: completedAt.getTime() - startedAt.getTime(),
+    },
     totalDurationMs: completedAt.getTime() - startedAt.getTime(),
     startedAt,
     completedAt,
@@ -317,33 +352,37 @@ export async function runDeltaSyncResource(
 
 async function runAllResources(osn: string, mode: 'initial' | 'delta'): Promise<SyncSummary> {
   const startedAt = new Date()
-  logger.info(`${mode} sync started`, { osn })
+  const runId = createRunId(`${mode}-sync`)
+  logger.info(`${mode} sync started`, { osn, runId })
 
   // Resources run sequentially in dependency order
+  const stageTimingsMs: Record<string, number> = {}
   const results: SyncResult[] = []
   if (mode === 'initial') {
-    results.push(await lookupSeedConfig(osn))
-    results.push(await officeSeedConfig(osn))
-    results.push(await memberSeedConfig(osn))
+    results.push(await timed(stageTimingsMs, 'Lookup', () => lookupSeedConfig(osn)))
+    results.push(await timed(stageTimingsMs, 'Office', () => officeSeedConfig(osn)))
+    results.push(await timed(stageTimingsMs, 'Member', () => memberSeedConfig(osn)))
     results.push(
-      await propertySeedConfig(osn),
+      await timed(stageTimingsMs, 'Property', () => propertySeedConfig(osn)),
     )
-    results.push(await openHouseSeedConfig(osn))
+    results.push(await timed(stageTimingsMs, 'OpenHouse', () => openHouseSeedConfig(osn)))
   } else {
-    results.push(await lookupConfig(osn))
-    results.push(await officeConfig(osn))
-    results.push(await memberConfig(osn))
+    results.push(await timed(stageTimingsMs, 'Lookup', () => lookupConfig(osn)))
+    results.push(await timed(stageTimingsMs, 'Office', () => officeConfig(osn)))
+    results.push(await timed(stageTimingsMs, 'Member', () => memberConfig(osn)))
     results.push(
-      await propertyConfig(osn, fetchResidentialProperties),
+      await timed(stageTimingsMs, 'Property', () => propertyConfig(osn, fetchResidentialProperties)),
     )
-    results.push(await openHouseConfig(osn))
+    results.push(await timed(stageTimingsMs, 'OpenHouse', () => openHouseConfig(osn)))
   }
 
   const completedAt = new Date()
   const summary: SyncSummary = {
+    runId,
     osn,
     mode,
     results,
+    stageTimingsMs,
     totalDurationMs: completedAt.getTime() - startedAt.getTime(),
     startedAt,
     completedAt,

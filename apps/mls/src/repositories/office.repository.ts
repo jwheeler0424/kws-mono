@@ -87,3 +87,14 @@ export async function processMlsOfficesPayload(data: MappedOffice[]) {
 
   return maxTimestamp;
 }
+
+export async function getLatestOfficeTimestamp(): Promise<Date | string | null> {
+  const result = await db.query.offices.findFirst({
+    columns: {
+      modificationTimestamp: true,
+    },
+    orderBy: (table, { desc }) => desc(table.modificationTimestamp),
+  });
+
+  return result?.modificationTimestamp ?? null;
+}

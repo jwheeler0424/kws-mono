@@ -5,14 +5,20 @@ import { env } from '@kws/config';
 import { runInitialDataSeed, runInitialMediaSeed } from '@/actions/orchestrator';
 import { logger } from '@/lib/logger';
 
+function isQuarantineOnlyMessage(message?: string): boolean {
+  return typeof message === 'string' && message.startsWith('quarantined=');
+}
+
 
 export async function initialDataSeed() {
   try {
     const summary = await runInitialDataSeed(env.MLS_ORIGINATING_SYSTEM_NAME)
 
     logger.info('MLS initial data seed summary', {
+      runId: summary.runId,
       osn: summary.osn,
       mode: summary.mode,
+      stageTimingsMs: summary.stageTimingsMs,
       totalDurationMs: summary.totalDurationMs,
       startedAt: summary.startedAt.toISOString(),
       completedAt: summary.completedAt.toISOString(),
@@ -76,7 +82,7 @@ export async function initialDataSeed() {
       })
     }
 
-    const hasErrors = summary.results.some((r) => r.errors > 0 || r.error)
+    const hasErrors = summary.results.some((r) => r.errors > 0 || (r.error && !isQuarantineOnlyMessage(r.error)))
     return hasErrors ? false : true
   } catch (error) {
     logger.fatal('MLS initial data seed action crashed', {
@@ -91,8 +97,10 @@ export async function initialMediaSeed() {
     const summary = await runInitialMediaSeed()
 
     logger.info('MLS initial media seed summary', {
+      runId: summary.runId,
       osn: summary.osn,
       mode: summary.mode,
+      stageTimingsMs: summary.stageTimingsMs,
       totalDurationMs: summary.totalDurationMs,
       startedAt: summary.startedAt.toISOString(),
       completedAt: summary.completedAt.toISOString(),
@@ -156,7 +164,7 @@ export async function initialMediaSeed() {
       })
     }
 
-    const hasErrors = summary.results.some((r) => r.errors > 0 || r.error)
+    const hasErrors = summary.results.some((r) => r.errors > 0 || (r.error && !isQuarantineOnlyMessage(r.error)))
     return hasErrors ? false : true
   } catch (error) {
     logger.fatal('MLS initial media seed action crashed', {

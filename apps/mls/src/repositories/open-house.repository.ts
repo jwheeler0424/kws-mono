@@ -91,3 +91,14 @@ export async function upsertOpenHouses(
 
   return maxTimestamp;
 }
+
+export async function getLatestOpenHouseTimestamp(): Promise<Date | string | null> {
+  const result = await db.query.openHouses.findFirst({
+    columns: {
+      modificationTimestamp: true,
+    },
+    orderBy: (table, { desc }) => desc(table.modificationTimestamp),
+  });
+
+  return result?.modificationTimestamp ?? null;
+}

@@ -6,14 +6,20 @@ import { runDeltaSync, runDeltaSyncResource } from '@/actions/orchestrator';
 import { logger } from '@/lib/logger';
 import type { MlsResource } from '@/types';
 
+function isQuarantineOnlyMessage(message?: string): boolean {
+  return typeof message === 'string' && message.startsWith('quarantined=');
+}
+
 
 export async function deltaSync() {
   try {
     const summary = await runDeltaSync(env.MLS_ORIGINATING_SYSTEM_NAME)
 
     logger.info('MLS delta sync summary', {
+      runId: summary.runId,
       osn: summary.osn,
       mode: summary.mode,
+      stageTimingsMs: summary.stageTimingsMs,
       totalDurationMs: summary.totalDurationMs,
       startedAt: summary.startedAt.toISOString(),
       completedAt: summary.completedAt.toISOString(),
@@ -77,7 +83,7 @@ export async function deltaSync() {
       })
     }
 
-    const hasErrors = summary.results.some((r) => r.errors > 0 || r.error)
+    const hasErrors = summary.results.some((r) => r.errors > 0 || (r.error && !isQuarantineOnlyMessage(r.error)))
     process.exit(hasErrors ? 1 : 0)
   } catch (error) {
     logger.fatal('MLS delta sync action crashed', {
@@ -92,8 +98,10 @@ export async function deltaSyncResource(resource: MlsResource) {
     const summary = await runDeltaSyncResource(resource, env.MLS_ORIGINATING_SYSTEM_NAME)
 
     logger.info('MLS delta sync summary', {
+      runId: summary.runId,
       osn: summary.osn,
       mode: summary.mode,
+      stageTimingsMs: summary.stageTimingsMs,
       totalDurationMs: summary.totalDurationMs,
       startedAt: summary.startedAt.toISOString(),
       completedAt: summary.completedAt.toISOString(),

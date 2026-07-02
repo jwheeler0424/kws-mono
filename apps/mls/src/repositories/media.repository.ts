@@ -1,6 +1,7 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
+import { logger } from '@/lib/logger';
 import { mlsMedia } from '@kws/schema';
 
 import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
@@ -34,21 +35,41 @@ export async function upsertMlsMedia(
   const deduped = dedupeByKey(data, (row) => row.mediaKey);
   const batches = chunkArray(deduped, 1000);
   const setFields = getUpsertSetFields(mlsMedia, ['mediaKey', 'createdAt', 'searchVector']);
+  const updateWhere = sql`
+    excluded.media_modification_timestamp is distinct from ${mlsMedia.mediaModificationTimestamp}
+    or excluded.media_url is distinct from ${mlsMedia.mediaURL}
+    or excluded.preferred_photo_yn is distinct from ${mlsMedia.preferredPhotoYN}
+    or excluded."order" is distinct from ${mlsMedia.order}
+    or excluded.deleted_at is distinct from ${mlsMedia.deletedAt}
+  `;
   const maxTimestamp = deduped.reduce((max, row) => {
     const rowTimestamp = row.mediaModificationTimestamp ? new Date(row.mediaModificationTimestamp) : new Date(0);
     return rowTimestamp > max ? rowTimestamp : max;
   }, new Date(0));
+  let attempted = 0;
+  let applied = 0;
 
   await db.transaction(async (tx) => {
     for (const batch of batches) {
-      await tx
+      attempted += batch.length;
+      const changedRows = await tx
         .insert(mlsMedia)
         .values(batch)
         .onConflictDoUpdate({
           target: mlsMedia.mediaKey,
           set: setFields,
-        });
+          setWhere: updateWhere,
+        })
+        .returning({ mediaKey: mlsMedia.mediaKey });
+
+      applied += changedRows.length;
     }
+  });
+
+  logger.trace('media upsert effectiveness', {
+    attempted,
+    applied,
+    skippedNoop: Math.max(0, attempted - applied),
   });
 
   return maxTimestamp;

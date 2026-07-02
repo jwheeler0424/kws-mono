@@ -53,3 +53,14 @@ export async function upsertLookups(
 
   return maxTimestamp;
 }
+
+export async function getLatestLookupTimestamp(): Promise<Date | string | null> {
+  const result = await db.query.lookups.findFirst({
+    columns: {
+      modificationTimestamp: true,
+    },
+    orderBy: (table, { desc }) => desc(table.modificationTimestamp),
+  });
+
+  return result?.modificationTimestamp ?? null;
+}
