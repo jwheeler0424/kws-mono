@@ -1,7 +1,9 @@
 'use client';
 
-import { type LatLngTuple } from 'leaflet';
-import React, { Suspense } from 'react';
+import type { LatLngTuple } from 'leaflet';
+
+import { ClientOnly } from '@tanstack/react-router';
+import React from 'react';
 
 import Loader from './map-loader';
 
@@ -17,9 +19,9 @@ export default function PropertyMapWrapper({
   return (
     <>
       {mapLoading && <Loader />}
-      <Suspense>
+      <ClientOnly fallback={<Loader />}>
         <PropertyMap propertyPosition={propertyPosition} setMapLoading={setMapLoading} />
-      </Suspense>
+      </ClientOnly>
     </>
   );
 }

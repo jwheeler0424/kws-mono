@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "resource": "Property",
+  "year": "2025",
+  "month": "05",
+  "updatedAt": "2026-07-02T21:34:44.079Z",
+  "chunks": [
+    {
+      "file": "property-2026-07-02T21-34-44-078Z-jx8o4oao.jsonl.gz",
+      "checksumSha256": "8ecbf5558624b0af1f34e6aa13dcab42f0d93026a9fede6721f7816e99f0bad2",
+      "recordCount": 9,
+      "firstTimestamp": "2025-05-08T13:52:13.129Z",
+      "lastTimestamp": "2025-05-08T13:52:13.977Z",
+      "createdAt": "2026-07-02T21:34:44.079Z"
+    }
+  ]
+}

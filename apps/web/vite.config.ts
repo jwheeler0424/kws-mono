@@ -6,7 +6,12 @@ import viteReact, { reactCompilerPreset } from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 const config = defineConfig({
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    // Linked workspace packages (for example @kws/design) can otherwise resolve
+    // their own React instance, which breaks hooks at runtime.
+    dedupe: ['react', 'react-dom'],
+  },
   server: {
     watch: {
       // Avoid crawling large generated media trees during dev server startup.

@@ -44,6 +44,18 @@ export function PropertySlideshow({
   const [canScrollPrev, setCanScrollPrev] = React.useState(false);
   const [canScrollNext, setCanScrollNext] = React.useState(false);
 
+  const [scrollSnaps, setScrollSnaps] = React.useState<number[]>([]);
+
+  const scrollTo = (index: number) => api?.scrollTo(index);
+  const setupSnaps = (emblaApi: CarouselApi) => setScrollSnaps(emblaApi!.scrollSnapList());
+
+  React.useEffect(() => {
+    if (!api) return;
+
+    setupSnaps(api);
+    api.on('reInit', setupSnaps);
+  }, [api]);
+
   const plugins = React.useMemo(() => {
     if (!autoplay || media.length <= 1) return [];
 
@@ -86,7 +98,7 @@ export function PropertySlideshow({
         }}
         plugins={plugins}
         setApi={setApi}
-        className='h-full w-full'>
+        className='h-full w-full relative'>
         <CarouselContent className='ml-0'>
           {media.map((img, index) => (
             <CarouselItem key={`${img.mediaURL}-${index}`} className='pl-0'>
@@ -124,16 +136,17 @@ export function PropertySlideshow({
               <ChevronRightIcon className='h-5 w-5' />
             </button>
 
-            <ul className='property-slideshow-indicators' aria-label='Slide indicators'>
-              {media.map((_, index) => (
+            <ul
+              className='hidden md:flex absolute bottom-0 -translate-x-1/2 left-1/2 gap-2'
+              aria-label='Slide indicators'>
+              {scrollSnaps.map((_, index) => (
                 <li key={`indicator-${index}`}>
                   <button
-                    type='button'
                     className={cn(
-                      'property-slideshow-indicator',
-                      index === selectedIndex && 'is-active',
+                      'cursor-pointer size-3 rounded-full border border-white/95 bg-black/50 transition-colors hover:bg-white/80',
+                      index === selectedIndex && 'bg-polaris-primary',
                     )}
-                    onClick={() => api?.scrollTo(index)}
+                    onClick={() => scrollTo(index)}
                     aria-label={`Go to slide ${index + 1}`}
                     aria-current={index === selectedIndex ? 'true' : undefined}
                   />

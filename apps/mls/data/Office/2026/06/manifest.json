@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "resource": "Office",
+  "year": "2026",
+  "month": "06",
+  "updatedAt": "2026-07-02T23:22:01.107Z",
+  "chunks": [
+    {
+      "file": "office-2026-07-02T21-52-01-050Z-qjyne66q.jsonl.gz",
+      "checksumSha256": "0750292508b4f3a01036bb6b9446db06737fd5fe9458cf4fdae368030e25f0f2",
+      "recordCount": 1,
+      "firstTimestamp": "2026-06-02T18:41:09.735Z",
+      "lastTimestamp": "2026-06-02T18:41:09.735Z",
+      "createdAt": "2026-07-02T21:52:01.051Z"
+    },
+    {
+      "file": "office-2026-07-02T22-07-01-364Z-zpevd3bn.jsonl.gz",
+      "checksumSha256": "0750292508b4f3a01036bb6b9446db06737fd5fe9458cf4fdae368030e25f0f2",
+      "recordCount": 1,
+      "firstTimestamp": "2026-06-02T18:41:09.735Z",
+      "lastTimestamp": "2026-06-02T18:41:09.735Z",
+      "createdAt": "2026-07-02T22:07:01.376Z"
+    },
+    {
+      "file": "office-2026-07-02T22-22-01-408Z-1zrq9jsd.jsonl.gz",
+      "checksumSha256": "0750292508b4f3a01036bb6b9446db06737fd5fe9458cf4fdae368030e25f0f2",
+      "recordCount": 1,
+      "firstTimestamp": "2026-06-02T18:41:09.735Z",
+      "lastTimestamp": "2026-06-02T18:41:09.735Z",
+      "createdAt": "2026-07-02T22:22:01.409Z"
+    },
+    {
+      "file": "office-2026-07-02T22-37-01-165Z-e6i37qbv.jsonl.gz",
+      "checksumSha256": "0750292508b4f3a01036bb6b9446db06737fd5fe9458cf4fdae368030e25f0f2",
+      "recordCount": 1,
+      "firstTimestamp": "2026-06-02T18:41:09.735Z",
+      "lastTimestamp": "2026-06-02T18:41:09.735Z",
+      "createdAt": "2026-07-02T22:37:01.167Z"
+    },
+    {
+      "file": "office-2026-07-02T22-52-01-125Z-d3drmi88.jsonl.gz",
+      "checksumSha256": "0750292508b4f3a01036bb6b9446db06737fd5fe9458cf4fdae368030e25f0f2",
+      "recordCount": 1,
+      "firstTimestamp": "2026-06-02T18:41:09.735Z",
+      "lastTimestamp": "2026-06-02T18:41:09.735Z",
+      "createdAt": "2026-07-02T22:52:01.126Z"
+    },
+    {
+      "file": "office-2026-07-02T23-07-01-207Z-knm2loxd.jsonl.gz",
+      "checksumSha256": "0750292508b4f3a01036bb6b9446db06737fd5fe9458cf4fdae368030e25f0f2",
+      "recordCount": 1,
+      "firstTimestamp": "2026-06-02T18:41:09.735Z",
+      "lastTimestamp": "2026-06-02T18:41:09.735Z",
+      "createdAt": "2026-07-02T23:07:01.208Z"
+    },
+    {
+      "file": "office-2026-07-02T23-22-01-104Z-kubqsy5h.jsonl.gz",
+      "checksumSha256": "0750292508b4f3a01036bb6b9446db06737fd5fe9458cf4fdae368030e25f0f2",
+      "recordCount": 1,
+      "firstTimestamp": "2026-06-02T18:41:09.735Z",
+      "lastTimestamp": "2026-06-02T18:41:09.735Z",
+      "createdAt": "2026-07-02T23:22:01.106Z"
+    }
+  ]
+}

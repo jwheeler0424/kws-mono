@@ -1,4 +1,4 @@
-import { properties, type TMlsMedia } from '@kws/schema';
+import { type TMlsMedia } from '@kws/schema';
 import type { PropertyListing, TPropertyNwmFlags } from '@kws/types';
 
 import { db } from '@/lib/database';
@@ -12,37 +12,55 @@ export type TPropertyWithMedia = Omit<PropertyListing, 'NWM'> & {
 export async function getListingDetailByKey(
   { listingKey }: { listingKey: string },
 ): Promise<TPropertyWithMedia | null> {
-  const listing = await db.query.properties.findFirst({
-    columns: {
-      NWM: false
-    },
-    extras: {
-      NWM: sql<TPropertyNwmFlags>`jsonb_build_object(
-        'NWM_IDXMustRemovePrimaryPhotoYN', ${properties.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
-        'NWM_IDXMustRemovePhotosYN', ${properties.NWM}->>'NWM_IDXMustRemovePhotosYN',
-        'NWM_ShowMapLink', ${properties.NWM}->>'NWM_ShowMapLink',
-        'NWM_StyleCode', ${properties.NWM}->>'NWM_StyleCode'
-      )`.as('NWM'),
-    },
-    where: {
-      listingKey,
-    },
-    with: {
-      media: {
-        where: {
-          deletedAt: {
-            isNull: true,
+  const [listing, media] = await Promise.all([
+    db.query.properties.findFirst({
+      columns: {
+        NWM: false,
+      },
+      extras: {
+        NWM: (table) => sql<TPropertyNwmFlags>`jsonb_build_object(
+          'NWM_IDXMustRemovePrimaryPhotoYN', ${table.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
+          'NWM_IDXMustRemovePhotosYN', ${table.NWM}->>'NWM_IDXMustRemovePhotosYN',
+          'NWM_ShowMapLink', ${table.NWM}->>'NWM_ShowMapLink',
+          'NWM_StyleCode', ${table.NWM}->>'NWM_StyleCode'
+        )`,
+      },
+      where: {
+        listingKey,
+      },
+    }),
+    db.query.mlsMedia.findMany({
+      columns: {
+        mediaURL: false,
+      },
+      where: {
+        resourceRecordKey: listingKey,
+      },
+      with: {
+        media: {
+          with: {
+            variants: {
+              columns: {
+                url: true,
+              },
+              where: {
+                variantName: 'full',
+              },
+              limit: 1,
+            },
           },
         },
-        orderBy: {
-          preferredPhotoYN: 'desc',
-          order: 'asc',
-        },
       },
-    },
-  });
+      orderBy: (media, { desc }) => [desc(media.preferredPhotoYN), media.order],
+    }),
+  ]);
 
-  return listing ?? null;
+  const mediaWithUrl: TMlsMedia[] = media.map((m) => ({
+    ...m,
+    mediaURL: m.media?.variants?.[0]?.url ?? null,
+  }));
+
+  return listing ? { ...listing, media: mediaWithUrl } : null;
 }
 
 export async function getListingMarkers() {

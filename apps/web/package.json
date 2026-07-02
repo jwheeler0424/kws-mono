@@ -73,6 +73,7 @@
   "devDependencies": {
     "@kws/config": "*",
     "@kws/design": "*",
+    "@kws/media": "*",
     "@kws/schema": "*",
     "@kws/seo": "*",
     "@kws/types": "*",

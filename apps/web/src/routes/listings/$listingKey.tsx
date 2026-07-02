@@ -16,6 +16,7 @@ import { Badge } from '@/components/global/badge';
 import { Link } from '@/components/global/link';
 import PropertyMap from '@/components/global/map-wrapper';
 import { PropertySlideshow } from '@/components/global/property-slideshow';
+import { ensureListingMediaServerFn } from '@/features/mls/functions';
 import { listingDetailOptions } from '@/features/mls/options';
 import { cn } from '@/lib/utils';
 import {
@@ -27,14 +28,12 @@ import {
   getPropertyStatus,
   numberFormat,
 } from '@/lib/utils/properties';
-// import { prefetchListingMediaServerFn } from '@/packages/mls/media-sync.service';
-// import { propertyDetailByListingKeyOptions } from '@/packages/mls/search.options';
 
 export const Route = createFileRoute('/listings/$listingKey')({
   loader: async ({ context, params }) => {
-    // void prefetchListingMediaServerFn({
-    //   data: { listingKey: params.listingKey },
-    // }).catch(() => undefined);
+    void ensureListingMediaServerFn({
+      data: { listingKey: params.listingKey },
+    }).catch(() => undefined);
 
     return context.queryClient.ensureQueryData(
       listingDetailOptions({ listingKey: params.listingKey }),
@@ -65,6 +64,7 @@ function RouteComponent() {
           <PropertySlideshow
             media={property.media}
             className='relative h-full w-full bg-gray-700 object-center'
+            autoplay
           />
         ) : null}
       </section>
