@@ -1,9 +1,8 @@
+import { env } from '@kws/config';
 import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
-
-import { env } from '@kws/config';
 
 import type { MlsResource } from '@/types';
 
@@ -178,7 +177,11 @@ function checksumSha256(content: string): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
-function buildQuarantineChunkName(resource: MlsResource, prefix: string, extension: string): string {
+function buildQuarantineChunkName(
+  resource: MlsResource,
+  prefix: string,
+  extension: string,
+): string {
   const now = new Date();
   const stamp = now.toISOString().replaceAll(':', '-').replaceAll('.', '-');
   const rand = Math.random().toString(36).slice(2, 10);
@@ -195,9 +198,7 @@ async function sendHistoryAlert(event: string, payload: Record<string, unknown>)
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        ...(env.ALERT_WEBHOOK_SECRET
-          ? { 'x-alert-secret': env.ALERT_WEBHOOK_SECRET }
-          : {}),
+        ...(env.ALERT_WEBHOOK_SECRET ? { 'x-alert-secret': env.ALERT_WEBHOOK_SECRET } : {}),
       },
       body: JSON.stringify({
         service: env.ALERT_SERVICE_NAME ?? 'mls-grid',
@@ -229,10 +230,10 @@ function toIsoMaybe(date: Date | undefined): string | undefined {
 
 function parsePartitionFromDirectory(partitionDir: string):
   | {
-    resource: MlsResource;
-    year: string;
-    month: string;
-  }
+      resource: MlsResource;
+      year: string;
+      month: string;
+    }
   | undefined {
   const relative = path.relative(HISTORY_ROOT, partitionDir);
   if (!relative || relative.startsWith('..')) {
@@ -264,9 +265,11 @@ function compareManifestChunks(a: HistoryChunkManifestEntry, b: HistoryChunkMani
   return a.file.localeCompare(b.file);
 }
 
-function mergeTimestampWindow(existingIso: string | undefined, incomingIso: string | undefined, mode: 'min' | 'max'):
-  | string
-  | undefined {
+function mergeTimestampWindow(
+  existingIso: string | undefined,
+  incomingIso: string | undefined,
+  mode: 'min' | 'max',
+): string | undefined {
   if (!existingIso) {
     return incomingIso;
   }
@@ -282,7 +285,10 @@ function mergeTimestampWindow(existingIso: string | undefined, incomingIso: stri
   return existingIso >= incomingIso ? existingIso : incomingIso;
 }
 
-function computeTimestampWindow<T extends Record<string, unknown>>(records: T[], getTimestamp: (record: T) => string | undefined): {
+function computeTimestampWindow<T extends Record<string, unknown>>(
+  records: T[],
+  getTimestamp: (record: T) => string | undefined,
+): {
   firstTimestamp?: string;
   lastTimestamp?: string;
 } {
@@ -309,7 +315,9 @@ function computeTimestampWindow<T extends Record<string, unknown>>(records: T[],
   };
 }
 
-async function readPartitionManifest(partitionDir: string): Promise<HistoryPartitionManifest | undefined> {
+async function readPartitionManifest(
+  partitionDir: string,
+): Promise<HistoryPartitionManifest | undefined> {
   const file = manifestPath(partitionDir);
   try {
     const raw = await readFile(file, 'utf8');
@@ -321,7 +329,9 @@ async function readPartitionManifest(partitionDir: string): Promise<HistoryParti
     return {
       ...parsed,
       chunks: parsed.chunks
-        .filter((chunk) => typeof chunk.file === 'string' && typeof chunk.checksumSha256 === 'string')
+        .filter(
+          (chunk) => typeof chunk.file === 'string' && typeof chunk.checksumSha256 === 'string',
+        )
         .sort(compareManifestChunks),
     };
   } catch {
@@ -329,7 +339,10 @@ async function readPartitionManifest(partitionDir: string): Promise<HistoryParti
   }
 }
 
-async function writePartitionManifest(partitionDir: string, manifest: HistoryPartitionManifest): Promise<void> {
+async function writePartitionManifest(
+  partitionDir: string,
+  manifest: HistoryPartitionManifest,
+): Promise<void> {
   const file = manifestPath(partitionDir);
   const tempFile = `${file}.tmp`;
   const payload = JSON.stringify(
@@ -346,7 +359,9 @@ async function writePartitionManifest(partitionDir: string, manifest: HistoryPar
   await rename(tempFile, file);
 }
 
-async function readChunkPayload<T extends Record<string, unknown>>(filePath: string): Promise<{
+async function readChunkPayload<T extends Record<string, unknown>>(
+  filePath: string,
+): Promise<{
   records: T[];
   normalizedJsonl: string;
   checksum: string;
@@ -368,7 +383,11 @@ async function readChunkPayload<T extends Record<string, unknown>>(filePath: str
   };
 }
 
-async function quarantineHistoryFile(filePath: string, reason: string, message?: string): Promise<void> {
+async function quarantineHistoryFile(
+  filePath: string,
+  reason: string,
+  message?: string,
+): Promise<void> {
   if (!isQuarantineEnabled()) {
     await rm(filePath, { force: true });
     return;
@@ -717,7 +736,10 @@ export async function persistHistoryPage<T extends Record<string, unknown>>(para
 
       const jsonl = `${partitionRecords.map((record) => JSON.stringify(record)).join('\n')}\n`;
       const checksum = checksumSha256(jsonl);
-      const { firstTimestamp, lastTimestamp } = computeTimestampWindow(partitionRecords, getTimestamp);
+      const { firstTimestamp, lastTimestamp } = computeTimestampWindow(
+        partitionRecords,
+        getTimestamp,
+      );
       const compressed = gzipSync(Buffer.from(jsonl, 'utf8'));
 
       await writeFile(tempPath, compressed);
@@ -818,7 +840,9 @@ export interface HistoryVerificationSummary {
   quarantinedFiles: number;
 }
 
-export async function verifyHistoryStore(resource?: MlsResource): Promise<HistoryVerificationSummary> {
+export async function verifyHistoryStore(
+  resource?: MlsResource,
+): Promise<HistoryVerificationSummary> {
   const targetRoot = resource ? path.join(HISTORY_ROOT, resource) : HISTORY_ROOT;
   const partitionDirs = await listPartitionDirectories(targetRoot);
 
@@ -869,7 +893,9 @@ export interface HistoryCompactionSummary {
   skippedPartitions: number;
 }
 
-export async function compactHistoryStore(resource?: MlsResource): Promise<HistoryCompactionSummary> {
+export async function compactHistoryStore(
+  resource?: MlsResource,
+): Promise<HistoryCompactionSummary> {
   if (!isHistoryEnabled()) {
     return {
       compactedPartitions: 0,
@@ -1013,9 +1039,13 @@ export async function getHistoryStorageReport(): Promise<HistoryStorageReport> {
   const files = await listFilesRecursive(HISTORY_ROOT);
   const chunkFiles = files.filter((file) => file.endsWith('.jsonl.gz'));
   const manifestFiles = files.filter((file) => path.basename(file) === HISTORY_MANIFEST_FILE);
-  const quarantineChunkFiles = chunkFiles.filter((file) => file.includes(`${path.sep}.quarantine${path.sep}`));
+  const quarantineChunkFiles = chunkFiles.filter((file) =>
+    file.includes(`${path.sep}.quarantine${path.sep}`),
+  );
   const quarantineRecordFiles = files.filter(
-    (file) => file.includes(`${path.sep}.quarantine${path.sep}records${path.sep}`) && file.endsWith('.jsonl'),
+    (file) =>
+      file.includes(`${path.sep}.quarantine${path.sep}records${path.sep}`) &&
+      file.endsWith('.jsonl'),
   );
 
   let totalBytes = 0;
@@ -1054,7 +1084,9 @@ export async function getHistoryStorageReport(): Promise<HistoryStorageReport> {
   };
 }
 
-export async function getHistoryQuarantineSummary(resource?: MlsResource): Promise<HistoryQuarantineSummary> {
+export async function getHistoryQuarantineSummary(
+  resource?: MlsResource,
+): Promise<HistoryQuarantineSummary> {
   const files = await listFilesRecursive(HISTORY_QUARANTINE_ROOT);
 
   const scoped = files.filter((file) => {
@@ -1081,9 +1113,7 @@ export async function getHistoryQuarantineSummary(resource?: MlsResource): Promi
       recordFiles++;
       const raw = await readFile(file, 'utf8').catch(() => '');
       if (raw) {
-        quarantinedRecords += raw
-          .split('\n')
-          .filter((line) => line.trim().length > 0).length;
+        quarantinedRecords += raw.split('\n').filter((line) => line.trim().length > 0).length;
       }
       continue;
     }

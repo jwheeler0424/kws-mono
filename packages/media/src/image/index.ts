@@ -11,6 +11,5 @@ export type {
   MappedImageMetadata,
   RawVariantData,
   StorageOptions,
-  WebPOptions
+  WebPOptions,
 } from './types.js';
-

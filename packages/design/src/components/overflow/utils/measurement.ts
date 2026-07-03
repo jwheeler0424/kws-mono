@@ -1,4 +1,4 @@
-"use client";
+'use client';
 // @refresh reset
 
 /**
@@ -48,7 +48,7 @@ export function clampToRange(value: number, min: number, max: number): number {
  * Returns `null` for `"auto"`, `"none"`, non-finite, or empty strings.
  */
 export function parseCssPixelSize(value: string): number | null {
-  if (!value || value === "auto" || value === "none") return null;
+  if (!value || value === 'auto' || value === 'none') return null;
   const parsed = parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -227,14 +227,14 @@ export function measureOuterSizeAtWidth(
     pointerEvents: el.style.pointerEvents,
   };
 
-  el.style.position = "absolute";
-  el.style.left = "-99999px";
-  el.style.top = "0";
+  el.style.position = 'absolute';
+  el.style.left = '-99999px';
+  el.style.top = '0';
   el.style.width = `${forcedWidth}px`;
-  el.style.display = "block";
-  el.style.visibility = "hidden";
-  el.style.opacity = "0";
-  el.style.pointerEvents = "none";
+  el.style.display = 'block';
+  el.style.visibility = 'hidden';
+  el.style.opacity = '0';
+  el.style.pointerEvents = 'none';
 
   const measured = getOuterSize(el);
 
@@ -291,14 +291,14 @@ export function batchMeasureHeightsAtWidth(
       opacity: el.style.opacity,
       pointerEvents: el.style.pointerEvents,
     };
-    el.style.position = "absolute";
-    el.style.left = "-99999px";
-    el.style.top = "0";
+    el.style.position = 'absolute';
+    el.style.left = '-99999px';
+    el.style.top = '0';
     el.style.width = `${forcedWidth}px`;
-    el.style.display = "block";
-    el.style.visibility = "hidden";
-    el.style.opacity = "0";
-    el.style.pointerEvents = "none";
+    el.style.display = 'block';
+    el.style.visibility = 'hidden';
+    el.style.opacity = '0';
+    el.style.pointerEvents = 'none';
   }
 
   // Phase 2: Read all — the first getBoundingClientRect forces ONE layout;

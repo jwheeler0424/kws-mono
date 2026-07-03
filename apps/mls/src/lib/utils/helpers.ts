@@ -1,5 +1,5 @@
-import { env } from "@kws/config";
-import { getColumns, sql, type SQL, type Table } from "drizzle-orm";
+import { env } from '@kws/config';
+import { getColumns, sql, type SQL, type Table } from 'drizzle-orm';
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -31,28 +31,28 @@ export function parseRetryAfterMs(
   headerValue: string | null,
   nowMs: number = Date.now(),
 ): number | null {
-  if (!headerValue) return null
+  if (!headerValue) return null;
 
-  const seconds = Number(headerValue)
+  const seconds = Number(headerValue);
   if (Number.isFinite(seconds) && seconds >= 0) {
-    return Math.max(0, Math.round(seconds * 1000))
+    return Math.max(0, Math.round(seconds * 1000));
   }
 
-  const when = Date.parse(headerValue)
+  const when = Date.parse(headerValue);
   if (!Number.isNaN(when)) {
-    return Math.max(0, when - nowMs)
+    return Math.max(0, when - nowMs);
   }
 
-  return null
+  return null;
 }
 
 export function getRetryDelayMs(res: Response, attempt: number): number {
-  const retryAfterMs = parseRetryAfterMs(res.headers.get('retry-after'))
+  const retryAfterMs = parseRetryAfterMs(res.headers.get('retry-after'));
   if (retryAfterMs !== null) {
-    return retryAfterMs
+    return retryAfterMs;
   }
 
-  return Math.min(1_000 * 2 ** attempt + Math.random() * 500, 30_000)
+  return Math.min(1_000 * 2 ** attempt + Math.random() * 500, 30_000);
 }
 
 export function getBodyPreview(body: string, maxChars: number = 120): string {
@@ -76,15 +76,13 @@ export function startOfUtcDay(nowMs: number): number {
   return date.getTime();
 }
 
-
-
 export function escapeODataString(value: string): string {
   return value.replace(/'/g, "''");
 }
 
 export function chunkArray<T>(array: T[], size: number): T[][] {
   return Array.from({ length: Math.ceil(array.length / size) }, (_, i) =>
-    array.slice(i * size, i * size + size)
+    array.slice(i * size, i * size + size),
   );
 }
 
@@ -110,19 +108,22 @@ export function dedupeByKey<T>(records: readonly T[], getKey: (record: T) => str
 export function getUpsertSetFields<TTable extends Table>(
   table: TTable,
   // Drizzle stores its schema shape inside the '_' metadata property
-  excludeColumns: (keyof TTable['_']['columns'])[] = []
+  excludeColumns: (keyof TTable['_']['columns'])[] = [],
 ): Record<string, SQL> {
   const allColumns = getColumns(table);
 
-  return Object.keys(allColumns).reduce((acc, key) => {
-    // We assert excludeColumns as string[] just to satisfy TS for the .includes() check
-    if (!(excludeColumns as string[]).includes(key)) {
-      const dbColumnName = allColumns[key]?.name;
+  return Object.keys(allColumns).reduce(
+    (acc, key) => {
+      // We assert excludeColumns as string[] just to satisfy TS for the .includes() check
+      if (!(excludeColumns as string[]).includes(key)) {
+        const dbColumnName = allColumns[key]?.name;
 
-      if (dbColumnName) {
-        acc[key] = sql.raw(`excluded.${dbColumnName}`);
+        if (dbColumnName) {
+          acc[key] = sql.raw(`excluded.${dbColumnName}`);
+        }
       }
-    }
-    return acc;
-  }, {} as Record<string, SQL>);
+      return acc;
+    },
+    {} as Record<string, SQL>,
+  );
 }

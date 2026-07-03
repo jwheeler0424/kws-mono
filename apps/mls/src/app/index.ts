@@ -1,9 +1,10 @@
+import { env } from '@kws/config';
+
 import { registerMlsSyncJobTypes } from '@/actions/integration';
 import { logger } from '@/lib/logger';
 import { hasAnyMlsRecords } from '@/repositories/seed-state.repository';
-import { env } from '@kws/config';
-import { initialDataSeed, initialMediaSeed } from './seed';
 
+import { initialDataSeed, initialMediaSeed } from './seed';
 
 export async function main() {
   try {
@@ -13,10 +14,13 @@ export async function main() {
     const shouldRunInitialSeed = !(await hasAnyMlsRecords());
 
     if (!shouldRunInitialSeed) {
-      logger.info('MLS initial seed skipped because existing records were found; resuming with sync', {
-        enableInitialDataSeed,
-        enableInitialMediaSeed,
-      });
+      logger.info(
+        'MLS initial seed skipped because existing records were found; resuming with sync',
+        {
+          enableInitialDataSeed,
+          enableInitialMediaSeed,
+        },
+      );
     }
 
     if (shouldRunInitialSeed && enableInitialDataSeed) {
@@ -32,7 +36,9 @@ export async function main() {
     if (shouldRunInitialSeed && enableInitialMediaSeed) {
       const mediaSeedSuccess = await initialMediaSeed();
       if (!mediaSeedSuccess) {
-        logger.error('MLS initial media seed completed with errors. Please check the logs for details.');
+        logger.error(
+          'MLS initial media seed completed with errors. Please check the logs for details.',
+        );
         process.exit(1);
       }
     } else if (!enableInitialMediaSeed) {
@@ -44,12 +50,10 @@ export async function main() {
     } else {
       logger.warn('MLS sync job registration skipped by rollout flag');
     }
-
   } catch (error) {
     logger.fatal('MLS Grid sync application crashed', {
       error: error instanceof Error ? error.message : String(error),
-    })
-    process.exit(1)
+    });
+    process.exit(1);
   }
-
 }

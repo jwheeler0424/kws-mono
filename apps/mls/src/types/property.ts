@@ -1,6 +1,6 @@
 import type { PropertyListing } from '@kws/types';
-import z from 'zod';
 
+import z from 'zod';
 
 export type TAddressData = Pick<
   PropertyListing,

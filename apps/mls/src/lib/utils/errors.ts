@@ -2,7 +2,7 @@
 // Error type
 // ---------------------------------------------------------------------------
 
-import { getBodyPreview } from "./helpers";
+import { getBodyPreview } from './helpers';
 
 export class MlsApiError extends Error {
   constructor(

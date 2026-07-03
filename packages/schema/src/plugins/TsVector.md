@@ -81,9 +81,9 @@ tsvector(name)
 
 The plugin fails fast before SQL generation in these cases:
 
-1. .language('   ') throws: tsvector: .language() requires a non-empty value.
+1. .language(' ') throws: tsvector: .language() requires a non-empty value.
 2. .cols([]) throws: tsvector: .cols() requires at least one column or expression.
-3. .cols(['city', '   ']) throws: tsvector: .cols() entry at index 1 is empty.
+3. .cols(['city', ' ']) throws: tsvector: .cols() entry at index 1 is empty.
 4. Accessing any method after .cols(...) except .weight(...) throws.
 
 This avoids hidden malformed expressions later in migration or query execution.

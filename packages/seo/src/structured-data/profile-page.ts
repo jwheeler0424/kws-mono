@@ -1,23 +1,23 @@
-import { jsonLd, type JsonLdBase, withoutContext } from './common'
+import { jsonLd, type JsonLdBase, withoutContext } from './common';
 
 export type ProfilePagePersonInput = {
-  name: string
-  description?: string
-  image?: string | string[]
-  url?: string
-  sameAs?: string[]
-  jobTitle?: string
-  worksFor?: { name: string; url?: string }
-  knowsAbout?: string[]
-}
+  name: string;
+  description?: string;
+  image?: string | string[];
+  url?: string;
+  sameAs?: string[];
+  jobTitle?: string;
+  worksFor?: { name: string; url?: string };
+  knowsAbout?: string[];
+};
 
 export type ProfilePageSchemaInput = {
-  url: string
-  name: string
-  description?: string
-  primaryImageOfPage?: string | string[]
-  mainEntity: JsonLdBase<'Person'> | ProfilePagePersonInput
-}
+  url: string;
+  name: string;
+  description?: string;
+  primaryImageOfPage?: string | string[];
+  mainEntity: JsonLdBase<'Person'> | ProfilePagePersonInput;
+};
 
 function buildPerson(input: ProfilePagePersonInput): Record<string, unknown> {
   return {
@@ -30,15 +30,15 @@ function buildPerson(input: ProfilePagePersonInput): Record<string, unknown> {
     ...(input.jobTitle ? { jobTitle: input.jobTitle } : {}),
     ...(input.worksFor
       ? {
-        worksFor: {
-          '@type': 'Organization',
-          name: input.worksFor.name,
-          ...(input.worksFor.url ? { url: input.worksFor.url } : {}),
-        },
-      }
+          worksFor: {
+            '@type': 'Organization',
+            name: input.worksFor.name,
+            ...(input.worksFor.url ? { url: input.worksFor.url } : {}),
+          },
+        }
       : {}),
     ...(input.knowsAbout?.length ? { knowsAbout: input.knowsAbout } : {}),
-  }
+  };
 }
 
 export function profilePageSchema(input: ProfilePageSchemaInput): JsonLdBase<'ProfilePage'> {
@@ -48,6 +48,9 @@ export function profilePageSchema(input: ProfilePageSchemaInput): JsonLdBase<'Pr
     name: input.name,
     ...(input.description ? { description: input.description } : {}),
     ...(input.primaryImageOfPage ? { primaryImageOfPage: input.primaryImageOfPage } : {}),
-    mainEntity: '@type' in input.mainEntity ? withoutContext(input.mainEntity) : buildPerson(input.mainEntity),
-  })
+    mainEntity:
+      '@type' in input.mainEntity
+        ? withoutContext(input.mainEntity)
+        : buildPerson(input.mainEntity),
+  });
 }

@@ -4,9 +4,9 @@
 // mapper layer's responsibility.
 // ---------------------------------------------------------------------------
 
-import type { MLS_RESOURCE_NAMES } from "@/lib/constants";
+import type { MLS_RESOURCE_NAMES } from '@/lib/constants';
 
-export type MlsResource = typeof MLS_RESOURCE_NAMES[number];
+export type MlsResource = (typeof MLS_RESOURCE_NAMES)[number];
 
 // ---------------------------------------------------------------------------
 // OData envelope

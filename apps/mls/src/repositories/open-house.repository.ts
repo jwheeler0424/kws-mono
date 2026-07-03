@@ -1,10 +1,10 @@
+import { openHouses, properties } from '@kws/schema';
 import { eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
 import { logger } from '@/lib/logger';
-import { openHouses, properties } from '@kws/schema';
-
 import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
+
 import type { MappedOpenHouse } from '../maps/open-house.mapper';
 
 export async function upsertSingleOpenHouse(record: MappedOpenHouse): Promise<void> {
@@ -26,9 +26,7 @@ export async function deactivateOpenHouse(openHouseKey: string): Promise<void> {
     .where(eq(openHouses.openHouseKey, openHouseKey));
 }
 
-export async function upsertOpenHouses(
-  data: (typeof openHouses.$inferInsert)[]
-) {
+export async function upsertOpenHouses(data: (typeof openHouses.$inferInsert)[]) {
   if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.openHouseKey);
@@ -36,11 +34,16 @@ export async function upsertOpenHouses(
     ...new Set(
       deduped
         .map((row) => row.listingKey)
-        .filter((listingKey): listingKey is string => typeof listingKey === 'string' && listingKey.length > 0),
+        .filter(
+          (listingKey): listingKey is string =>
+            typeof listingKey === 'string' && listingKey.length > 0,
+        ),
     ),
   ];
   const maxTimestamp = deduped.reduce((max, row) => {
-    const rowTimestamp = row.modificationTimestamp ? new Date(row.modificationTimestamp) : new Date(0);
+    const rowTimestamp = row.modificationTimestamp
+      ? new Date(row.modificationTimestamp)
+      : new Date(0);
     return rowTimestamp > max ? rowTimestamp : max;
   }, new Date(0));
 
@@ -79,13 +82,10 @@ export async function upsertOpenHouses(
 
   await db.transaction(async (tx) => {
     for (const batch of batches) {
-      await tx
-        .insert(openHouses)
-        .values(batch)
-        .onConflictDoUpdate({
-          target: openHouses.openHouseKey,
-          set: setFields,
-        });
+      await tx.insert(openHouses).values(batch).onConflictDoUpdate({
+        target: openHouses.openHouseKey,
+        set: setFields,
+      });
     }
   });
 

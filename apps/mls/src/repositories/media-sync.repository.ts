@@ -1,9 +1,9 @@
-import { and, asc, eq, gt, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
-
 import type { UUIDv7 } from '@kws/types';
 
-import { db } from '@/lib/database';
 import { media, members, mlsMedia, offices, properties } from '@kws/schema';
+import { and, asc, eq, gt, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+
+import { db } from '@/lib/database';
 
 export type MlsMediaEntityType = 'properties' | 'members' | 'offices';
 export type MlsMediaAssociationMode =
@@ -148,18 +148,12 @@ export async function listMlsMediaSyncCandidates(
   ];
 
   const baseMediaRowEligibilityClause = and(
-    or(
-      isNull(mlsMedia.deletedAt),
-      and(isNotNull(mlsMedia.deletedAt), isNull(mlsMedia.mediaId)),
-    ),
+    or(isNull(mlsMedia.deletedAt), and(isNotNull(mlsMedia.deletedAt), isNull(mlsMedia.mediaId))),
     isNotNull(mlsMedia.mediaURL),
     isNotNull(mlsMedia.resourceRecordKey),
   );
 
-  const unprocessedAssociationClause = and(
-    baseMediaRowEligibilityClause,
-    isNull(mlsMedia.mediaId),
-  );
+  const unprocessedAssociationClause = and(baseMediaRowEligibilityClause, isNull(mlsMedia.mediaId));
 
   const stalenessWhereClause = and(
     baseMediaRowEligibilityClause,
@@ -192,21 +186,21 @@ export async function listMlsMediaSyncCandidates(
   const prioritizedMemberPropertyMatchClause =
     prioritizedMemberKeys.length > 0
       ? or(
-        inArray(properties.listAgentKey, prioritizedMemberKeys),
-        inArray(properties.listAgentMlsId, prioritizedMemberKeys),
-        inArray(properties.coListAgentKey, prioritizedMemberKeys),
-        inArray(properties.coListAgentMlsId, prioritizedMemberKeys),
-      )
+          inArray(properties.listAgentKey, prioritizedMemberKeys),
+          inArray(properties.listAgentMlsId, prioritizedMemberKeys),
+          inArray(properties.coListAgentKey, prioritizedMemberKeys),
+          inArray(properties.coListAgentMlsId, prioritizedMemberKeys),
+        )
       : undefined;
 
   const prioritizedOfficePropertyMatchClause =
     prioritizedOfficeKeys.length > 0
       ? or(
-        inArray(properties.listOfficeKey, prioritizedOfficeKeys),
-        inArray(properties.listOfficeMlsId, prioritizedOfficeKeys),
-        inArray(properties.coListOfficeKey, prioritizedOfficeKeys),
-        inArray(properties.coListOfficeMlsId, prioritizedOfficeKeys),
-      )
+          inArray(properties.listOfficeKey, prioritizedOfficeKeys),
+          inArray(properties.listOfficeMlsId, prioritizedOfficeKeys),
+          inArray(properties.coListOfficeKey, prioritizedOfficeKeys),
+          inArray(properties.coListOfficeMlsId, prioritizedOfficeKeys),
+        )
       : undefined;
 
   const prioritizedPropertyMatchClause =
@@ -225,37 +219,37 @@ export async function listMlsMediaSyncCandidates(
 
   const candidateWhereClause = primaryOnlyForNonPrioritizedProperties
     ? and(
-      baseEligibilityClause,
-      prioritizedPropertyListingClause
-        ? or(
-          isEntityMediaClause,
-          prioritizedPropertyListingClause,
-          and(nonPrioritizedPropertyListingClause, primaryPhotoClause),
-        )
-        : or(isEntityMediaClause, and(nonPrioritizedPropertyListingClause, primaryPhotoClause)),
-    )
+        baseEligibilityClause,
+        prioritizedPropertyListingClause
+          ? or(
+              isEntityMediaClause,
+              prioritizedPropertyListingClause,
+              and(nonPrioritizedPropertyListingClause, primaryPhotoClause),
+            )
+          : or(isEntityMediaClause, and(nonPrioritizedPropertyListingClause, primaryPhotoClause)),
+      )
     : baseEligibilityClause;
 
   const entityTypeFilterClause =
     filterEntityTypes.length > 0
       ? or(
-        filterEntityTypes.includes('properties') ? isNotNull(properties.listingKey) : undefined,
-        filterEntityTypes.includes('members') ? isNotNull(members.memberMlsId) : undefined,
-        filterEntityTypes.includes('offices') ? isNotNull(offices.officeMlsId) : undefined,
-      )
+          filterEntityTypes.includes('properties') ? isNotNull(properties.listingKey) : undefined,
+          filterEntityTypes.includes('members') ? isNotNull(members.memberMlsId) : undefined,
+          filterEntityTypes.includes('offices') ? isNotNull(offices.officeMlsId) : undefined,
+        )
       : undefined;
 
   const memberPropertyRestrictionClause =
     restrictToMemberPropertyKeys.length > 0
       ? and(
-        isNotNull(properties.listingKey),
-        or(
-          inArray(properties.listAgentKey, restrictToMemberPropertyKeys),
-          inArray(properties.listAgentMlsId, restrictToMemberPropertyKeys),
-          inArray(properties.coListAgentKey, restrictToMemberPropertyKeys),
-          inArray(properties.coListAgentMlsId, restrictToMemberPropertyKeys),
-        ),
-      )
+          isNotNull(properties.listingKey),
+          or(
+            inArray(properties.listAgentKey, restrictToMemberPropertyKeys),
+            inArray(properties.listAgentMlsId, restrictToMemberPropertyKeys),
+            inArray(properties.coListAgentKey, restrictToMemberPropertyKeys),
+            inArray(properties.coListAgentMlsId, restrictToMemberPropertyKeys),
+          ),
+        )
       : undefined;
 
   const finalWhereClause = and(
@@ -302,9 +296,9 @@ export async function listMlsMediaSyncCandidates(
   const rows: CandidateRow[] =
     limit > 0
       ? await baseSelect
-        .where(finalWhereClause)
-        .orderBy(priorityBucket, asc(mlsMedia.updatedAt), asc(mlsMedia.mediaKey))
-        .limit(limit)
+          .where(finalWhereClause)
+          .orderBy(priorityBucket, asc(mlsMedia.updatedAt), asc(mlsMedia.mediaKey))
+          .limit(limit)
       : [];
 
   return toMlsMediaSyncCandidates(rows);

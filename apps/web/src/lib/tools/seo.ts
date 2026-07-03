@@ -1,4 +1,4 @@
-import { createSeoHelpers, type SiteConfig } from '@kws/seo'
+import { createSeoHelpers, type SiteConfig } from '@kws/seo';
 
 // export const siteConfig = defineSiteConfig({
 //   siteName: 'My App',
@@ -12,6 +12,6 @@ import { createSeoHelpers, type SiteConfig } from '@kws/seo'
 //   themeColor: '#0f172a',
 // })
 
-export const useSeo = (siteConfig: SiteConfig) => createSeoHelpers(siteConfig)
+export const useSeo = (siteConfig: SiteConfig) => createSeoHelpers(siteConfig);
 
 // export const { seo, createHead } = createSeoHelpers(siteConfig)

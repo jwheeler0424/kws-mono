@@ -1,17 +1,20 @@
-import { type TMlsMedia } from '@kws/schema';
 import type { PropertyListing, TPropertyNwmFlags } from '@kws/types';
 
-import { db } from '@/lib/database';
+import { type TMlsMedia } from '@kws/schema';
 import { sql } from 'drizzle-orm';
+
+import { db } from '@/lib/database';
 
 export type TPropertyWithMedia = Omit<PropertyListing, 'NWM'> & {
   NWM: TPropertyNwmFlags | null;
   media: TMlsMedia[];
 };
 
-export async function getListingDetailByKey(
-  { listingKey }: { listingKey: string },
-): Promise<TPropertyWithMedia | null> {
+export async function getListingDetailByKey({
+  listingKey,
+}: {
+  listingKey: string;
+}): Promise<TPropertyWithMedia | null> {
   const [listing, media] = await Promise.all([
     db.query.properties.findFirst({
       columns: {

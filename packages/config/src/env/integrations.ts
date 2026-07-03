@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import './preload.ts';
 
 const durationRegex = /^(-?\d+(?:\.\d+)?(?:ns|us|µs|ms|s|m|h))+$/;

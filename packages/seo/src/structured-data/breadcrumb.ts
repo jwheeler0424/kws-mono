@@ -1,9 +1,9 @@
-import { jsonLd, type JsonLdBase } from './common'
+import { jsonLd, type JsonLdBase } from './common';
 
 export type BreadcrumbItem = {
-  name: string
-  url: string
-}
+  name: string;
+  url: string;
+};
 
 export function breadcrumbListSchema(items: BreadcrumbItem[]): JsonLdBase<'BreadcrumbList'> {
   return jsonLd({
@@ -14,5 +14,5 @@ export function breadcrumbListSchema(items: BreadcrumbItem[]): JsonLdBase<'Bread
       name: item.name,
       item: item.url,
     })),
-  })
+  });
 }

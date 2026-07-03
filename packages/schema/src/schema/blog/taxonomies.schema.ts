@@ -64,11 +64,17 @@ export const blogTaxonomyRelations = defineRelationsPart(
     },
 
     terms: {
-      postRelationships: r.many.postTermRelationships({ from: r.terms.id, to: r.postTermRelationships.termId }),
+      postRelationships: r.many.postTermRelationships({
+        from: r.terms.id,
+        to: r.postTermRelationships.termId,
+      }),
     },
 
     posts: {
-      termRelationships: r.many.postTermRelationships({ from: r.posts.id, to: r.postTermRelationships.postId }),
+      termRelationships: r.many.postTermRelationships({
+        from: r.posts.id,
+        to: r.postTermRelationships.postId,
+      }),
     },
   }),
 );

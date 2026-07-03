@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * index.ts — Barrel export for the Overflow component system.
@@ -29,28 +29,28 @@
 
 // ─── Components ───────────────────────────────────────────────────────────────
 
-export { Overflow } from "./overflow";
-export { OverflowGroup } from "./overflow-group";
-export { OverflowItem } from "./overflow-item";
-export { OverflowIndicator } from "./overflow-indicator";
-export { OverflowActions } from "./overflow-actions";
-export { OverflowSeparator } from "./overflow-separator";
-export { OverflowAnnouncer } from "./overflow-announcer";
+export { Overflow } from './overflow';
+export { OverflowGroup } from './overflow-group';
+export { OverflowItem } from './overflow-item';
+export { OverflowIndicator } from './overflow-indicator';
+export { OverflowActions } from './overflow-actions';
+export { OverflowSeparator } from './overflow-separator';
+export { OverflowAnnouncer } from './overflow-announcer';
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
-export { useOverflow, useOverflowItem } from "./hooks";
+export { useOverflow, useOverflowItem } from './hooks';
 
 // ─── Prop types ───────────────────────────────────────────────────────────────
 
-export type { OverflowProps } from "./overflow";
-export type { OverflowGroupProps } from "./overflow-group";
-export type { OverflowItemProps } from "./overflow-item";
-export type { OverflowIndicatorProps } from "./overflow-indicator";
-export type { OverflowActionsProps } from "./overflow-actions";
-export type { OverflowSeparatorProps } from "./overflow-separator";
-export type { OverflowAnnouncerProps } from "./overflow-announcer";
+export type { OverflowProps } from './overflow';
+export type { OverflowGroupProps } from './overflow-group';
+export type { OverflowItemProps } from './overflow-item';
+export type { OverflowIndicatorProps } from './overflow-indicator';
+export type { OverflowActionsProps } from './overflow-actions';
+export type { OverflowSeparatorProps } from './overflow-separator';
+export type { OverflowAnnouncerProps } from './overflow-announcer';
 
 // ─── Value types ──────────────────────────────────────────────────────────────
 
-export type { OverflowOrientation, OverflowFitStrategy, OverflowInfo } from "./types";
+export type { OverflowOrientation, OverflowFitStrategy, OverflowInfo } from './types';

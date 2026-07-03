@@ -30,20 +30,19 @@ import {
 } from '@kws/design/ui/sheet';
 import { Slider } from '@kws/design/ui/slider';
 import { toast } from '@kws/design/ui/toast';
-import { toCanonicalListingsSearch, toListingsSearchUrl } from '@kws/types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { normalizeListingsSearch } from '@kws/types';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Search, X } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/global/button';
+import {
+  hydrateListingCardsByKeysOptions,
+  searchListingsPageFromRouteOptions,
+} from '@/features/mls/options/search';
 import { cn, numberFormatInternational } from '@/lib/utils';
 import { getAddressStreet, numberFormat } from '@/lib/utils/properties';
-import {
-  applySearchFiltersMutationOptions,
-  resetSearchFiltersMutationOptions,
-  searchListingsOptions,
-} from '@/packages/mls/search.options';
 import { Route as ListingsRoute } from '@/routes/listings/_listings.index';
 import { useMapActions, useMapStore } from '@/stores/map.store';
 
@@ -94,24 +93,8 @@ export default function ListingsSearch() {
   const [isSearchLoading, setIsSearchLoading] = React.useState(false);
   const latestSearchRequestRef = React.useRef(0);
 
-  const applyFiltersMutation = useMutation(applySearchFiltersMutationOptions(queryClient));
-  const resetFiltersMutation = useMutation(resetSearchFiltersMutationOptions(queryClient));
-
   const { minPrice, maxPrice, minSqFt, maxSqFt, minBedroom, maxBedroom, minBathroom, maxBathroom } =
     FILTER_LIMITS;
-
-  const buildPayloadFromLocal = React.useCallback(
-    (queryValue: string | undefined) => ({
-      query: queryValue,
-      limit: limit,
-      price: { min: priceValues[0], max: priceValues[1] },
-      sqFt: { min: sqFtValues[0], max: sqFtValues[1] },
-      bedrooms: { min: bedroomValues[0], max: bedroomValues[1] },
-      bathrooms: { min: bathroomValues[0], max: bathroomValues[1] },
-      useMapBounds: Boolean(useMapBoundsLocal),
-    }),
-    [bathroomValues, bedroomValues, limit, priceValues, sqFtValues, useMapBoundsLocal],
-  );
 
   const buildRouteSearchFromLocal = React.useCallback(
     (queryValue: string | undefined) => ({
@@ -130,7 +113,6 @@ export default function ListingsSearch() {
   );
 
   const handleClearSearchQuery = (_e: React.MouseEvent) => {
-    applyFiltersMutation.mutate({ query: undefined });
     setSearchQueryLocal(undefined);
     setSearchResults([]);
     setIsSearchLoading(false);
@@ -138,20 +120,18 @@ export default function ListingsSearch() {
     void navigate({
       to: '/listings',
       search: (prev) =>
-        toListingsSearchUrl(
-          toCanonicalListingsSearch({
-            query: null,
-            limit: prev.limit ?? null,
-            price: prev.price ?? null,
-            sqFt: prev.sqFt ?? null,
-            bedrooms: prev.bedrooms ?? null,
-            bathrooms: prev.bathrooms ?? null,
-            useMapBounds: prev.useMapBounds ?? null,
-            bounds: prev.bounds ?? null,
-            sortBy: prev.sortBy ?? null,
-            proximity: prev.proximity ?? null,
-          }),
-        ),
+        normalizeListingsSearch({
+          query: null,
+          limit: prev.limit ?? null,
+          price: prev.price ?? null,
+          sqFt: prev.sqFt ?? null,
+          bedrooms: prev.bedrooms ?? null,
+          bathrooms: prev.bathrooms ?? null,
+          useMapBounds: prev.useMapBounds ?? null,
+          bounds: prev.bounds ?? null,
+          sortBy: prev.sortBy ?? null,
+          proximity: prev.proximity ?? null,
+        }),
     });
   };
 
@@ -226,7 +206,34 @@ export default function ListingsSearch() {
       };
 
       try {
-        const response = await queryClient.ensureQueryData(searchListingsOptions(filters));
+        const routeSearch = normalizeListingsSearch({
+          query: keyword,
+          limit: limit ?? 25,
+          price: { min: priceValues[0], max: priceValues[1] },
+          sqFt: { min: sqFtValues[0], max: sqFtValues[1] },
+          bedrooms: { min: bedroomValues[0], max: bedroomValues[1] },
+          bathrooms: { min: bathroomValues[0], max: bathroomValues[1] },
+          useMapBounds: Boolean(useMapBoundsLocal),
+          bounds: Boolean(useMapBoundsLocal) && mapBounds ? mapBounds : null,
+          sortBy: null,
+          proximity: null,
+        });
+
+        const page = await queryClient.ensureQueryData(
+          searchListingsPageFromRouteOptions(routeSearch, {
+            limit: filters.limit,
+          }),
+        );
+
+        const listingKeys = page.items.map((item) => item.listingKey);
+        const response = listingKeys.length
+          ? await queryClient.ensureQueryData(
+              hydrateListingCardsByKeysOptions({
+                listingKeys,
+                maxBatchSize: filters.limit,
+              }),
+            )
+          : [];
 
         if (latestSearchRequestRef.current !== requestId) {
           return;
@@ -248,6 +255,7 @@ export default function ListingsSearch() {
     [
       bathroomValues,
       bedroomValues,
+      limit,
       mapBounds,
       priceValues,
       queryClient,
@@ -257,7 +265,6 @@ export default function ListingsSearch() {
   );
 
   const resetSearchFilters = (_e: React.MouseEvent<HTMLButtonElement>) => {
-    resetFiltersMutation.mutate();
     setPriceValuesLocal([null, null]);
     setSqFtValuesLocal([null, null]);
     setBedroomValuesLocal([null, null]);
@@ -269,8 +276,7 @@ export default function ListingsSearch() {
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && e.currentTarget.value.length >= 3) {
         const queryValue = e.currentTarget.value;
-        applyFiltersMutation.mutate(buildPayloadFromLocal(queryValue));
-        const search = toListingsSearchUrl(buildRouteSearchFromLocal(queryValue));
+        const search = normalizeListingsSearch(buildRouteSearchFromLocal(queryValue));
         setIsSearchLoading(false);
         setSearchResults([]);
         void navigate({ to: '/listings', search });
@@ -281,7 +287,7 @@ export default function ListingsSearch() {
         setSearchResults([]);
       }
     },
-    [applyFiltersMutation, buildPayloadFromLocal, buildRouteSearchFromLocal, navigate],
+    [buildRouteSearchFromLocal, navigate],
   );
 
   React.useEffect(() => {
@@ -318,20 +324,16 @@ export default function ListingsSearch() {
       const queryValue =
         searchQueryLocal && searchQueryLocal.length >= 3 ? searchQueryLocal : undefined;
 
-      applyFiltersMutation.mutate(buildPayloadFromLocal(queryValue));
-
       if (!useMapBoundsLocal) {
         setMapBounds(null);
         setMapZoom(DEFAULT_POSITION.zoom);
       }
-      const search = toListingsSearchUrl(buildRouteSearchFromLocal(queryValue));
+      const search = normalizeListingsSearch(buildRouteSearchFromLocal(queryValue));
       setSearchResults([]);
       void navigate({ to: '/listings', search });
       setFilterOpen(false);
     },
     [
-      applyFiltersMutation,
-      buildPayloadFromLocal,
       buildRouteSearchFromLocal,
       navigate,
       searchQueryLocal,

@@ -6,22 +6,16 @@
     "outDir": "dist",
     "declaration": false,
     "declarationMap": false,
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
+      "@/*": ["./src/*"]
     },
-    "types": [
-      "bun"
-    ],
+    "types": ["bun"],
     // Bundler mode
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

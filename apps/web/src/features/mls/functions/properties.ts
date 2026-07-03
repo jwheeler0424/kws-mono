@@ -1,8 +1,15 @@
-import { shuffle } from '@/lib/tools/shuffle';
 import { env } from '@kws/config';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { getAvailableProperties, getFeaturedProperties, getPendingProperties, getSoldProperties } from '../queries';
+
+import { shuffle } from '@/lib/tools/shuffle';
+
+import {
+  getAvailableProperties,
+  getFeaturedProperties,
+  getPendingProperties,
+  getSoldProperties,
+} from '../queries';
 
 const MAX_FEATURED_PROPERTIES = 24;
 
@@ -13,11 +20,13 @@ const propertyCardQueryParamsSchema = z.object({
 
 export const getAvailablePropertiesServerFn = createServerFn({ method: 'GET' })
   .validator(propertyCardQueryParamsSchema)
-  .handler(({ data }) => getAvailableProperties({
-    officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
-    memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
-    ...data,
-  }));
+  .handler(({ data }) =>
+    getAvailableProperties({
+      officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
+      memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
+      ...data,
+    }),
+  );
 
 export const getFeaturedPropertiesServerFn = createServerFn({ method: 'GET' })
   .validator(propertyCardQueryParamsSchema)
@@ -33,16 +42,20 @@ export const getFeaturedPropertiesServerFn = createServerFn({ method: 'GET' })
 
 export const getPendingPropertiesServerFn = createServerFn({ method: 'GET' })
   .validator(propertyCardQueryParamsSchema)
-  .handler(({ data }) => getPendingProperties({
-    officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
-    memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
-    ...data,
-  }));
+  .handler(({ data }) =>
+    getPendingProperties({
+      officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
+      memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
+      ...data,
+    }),
+  );
 
 export const getSoldPropertiesServerFn = createServerFn({ method: 'GET' })
   .validator(propertyCardQueryParamsSchema)
-  .handler(({ data }) => getSoldProperties({
-    officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
-    memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
-    ...data,
-  }));
+  .handler(({ data }) =>
+    getSoldProperties({
+      officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
+      memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
+      ...data,
+    }),
+  );

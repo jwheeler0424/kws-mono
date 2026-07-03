@@ -1,26 +1,28 @@
-import { jsonLd, type JsonLdBase } from './common';
 import type { LocalBusinessAddress } from './local-business';
 import type { ProductOfferInput } from './product';
 
-export type EventLocation =
-  | { name: string; address: LocalBusinessAddress }
-  | { url: string }
+import { jsonLd, type JsonLdBase } from './common';
+
+export type EventLocation = { name: string; address: LocalBusinessAddress } | { url: string };
 
 export type EventSchemaInput = {
-  name: string
-  startDate: string
-  endDate?: string
-  eventStatus?: 'EventScheduled' | 'EventCancelled' | 'EventPostponed' | 'EventRescheduled'
-  eventAttendanceMode?: 'OfflineEventAttendanceMode' | 'OnlineEventAttendanceMode' | 'MixedEventAttendanceMode'
-  location: EventLocation
-  image?: string | string[]
-  description?: string
-  url?: string
-  offers?: ProductOfferInput
-}
+  name: string;
+  startDate: string;
+  endDate?: string;
+  eventStatus?: 'EventScheduled' | 'EventCancelled' | 'EventPostponed' | 'EventRescheduled';
+  eventAttendanceMode?:
+    | 'OfflineEventAttendanceMode'
+    | 'OnlineEventAttendanceMode'
+    | 'MixedEventAttendanceMode';
+  location: EventLocation;
+  image?: string | string[];
+  description?: string;
+  url?: string;
+  offers?: ProductOfferInput;
+};
 
 function postalAddress(address: LocalBusinessAddress) {
-  return { '@type': 'PostalAddress', ...address }
+  return { '@type': 'PostalAddress', ...address };
 }
 
 export function eventSchema(input: EventSchemaInput): JsonLdBase<'Event'> {
@@ -35,20 +37,26 @@ export function eventSchema(input: EventSchemaInput): JsonLdBase<'Event'> {
     location:
       'url' in input.location
         ? { '@type': 'VirtualLocation', url: input.location.url }
-        : { '@type': 'Place', name: input.location.name, address: postalAddress(input.location.address) },
+        : {
+            '@type': 'Place',
+            name: input.location.name,
+            address: postalAddress(input.location.address),
+          },
     ...(input.image ? { image: input.image } : {}),
     ...(input.description ? { description: input.description } : {}),
     ...(input.offers
       ? {
-        offers: {
-          '@type': 'Offer',
-          price: input.offers.price,
-          priceCurrency: input.offers.priceCurrency,
-          availability: `https://schema.org/${input.offers.availability ?? 'InStock'}`,
-          ...(input.offers.url ? { url: input.offers.url } : {}),
-          ...(input.offers.priceValidUntil ? { priceValidUntil: input.offers.priceValidUntil } : {}),
-        },
-      }
+          offers: {
+            '@type': 'Offer',
+            price: input.offers.price,
+            priceCurrency: input.offers.priceCurrency,
+            availability: `https://schema.org/${input.offers.availability ?? 'InStock'}`,
+            ...(input.offers.url ? { url: input.offers.url } : {}),
+            ...(input.offers.priceValidUntil
+              ? { priceValidUntil: input.offers.priceValidUntil }
+              : {}),
+          },
+        }
       : {}),
-  })
+  });
 }

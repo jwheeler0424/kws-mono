@@ -20,15 +20,15 @@ export type UseLoopingCarouselIdsOptions = {
 export type UseLoopingCarouselIdsResult = {
   emblaRef: (node: HTMLElement | null) => void;
   emblaApi:
-  | {
-    selectedScrollSnap: () => number;
-    scrollTo: (index: number, jump?: boolean) => void;
-    scrollPrev: () => void;
-    scrollNext: () => void;
-    on: (event: 'select' | 'reInit', callback: () => void) => void;
-    off: (event: 'select' | 'reInit', callback: () => void) => void;
-  }
-  | undefined;
+    | {
+        selectedScrollSnap: () => number;
+        scrollTo: (index: number, jump?: boolean) => void;
+        scrollPrev: () => void;
+        scrollNext: () => void;
+        on: (event: 'select' | 'reInit', callback: () => void) => void;
+        off: (event: 'select' | 'reInit', callback: () => void) => void;
+      }
+    | undefined;
   selectedIndex: number;
   moveBy: (direction: 1 | -1) => void;
 };

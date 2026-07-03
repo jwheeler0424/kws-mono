@@ -12,14 +12,18 @@ To run:
 bun run index.ts
 ```
 
-This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast
+all-in-one JavaScript runtime.
 
 ## Seed and Sync Pipeline
 
-- Sync start is timestamp-only: each resource reads the latest `modificationTimestamp` from the database and uses that as the API `afterTimestamp` filter (with configured overlap).
+- Sync start is timestamp-only: each resource reads the latest `modificationTimestamp` from the
+  database and uses that as the API `afterTimestamp` filter (with configured overlap).
 - Cursor sync state has been removed from runtime flow.
-- A local history store is enabled by default and writes incoming MLS payloads to disk during both seed and sync.
-- Rollout controls can independently gate initial data seed, initial media seed, and sync job registration.
+- A local history store is enabled by default and writes incoming MLS payloads to disk during both
+  seed and sync.
+- Rollout controls can independently gate initial data seed, initial media seed, and sync job
+  registration.
 
 ## Local History Store
 
@@ -28,14 +32,16 @@ This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com)
 - Format: compressed JSONL (gzip)
 - Partition manifest: each partition maintains `manifest.json` with per-chunk checksum and metadata
 - Corrupt or partial chunks are moved to `data/.quarantine/**` instead of being deleted
-- Records with missing or invalid `ModificationTimestamp` are quarantined to `data/.quarantine/records/**` and excluded from ingest
+- Records with missing or invalid `ModificationTimestamp` are quarantined to
+  `data/.quarantine/records/**` and excluded from ingest
 
 Seed behavior is local-first:
 
 1. Replay local history partitions for the resource.
 2. Upsert replayed records in bounded batches.
 3. Continue with MLS API pagination and write-through each fetched page to local history.
-4. In API phase, bounded fetch/ingest overlap is enabled by default to reduce idle time between fetch and ingest.
+4. In API phase, bounded fetch/ingest overlap is enabled by default to reduce idle time between
+   fetch and ingest.
 
 ## Environment Variables
 
@@ -67,14 +73,15 @@ Seed behavior is local-first:
 
 ## Maintenance APIs
 
-History store helpers available in [apps/mls/src/lib/history-store.ts](apps/mls/src/lib/history-store.ts):
+History store helpers available in
+[apps/mls/src/lib/history-store.ts](apps/mls/src/lib/history-store.ts):
 
 - `verifyHistoryStore(resource?)`
-	- Validates `.jsonl.gz` files by decompressing and parsing each line.
-	- Returns checked and corrupted file counts/paths.
+  - Validates `.jsonl.gz` files by decompressing and parsing each line.
+  - Returns checked and corrupted file counts/paths.
 - `compactHistoryStore(resource?)`
-	- Merges multiple chunk files per partition into a single compacted chunk.
-	- Uses a single-writer lock and respects `MLS_HISTORY_COMPACT_MAX_BYTES`.
+  - Merges multiple chunk files per partition into a single compacted chunk.
+  - Uses a single-writer lock and respects `MLS_HISTORY_COMPACT_MAX_BYTES`.
 
 ## Maintenance Commands
 

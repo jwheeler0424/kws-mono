@@ -1,10 +1,11 @@
+import { members, mlsMedia } from '@kws/schema';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
-import { members, mlsMedia } from '@kws/schema';
-
 import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
+
 import type { MappedMember } from '../maps/member.mapper';
+
 import { upsertMlsMedia } from './media.repository';
 
 export async function upsertSingleMember(record: MappedMember): Promise<void> {
@@ -26,28 +27,25 @@ export async function deactivateMember(memberKey: string): Promise<void> {
     .where(eq(members.memberKey, memberKey));
 }
 
-export async function upsertMembers(
-  data: (typeof members.$inferInsert)[]
-) {
+export async function upsertMembers(data: (typeof members.$inferInsert)[]) {
   if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.memberMlsId);
   const batches = chunkArray(deduped, 1000);
   const setFields = getUpsertSetFields(members, ['memberMlsId', 'createdAt', 'searchVector']);
   const maxTimestamp = deduped.reduce((max, row) => {
-    const rowTimestamp = row.modificationTimestamp ? new Date(row.modificationTimestamp) : new Date(0);
+    const rowTimestamp = row.modificationTimestamp
+      ? new Date(row.modificationTimestamp)
+      : new Date(0);
     return rowTimestamp > max ? rowTimestamp : max;
   }, new Date(0));
 
   await db.transaction(async (tx) => {
     for (const batch of batches) {
-      await tx
-        .insert(members)
-        .values(batch)
-        .onConflictDoUpdate({
-          target: members.memberMlsId,
-          set: setFields,
-        });
+      await tx.insert(members).values(batch).onConflictDoUpdate({
+        target: members.memberMlsId,
+        set: setFields,
+      });
     }
   });
 
@@ -63,7 +61,7 @@ export async function processMlsMembersPayload(data: MappedMember[]) {
 
   // 2. Extract and separate the data
   for (const item of data) {
-    // Destructure out the relations. 
+    // Destructure out the relations.
     // 'memberData' now strictly contains ONLY valid columns for the members table.
     const { media, ...memberData } = item;
 
@@ -79,9 +77,7 @@ export async function processMlsMembersPayload(data: MappedMember[]) {
   const maxTimestamp = await upsertMembers(allMembers);
 
   // Children can be upserted concurrently since they don't depend on each other
-  await Promise.all([
-    allMedia.length > 0 ? upsertMlsMedia(allMedia) : Promise.resolve(),
-  ]);
+  await Promise.all([allMedia.length > 0 ? upsertMlsMedia(allMedia) : Promise.resolve()]);
 
   return maxTimestamp;
 }

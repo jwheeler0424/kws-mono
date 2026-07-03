@@ -1,10 +1,10 @@
+import { mlsMedia } from '@kws/schema';
 import { eq, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
 import { logger } from '@/lib/logger';
-import { mlsMedia } from '@kws/schema';
-
 import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
+
 import type { MappedMedia } from '../maps/media.mapper';
 
 export async function upsertSingleMlsMedia(record: MappedMedia): Promise<void> {
@@ -26,10 +26,7 @@ export async function deactivateMlsMedia(mediaKey: string): Promise<void> {
     .where(eq(mlsMedia.mediaKey, mediaKey));
 }
 
-
-export async function upsertMlsMedia(
-  data: (typeof mlsMedia.$inferInsert)[]
-) {
+export async function upsertMlsMedia(data: (typeof mlsMedia.$inferInsert)[]) {
   if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.mediaKey);
@@ -43,7 +40,9 @@ export async function upsertMlsMedia(
     or excluded.deleted_at is distinct from ${mlsMedia.deletedAt}
   `;
   const maxTimestamp = deduped.reduce((max, row) => {
-    const rowTimestamp = row.mediaModificationTimestamp ? new Date(row.mediaModificationTimestamp) : new Date(0);
+    const rowTimestamp = row.mediaModificationTimestamp
+      ? new Date(row.mediaModificationTimestamp)
+      : new Date(0);
     return rowTimestamp > max ? rowTimestamp : max;
   }, new Date(0));
   let attempted = 0;

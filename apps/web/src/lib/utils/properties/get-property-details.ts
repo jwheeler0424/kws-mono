@@ -1,6 +1,7 @@
-import type { PropertyListing, TMlsMedia, TMlsMember, TMlsOffice } from '@/database/schema';
-import type { TPropertyWithMedia } from '@/packages/mls/queries/property.queries';
-import type { NWM_Property, TAddressData, TPropertyCard } from '@/types/property';
+import type { TMlsMedia, TMlsMember, TMlsOffice } from '@kws/schema';
+import type { NWM_Property, PropertyListing, TAddressData, TPropertyCard } from '@kws/types';
+
+import type { TPropertyWithMedia } from '@/features/mls/queries';
 
 type PropertyData = PropertyListing & {
   BuyerAgent: TMlsMember;

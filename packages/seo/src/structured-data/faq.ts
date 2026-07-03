@@ -1,9 +1,9 @@
-import { jsonLd, type JsonLdBase } from './common'
+import { jsonLd, type JsonLdBase } from './common';
 
 export type FaqItem = {
-  question: string
-  answer: string
-}
+  question: string;
+  answer: string;
+};
 
 export function faqPageSchema(items: FaqItem[]): JsonLdBase<'FAQPage'> {
   return jsonLd({
@@ -16,5 +16,5 @@ export function faqPageSchema(items: FaqItem[]): JsonLdBase<'FAQPage'> {
         text: item.answer,
       },
     })),
-  })
+  });
 }

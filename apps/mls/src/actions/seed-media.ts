@@ -1,15 +1,15 @@
+import type { UUIDv7 } from '@kws/types';
+
+import { env } from '@kws/config';
+import { processImage } from '@kws/media';
+import { media, mediaVariants, mlsMedia } from '@kws/schema';
 import { and, eq } from 'drizzle-orm';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import type { UUIDv7 } from '@kws/types';
-
 import { db } from '@/lib/database';
-import { env } from '@kws/config';
-import { processImage } from '@kws/media';
-import { media, mediaVariants, mlsMedia } from '@kws/schema';
-
 import { mlsLogger } from '@/lib/logger';
+
 import {
   listMlsMediaSyncCandidates,
   listUnsyncedMediaForListing,
@@ -719,7 +719,11 @@ export async function runMlsMediaSync(
         elapsedMsRun: Date.now() - runStartedAt,
       });
 
-      if (repairOutcome.processed === 0 && repairOutcome.skipped === 0 && repairOutcome.failed > 0) {
+      if (
+        repairOutcome.processed === 0 &&
+        repairOutcome.skipped === 0 &&
+        repairOutcome.failed > 0
+      ) {
         repairStalledBatches += 1;
         syncLogger.warn('mls media repair pass stalled on repeatedly failing candidates', {
           batchNumber: batch + 1,

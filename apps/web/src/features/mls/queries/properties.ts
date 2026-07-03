@@ -1,51 +1,63 @@
 import type { TPropertyCard, TPropertyNwmFlags } from '@kws/types';
 
-import { db } from '@/lib/database';
 import { sql } from 'drizzle-orm';
-import { DEFAULT_ACTIVE_STATUSES, DEFAULT_FEATURED_STATUSES, DEFAULT_PENDING_STATUSES, DEFAULT_SOLD_STATUSES } from './constants';
 
-const preparedActiveProperties = db.query.properties.findMany({
-  columns: {
-    listingId: true,
-    listingKey: true,
+import { db } from '@/lib/database';
 
-    livingArea: true,
-    livingAreaUnits: true,
+import {
+  DEFAULT_ACTIVE_STATUSES,
+  DEFAULT_FEATURED_STATUSES,
+  DEFAULT_PENDING_STATUSES,
+  DEFAULT_SOLD_STATUSES,
+} from './constants';
 
-    bathroomsFull: true,
-    bathroomsHalf: true,
-    bathroomsThreeQuarter: true,
+type TPropertyFindManyConfig = NonNullable<Parameters<typeof db.query.properties.findMany>[0]>;
+type TPropertyCardQueryConfig = Pick<TPropertyFindManyConfig, 'columns' | 'extras' | 'with'>;
 
-    bedroomsTotal: true,
-    buildingAreaTotal: true,
+export const propertyCardColumns = {
+  listingId: true,
+  listingKey: true,
 
-    featuredListingYN: true,
-    internetAddressDisplayYN: true,
-    internetAutomatedValuationDisplayYN: true,
+  livingArea: true,
+  livingAreaUnits: true,
 
-    levels: true,
-    latitude: true,
-    longitude: true,
-    listPrice: true,
+  bathroomsFull: true,
+  bathroomsHalf: true,
+  bathroomsThreeQuarter: true,
 
-    propertySubType: true,
-    propertyType: true,
-    standardStatus: true,
+  bedroomsTotal: true,
+  buildingAreaTotal: true,
 
-    streetDirPrefix: true,
-    streetDirSuffix: true,
-    streetName: true,
-    streetNumber: true,
-    streetSuffix: true,
-    unitNumber: true,
+  featuredListingYN: true,
+  internetAddressDisplayYN: true,
+  internetAutomatedValuationDisplayYN: true,
 
-    city: true,
-    postalCode: true,
-    stateOrProvince: true,
-    unparsedAddress: true,
+  levels: true,
+  latitude: true,
+  longitude: true,
+  listPrice: true,
 
-    yearBuilt: true,
-  },
+  propertySubType: true,
+  propertyType: true,
+  standardStatus: true,
+
+  streetDirPrefix: true,
+  streetDirSuffix: true,
+  streetName: true,
+  streetNumber: true,
+  streetSuffix: true,
+  unitNumber: true,
+
+  city: true,
+  postalCode: true,
+  stateOrProvince: true,
+  unparsedAddress: true,
+
+  yearBuilt: true,
+} as const;
+
+export const getPropertyCardQueryConfig = (): TPropertyCardQueryConfig => ({
+  columns: propertyCardColumns,
   extras: {
     memberFullName: (table) => sql<string | null>`${table.listAgentFullName}`,
     officeName: (table) => sql<string | null>`${table.listOfficeName}`,
@@ -64,377 +76,41 @@ const preparedActiveProperties = db.query.properties.findMany({
           ${table.NWM}->>'NWM_StyleCode'
         )
       `,
-  },
-  where: {
-    AND: [
-      {
-        mlgCanView: true,
-        deletedAt: { isNull: true },
-        standardStatus: { in: [...DEFAULT_ACTIVE_STATUSES] },
-      },
-      {
-        RAW: (table) => sql`(
-          ${table.listOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.coListOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.listAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-          ${table.coListAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-          ${table.buyerAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder("memberIds")})
-        )`,
-      }
-    ]
   },
   with: {
     media: {
       limit: 1,
       where: {
         preferredPhotoYN: true,
-        deletedAt: { isNull: true },
+        deletedAt: { isNull: true as const },
       },
       with: {
         media: {
           with: {
             variants: {
               where: {
-                variantName: { in: ['full', 'preview', 'thumbnail'] }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}).prepare("get_active_properties");
-
-const preparedPendingProperties = db.query.properties.findMany({
-  columns: {
-    listingId: true,
-    listingKey: true,
-
-    livingArea: true,
-    livingAreaUnits: true,
-
-    bathroomsFull: true,
-    bathroomsHalf: true,
-    bathroomsThreeQuarter: true,
-
-    bedroomsTotal: true,
-    buildingAreaTotal: true,
-
-    featuredListingYN: true,
-    internetAddressDisplayYN: true,
-    internetAutomatedValuationDisplayYN: true,
-
-    levels: true,
-    latitude: true,
-    longitude: true,
-    listPrice: true,
-
-    propertySubType: true,
-    propertyType: true,
-    standardStatus: true,
-
-    streetDirPrefix: true,
-    streetDirSuffix: true,
-    streetName: true,
-    streetNumber: true,
-    streetSuffix: true,
-    unitNumber: true,
-
-    city: true,
-    postalCode: true,
-    stateOrProvince: true,
-    unparsedAddress: true,
-
-    yearBuilt: true,
-  },
-  extras: {
-    memberFullName: (table) => sql<string | null>`${table.listAgentFullName}`,
-    officeName: (table) => sql<string | null>`${table.listOfficeName}`,
-    NWM: (table) => sql<TPropertyNwmFlags>`
-        jsonb_build_object(
-          'NWM_IDXMustRemovePrimaryPhotoYN',
-          ${table.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
-
-          'NWM_IDXMustRemovePhotosYN',
-          ${table.NWM}->>'NWM_IDXMustRemovePhotosYN',
-
-          'NWM_ShowMapLink',
-          ${table.NWM}->>'NWM_ShowMapLink',
-
-          'NWM_StyleCode',
-          ${table.NWM}->>'NWM_StyleCode'
-        )
-      `,
-  },
-  where: {
-    AND: [
-      {
-        mlgCanView: true,
-        deletedAt: { isNull: true },
-        standardStatus: { in: [...DEFAULT_PENDING_STATUSES] },
-      },
-      {
-        RAW: (table) => sql`(
-          ${table.listOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.coListOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.listAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-          ${table.coListAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-          ${table.buyerAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder("memberIds")})
-        )`,
-      }
-    ]
-  },
-  with: {
-    media: {
-      limit: 1,
-      where: {
-        preferredPhotoYN: true,
-        deletedAt: { isNull: true },
-      },
-      with: {
-        media: {
-          with: {
-            variants: {
-              where: {
-                variantName: { in: ['full', 'preview', 'thumbnail'] }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}).prepare("get_pending_properties");
-
-const preparedSoldProperties = db.query.properties.findMany({
-  columns: {
-    listingId: true,
-    listingKey: true,
-
-    livingArea: true,
-    livingAreaUnits: true,
-
-    bathroomsFull: true,
-    bathroomsHalf: true,
-    bathroomsThreeQuarter: true,
-
-    bedroomsTotal: true,
-    buildingAreaTotal: true,
-
-    featuredListingYN: true,
-    internetAddressDisplayYN: true,
-    internetAutomatedValuationDisplayYN: true,
-
-    levels: true,
-    latitude: true,
-    longitude: true,
-    listPrice: true,
-
-    propertySubType: true,
-    propertyType: true,
-    standardStatus: true,
-
-    streetDirPrefix: true,
-    streetDirSuffix: true,
-    streetName: true,
-    streetNumber: true,
-    streetSuffix: true,
-    unitNumber: true,
-
-    city: true,
-    postalCode: true,
-    stateOrProvince: true,
-    unparsedAddress: true,
-
-    yearBuilt: true,
-  },
-  extras: {
-    memberFullName: (table) => sql<string | null>`${table.listAgentFullName}`,
-    officeName: (table) => sql<string | null>`${table.listOfficeName}`,
-    NWM: (table) => sql<TPropertyNwmFlags>`
-        jsonb_build_object(
-          'NWM_IDXMustRemovePrimaryPhotoYN',
-          ${table.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
-
-          'NWM_IDXMustRemovePhotosYN',
-          ${table.NWM}->>'NWM_IDXMustRemovePhotosYN',
-
-          'NWM_ShowMapLink',
-          ${table.NWM}->>'NWM_ShowMapLink',
-
-          'NWM_StyleCode',
-          ${table.NWM}->>'NWM_StyleCode'
-        )
-      `,
-  },
-  where: {
-    AND: [
-      {
-        mlgCanView: true,
-        deletedAt: { isNull: true },
-        standardStatus: { in: [...DEFAULT_SOLD_STATUSES] },
-      },
-      {
-        RAW: (table) => sql`(
-          ${table.listOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.coListOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-          ${table.listAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-          ${table.coListAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-          ${table.buyerAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder("memberIds")})
-        )`,
-      }
-    ]
-  },
-  with: {
-    media: {
-      limit: 1,
-      where: {
-        preferredPhotoYN: true,
-        deletedAt: { isNull: true },
-      },
-      with: {
-        media: {
-          with: {
-            variants: {
-              where: {
-                variantName: { in: ['full', 'preview', 'thumbnail'] }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}).prepare("get_sold_properties");
-
-const preparedFeaturedProperties = db.query.properties.findMany({
-  columns: {
-    listingId: true,
-    listingKey: true,
-
-    livingArea: true,
-    livingAreaUnits: true,
-
-    bathroomsFull: true,
-    bathroomsHalf: true,
-    bathroomsThreeQuarter: true,
-
-    bedroomsTotal: true,
-    buildingAreaTotal: true,
-
-    featuredListingYN: true,
-    internetAddressDisplayYN: true,
-    internetAutomatedValuationDisplayYN: true,
-
-    levels: true,
-    latitude: true,
-    longitude: true,
-    listPrice: true,
-
-    propertySubType: true,
-    propertyType: true,
-    standardStatus: true,
-
-    streetDirPrefix: true,
-    streetDirSuffix: true,
-    streetName: true,
-    streetNumber: true,
-    streetSuffix: true,
-    unitNumber: true,
-
-    city: true,
-    postalCode: true,
-    stateOrProvince: true,
-    unparsedAddress: true,
-
-    yearBuilt: true,
-  },
-  extras: {
-    memberFullName: (table) => sql<string | null>`${table.listAgentFullName}`,
-    officeName: (table) => sql<string | null>`${table.listOfficeName}`,
-    NWM: (table) => sql<TPropertyNwmFlags>`
-        jsonb_build_object(
-          'NWM_IDXMustRemovePrimaryPhotoYN',
-          ${table.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
-
-          'NWM_IDXMustRemovePhotosYN',
-          ${table.NWM}->>'NWM_IDXMustRemovePhotosYN',
-
-          'NWM_ShowMapLink',
-          ${table.NWM}->>'NWM_ShowMapLink',
-
-          'NWM_StyleCode',
-          ${table.NWM}->>'NWM_StyleCode'
-        )
-      `,
-  },
-  where: {
-    OR: [
-      {
-        featuredListingYN: true,
-        mlgCanView: true,
-        deletedAt: { isNull: true },
-        standardStatus: { in: [...DEFAULT_FEATURED_STATUSES] },
-      },
-      {
-        AND: [
-          {
-            mlgCanView: true,
-            deletedAt: { isNull: true },
-            standardStatus: { in: [...DEFAULT_FEATURED_STATUSES] },
+                variantName: { in: ['full', 'preview', 'thumbnail'] },
+              },
+            },
           },
-          {
-            RAW: (table) => sql`(
-              ${table.listOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-              ${table.coListOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-              ${table.buyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-              ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder("officeIds")}) OR
-              ${table.listAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-              ${table.coListAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-              ${table.buyerAgentMlsId} = ANY(${sql.placeholder("memberIds")}) OR
-              ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder("memberIds")})
-            )`,
-          }
-        ]
+        },
       },
-    ]
+    },
   },
-  with: {
-    media: {
-      limit: 1,
-      where: {
-        preferredPhotoYN: true,
-        deletedAt: { isNull: true },
-      },
-      with: {
-        media: {
-          with: {
-            variants: {
-              where: {
-                variantName: { in: ['full', 'preview', 'thumbnail'] }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}).prepare("get_featured_properties");
+});
 
-const formatPropertyCardData = (property: Awaited<ReturnType<typeof preparedActiveProperties.execute>>[number]): TPropertyCard => {
+export type TPropertyCardRow = Awaited<ReturnType<typeof db.query.properties.findMany>>[number] & {
+  memberFullName: string | null;
+  officeName: string | null;
+  NWM: TPropertyNwmFlags;
+  media: Array<{ media: { variants: Array<{ variantName: string; url: string }> } | null }>;
+};
+
+export const formatPropertyCardData = (property: TPropertyCardRow): TPropertyCard => {
   const { NWM, media, ...rest } = property;
   const primaryMedia = media?.[0]?.media;
   const variantMap = Object.fromEntries(
-    (primaryMedia?.variants ?? []).map((v) => [v.variantName, v.url])
+    (primaryMedia?.variants ?? []).map((v) => [v.variantName, v.url]),
   );
 
   return {
@@ -447,14 +123,133 @@ const formatPropertyCardData = (property: Awaited<ReturnType<typeof preparedActi
   };
 };
 
-export async function getAvailableProperties(
-  { officeIds, memberIds }: {
-    /** Office MLS IDs or keys to filter by. Falls back to env.MLS_OFFICE_ID when omitted. */
-    officeIds?: string[];
-    /** Member/agent MLS IDs or keys to filter by. Falls back to env.MLS_MEMBER_ID when omitted. */
-    memberIds?: string[];
-  }
-): Promise<TPropertyCard[]> {
+const preparedActiveProperties = db.query.properties
+  .findMany({
+    ...getPropertyCardQueryConfig(),
+    where: {
+      AND: [
+        {
+          mlgCanView: true,
+          deletedAt: { isNull: true },
+          standardStatus: { in: [...DEFAULT_ACTIVE_STATUSES] },
+        },
+        {
+          RAW: (table) => sql`(
+          ${table.listOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.coListOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.listAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.coListAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.buyerAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder('memberIds')})
+        )`,
+        },
+      ],
+    },
+  })
+  .prepare('get_active_properties');
+
+const preparedPendingProperties = db.query.properties
+  .findMany({
+    ...getPropertyCardQueryConfig(),
+    where: {
+      AND: [
+        {
+          mlgCanView: true,
+          deletedAt: { isNull: true },
+          standardStatus: { in: [...DEFAULT_PENDING_STATUSES] },
+        },
+        {
+          RAW: (table) => sql`(
+          ${table.listOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.coListOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.listAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.coListAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.buyerAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder('memberIds')})
+        )`,
+        },
+      ],
+    },
+  })
+  .prepare('get_pending_properties');
+
+const preparedSoldProperties = db.query.properties
+  .findMany({
+    ...getPropertyCardQueryConfig(),
+    where: {
+      AND: [
+        {
+          mlgCanView: true,
+          deletedAt: { isNull: true },
+          standardStatus: { in: [...DEFAULT_SOLD_STATUSES] },
+        },
+        {
+          RAW: (table) => sql`(
+          ${table.listOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.coListOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.listAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.coListAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.buyerAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder('memberIds')})
+        )`,
+        },
+      ],
+    },
+  })
+  .prepare('get_sold_properties');
+
+const preparedFeaturedProperties = db.query.properties
+  .findMany({
+    ...getPropertyCardQueryConfig(),
+    where: {
+      OR: [
+        {
+          featuredListingYN: true,
+          mlgCanView: true,
+          deletedAt: { isNull: true },
+          standardStatus: { in: [...DEFAULT_FEATURED_STATUSES] },
+        },
+        {
+          AND: [
+            {
+              mlgCanView: true,
+              deletedAt: { isNull: true },
+              standardStatus: { in: [...DEFAULT_FEATURED_STATUSES] },
+            },
+            {
+              RAW: (table) => sql`(
+              ${table.listOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+              ${table.coListOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+              ${table.buyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+              ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+              ${table.listAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+              ${table.coListAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+              ${table.buyerAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+              ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder('memberIds')})
+            )`,
+            },
+          ],
+        },
+      ],
+    },
+  })
+  .prepare('get_featured_properties');
+
+export async function getAvailableProperties({
+  officeIds,
+  memberIds,
+}: {
+  /** Office MLS IDs or keys to filter by. Falls back to env.MLS_OFFICE_ID when omitted. */
+  officeIds?: string[];
+  /** Member/agent MLS IDs or keys to filter by. Falls back to env.MLS_MEMBER_ID when omitted. */
+  memberIds?: string[];
+}): Promise<TPropertyCard[]> {
   if (!officeIds?.length && !memberIds?.length) return [];
 
   const results = await preparedActiveProperties.execute({
@@ -462,17 +257,18 @@ export async function getAvailableProperties(
     memberIds: memberIds ?? [],
   });
 
-  return results.map(formatPropertyCardData);
+  return results.map((row) => formatPropertyCardData(row as TPropertyCardRow));
 }
 
-export async function getPendingProperties(
-  { officeIds, memberIds }: {
-    /** Office MLS IDs or keys to filter by. Falls back to env.MLS_OFFICE_ID when omitted. */
-    officeIds?: string[];
-    /** Member/agent MLS IDs or keys to filter by. Falls back to env.MLS_MEMBER_ID when omitted. */
-    memberIds?: string[];
-  }
-): Promise<TPropertyCard[]> {
+export async function getPendingProperties({
+  officeIds,
+  memberIds,
+}: {
+  /** Office MLS IDs or keys to filter by. Falls back to env.MLS_OFFICE_ID when omitted. */
+  officeIds?: string[];
+  /** Member/agent MLS IDs or keys to filter by. Falls back to env.MLS_MEMBER_ID when omitted. */
+  memberIds?: string[];
+}): Promise<TPropertyCard[]> {
   if (!officeIds?.length && !memberIds?.length) return [];
 
   const results = await preparedPendingProperties.execute({
@@ -480,17 +276,18 @@ export async function getPendingProperties(
     memberIds: memberIds ?? [],
   });
 
-  return results.map(formatPropertyCardData);
+  return results.map((row) => formatPropertyCardData(row as TPropertyCardRow));
 }
 
-export async function getSoldProperties(
-  { officeIds, memberIds }: {
-    /** Office MLS IDs or keys to filter by. Falls back to env.MLS_OFFICE_ID when omitted. */
-    officeIds?: string[];
-    /** Member/agent MLS IDs or keys to filter by. Falls back to env.MLS_MEMBER_ID when omitted. */
-    memberIds?: string[];
-  }
-): Promise<TPropertyCard[]> {
+export async function getSoldProperties({
+  officeIds,
+  memberIds,
+}: {
+  /** Office MLS IDs or keys to filter by. Falls back to env.MLS_OFFICE_ID when omitted. */
+  officeIds?: string[];
+  /** Member/agent MLS IDs or keys to filter by. Falls back to env.MLS_MEMBER_ID when omitted. */
+  memberIds?: string[];
+}): Promise<TPropertyCard[]> {
   if (!officeIds?.length && !memberIds?.length) return [];
 
   const results = await preparedSoldProperties.execute({
@@ -498,21 +295,22 @@ export async function getSoldProperties(
     memberIds: memberIds ?? [],
   });
 
-  return results.map(formatPropertyCardData);
+  return results.map((row) => formatPropertyCardData(row as TPropertyCardRow));
 }
 
-export async function getFeaturedProperties(
-  { officeIds, memberIds }: {
-    /** Office MLS IDs or keys to filter by. Falls back to env.MLS_OFFICE_ID when omitted. */
-    officeIds?: string[];
-    /** Member/agent MLS IDs or keys to filter by. Falls back to env.MLS_MEMBER_ID when omitted. */
-    memberIds?: string[];
-  }
-): Promise<TPropertyCard[]> {
+export async function getFeaturedProperties({
+  officeIds,
+  memberIds,
+}: {
+  /** Office MLS IDs or keys to filter by. Falls back to env.MLS_OFFICE_ID when omitted. */
+  officeIds?: string[];
+  /** Member/agent MLS IDs or keys to filter by. Falls back to env.MLS_MEMBER_ID when omitted. */
+  memberIds?: string[];
+}): Promise<TPropertyCard[]> {
   const results = await preparedFeaturedProperties.execute({
     officeIds: officeIds ?? [],
     memberIds: memberIds ?? [],
   });
 
-  return results.map(formatPropertyCardData);
+  return results.map((row) => formatPropertyCardData(row as TPropertyCardRow));
 }

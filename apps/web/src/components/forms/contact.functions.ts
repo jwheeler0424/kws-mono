@@ -1,3 +1,12 @@
+// import { queueClient } from '@/lib/queue';
+import { env } from '@kws/config/env';
+import {
+  contactEmails,
+  contactNewsletter,
+  contactRequests,
+  contacts,
+  notifications,
+} from '@kws/schema';
 import { render } from '@react-email/render';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
@@ -5,9 +14,6 @@ import { z } from 'zod';
 import { ContactRequestEmail } from '@/emails/contact';
 import { db } from '@/lib/database';
 import { nodemailerClient } from '@/lib/nodemailer';
-// import { queueClient } from '@/lib/queue';
-import { env } from '@kws/config/env';
-import { contactEmails, contactNewsletter, contactRequests, contacts, notifications } from '@kws/schema';
 
 import { contactFormSchema } from './contact.schema';
 
@@ -103,7 +109,7 @@ export const submitContactFn = createServerFn({ method: 'POST' })
           : 'contact@designersimage.io',
       subject,
       html: emailHTML,
-    })
+    });
 
     return {
       success: true,

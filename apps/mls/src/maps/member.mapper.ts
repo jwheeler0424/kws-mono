@@ -1,10 +1,17 @@
-import type { NWM_Member } from '@/types/property';
 import type { members } from '@kws/schema';
 
+import type { NWM_Member } from '@/types/property';
+
+import {
+  parseBoolean,
+  parseLocalFields,
+  parseNullableString,
+  parseStringArray,
+  parseTimestamp,
+} from '@/lib/utils';
 
 import type { MlsMemberPayload } from '../types';
 
-import { parseBoolean, parseLocalFields, parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
 import { mapMedia, type MappedMedia } from './media.mapper';
 
 type MemberInsert = typeof members.$inferInsert;
@@ -16,10 +23,11 @@ export type MappedMember = Omit<MemberInsert, 'createdAt' | 'searchVector'> & {
 
 export function mapMember(payload: MlsMemberPayload): MappedMember {
   const canView = parseBoolean(payload.MlgCanView) === true;
-  const nwm = parseLocalFields(payload, 'NWM_')
+  const nwm = parseLocalFields(payload, 'NWM_');
   const now = new Date();
   const memberMlsId = payload.MemberMlsId;
-  const media = payload.Media?.map((mediaPayload => mapMedia(mediaPayload, payload.MemberMlsId))) ?? [];
+  const media =
+    payload.Media?.map((mediaPayload) => mapMedia(mediaPayload, payload.MemberMlsId)) ?? [];
 
   return {
     memberMlsId,

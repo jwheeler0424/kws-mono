@@ -15,4 +15,3 @@ export * from './review';
 export * from './service';
 export * from './video';
 export * from './website';
-

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { markerCardByListingKeyOptions } from '@/packages/mls/search.options';
+import { markerCardByListingKeyOptions } from '@/features/mls/options/search';
 
 import PropertyCard from './property-card';
 import PropertyCardSkeleton from './property-card-skeleton';

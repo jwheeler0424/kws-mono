@@ -1,247 +1,131 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "20521682-a7a7-43bd-b9a8-c119922d5a64",
-  "prevIds": [
-    "00000000-0000-0000-0000-000000000000"
-  ],
+  "id": "223dc128-eb2a-422b-a452-e5557f71de37",
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
-      "values": [
-        "approved",
-        "pending",
-        "spam",
-        "trash"
-      ],
+      "values": ["approved", "pending", "spam", "trash"],
       "name": "comment_status_enum",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "comment",
-        "pingback",
-        "trackback",
-        "review"
-      ],
+      "values": ["comment", "pingback", "trackback", "review"],
       "name": "comment_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "open",
-        "closed",
-        "registered_only"
-      ],
+      "values": ["open", "closed", "registered_only"],
       "name": "post_comment_status",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "draft",
-        "pending",
-        "published",
-        "scheduled",
-        "private",
-        "trash",
-        "auto_draft"
-      ],
+      "values": ["draft", "pending", "published", "scheduled", "private", "trash", "auto_draft"],
       "name": "post_status",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "post",
-        "page",
-        "revision",
-        "attachment",
-        "custom"
-      ],
+      "values": ["post", "page", "revision", "attachment", "custom"],
       "name": "post_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "public",
-        "private",
-        "password"
-      ],
+      "values": ["public", "private", "password"],
       "name": "post_visibility",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "global",
-        "organization",
-        "user"
-      ],
+      "values": ["global", "organization", "user"],
       "name": "option_scope",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "string",
-        "number",
-        "boolean",
-        "json",
-        "array"
-      ],
+      "values": ["string", "number", "boolean", "json", "array"],
       "name": "option_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "call",
-        "email",
-        "meeting",
-        "sms",
-        "note",
-        "task"
-      ],
+      "values": ["call", "email", "meeting", "sms", "note", "task"],
       "name": "activity_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "home",
-        "work",
-        "billing",
-        "shipping",
-        "other"
-      ],
+      "values": ["home", "work", "billing", "shipping", "other"],
       "name": "address_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "personal",
-        "work",
-        "billing",
-        "support",
-        "other"
-      ],
+      "values": ["personal", "work", "billing", "support", "other"],
       "name": "email_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "mobile",
-        "home",
-        "work",
-        "fax",
-        "other"
-      ],
+      "values": ["mobile", "home", "work", "fax", "other"],
       "name": "phone_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "linkedin",
-        "x",
-        "facebook",
-        "instagram",
-        "tiktok",
-        "github",
-        "other"
-      ],
+      "values": ["linkedin", "x", "facebook", "instagram", "tiktok", "github", "other"],
       "name": "social_platform",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "website",
-        "referral",
-        "import",
-        "newsletter",
-        "event",
-        "social_media",
-        "other"
-      ],
+      "values": ["website", "referral", "import", "newsletter", "event", "social_media", "other"],
       "name": "contact_source",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "lead",
-        "prospect",
-        "customer",
-        "subscriber",
-        "inactive"
-      ],
+      "values": ["lead", "prospect", "customer", "subscriber", "inactive"],
       "name": "contact_status",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "person",
-        "organization"
-      ],
+      "values": ["person", "organization"],
       "name": "contact_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "low",
-        "medium",
-        "high"
-      ],
+      "values": ["low", "medium", "high"],
       "name": "task_priority",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "pending",
-        "in_progress",
-        "completed"
-      ],
+      "values": ["pending", "in_progress", "completed"],
       "name": "task_status",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "s3",
-        "r2",
-        "local"
-      ],
+      "values": ["s3", "r2", "local"],
       "name": "storage_provider",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "global",
-        "organization",
-        "user"
-      ],
+      "values": ["global", "organization", "user"],
       "name": "media_option_scope",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "string",
-        "number",
-        "boolean",
-        "json",
-        "array"
-      ],
+      "values": ["string", "number", "boolean", "json", "array"],
       "name": "media_option_type",
       "entityType": "enums",
       "schema": "public"
@@ -281,30 +165,19 @@
       "schema": "public"
     },
     {
-      "values": [
-        "CONTACT_REQUEST"
-      ],
+      "values": ["CONTACT_REQUEST"],
       "name": "notification_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "hard",
-        "soft",
-        "undetermined"
-      ],
+      "values": ["hard", "soft", "undetermined"],
       "name": "email_bounce_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "draft",
-        "sending",
-        "sent",
-        "paused"
-      ],
+      "values": ["draft", "sending", "sent", "paused"],
       "name": "email_campaign_status",
       "entityType": "enums",
       "schema": "public"
@@ -344,41 +217,25 @@
       "schema": "public"
     },
     {
-      "values": [
-        "open",
-        "click",
-        "unsub"
-      ],
+      "values": ["open", "click", "unsub"],
       "name": "email_tracking_event_type",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "csv",
-        "json"
-      ],
+      "values": ["csv", "json"],
       "name": "email_report_format",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "pending",
-        "complete",
-        "failed"
-      ],
+      "values": ["pending", "complete", "failed"],
       "name": "email_report_status",
       "entityType": "enums",
       "schema": "public"
     },
     {
-      "values": [
-        "hard_bounce",
-        "unsubscribed",
-        "spam_complaint",
-        "manual"
-      ],
+      "values": ["hard_bounce", "unsubscribed", "spam_complaint", "manual"],
       "name": "email_suppression_reason",
       "entityType": "enums",
       "schema": "public"
@@ -20892,14 +20749,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "account_user_id_user_id_fkey",
@@ -20909,14 +20762,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "invitation_organization_id_organization_id_fkey",
@@ -20926,14 +20775,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "inviter_id"
-      ],
+      "columns": ["inviter_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "invitation_inviter_id_user_id_fkey",
@@ -20943,14 +20788,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "member_organization_id_organization_id_fkey",
@@ -20960,14 +20801,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "member_user_id_user_id_fkey",
@@ -20977,14 +20814,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "organization_role_organization_id_organization_id_fkey",
@@ -20994,14 +20827,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "passkey_user_id_user_id_fkey",
@@ -21011,14 +20840,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "session_user_id_user_id_fkey",
@@ -21028,14 +20853,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "team_organization_id_organization_id_fkey",
@@ -21045,14 +20866,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "team_id"
-      ],
+      "columns": ["team_id"],
       "schemaTo": "public",
       "tableTo": "team",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "team_member_team_id_team_id_fkey",
@@ -21062,14 +20879,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "team_member_user_id_user_id_fkey",
@@ -21079,14 +20892,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "two_factor_user_id_user_id_fkey",
@@ -21096,14 +20905,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "comment_id"
-      ],
+      "columns": ["comment_id"],
       "schemaTo": "public",
       "tableTo": "comments",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "comment_flags_comment_id_comments_id_fkey",
@@ -21113,14 +20918,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "comment_flags_user_id_user_id_fkey",
@@ -21130,14 +20931,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "resolved_by"
-      ],
+      "columns": ["resolved_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "comment_flags_resolved_by_user_id_fkey",
@@ -21147,14 +20944,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "comment_id"
-      ],
+      "columns": ["comment_id"],
       "schemaTo": "public",
       "tableTo": "comments",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "comment_meta_comment_id_comments_id_fkey",
@@ -21164,14 +20957,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "post_id"
-      ],
+      "columns": ["post_id"],
       "schemaTo": "public",
       "tableTo": "post",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "comment_subscriptions_post_id_post_id_fkey",
@@ -21181,14 +20970,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "comment_subscriptions_user_id_user_id_fkey",
@@ -21198,14 +20983,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "comment_id"
-      ],
+      "columns": ["comment_id"],
       "schemaTo": "public",
       "tableTo": "comments",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "comment_votes_comment_id_comments_id_fkey",
@@ -21215,14 +20996,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "comment_votes_user_id_user_id_fkey",
@@ -21232,14 +21009,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "post_id"
-      ],
+      "columns": ["post_id"],
       "schemaTo": "public",
       "tableTo": "post",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "comments_post_id_post_id_fkey",
@@ -21249,14 +21022,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "comments_organization_id_organization_id_fkey",
@@ -21266,14 +21035,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "comments_user_id_user_id_fkey",
@@ -21283,14 +21048,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "moderated_by"
-      ],
+      "columns": ["moderated_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "comments_moderated_by_user_id_fkey",
@@ -21300,14 +21061,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "post_id"
-      ],
+      "columns": ["post_id"],
       "schemaTo": "public",
       "tableTo": "post",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_media_attachments_post_id_post_id_fkey",
@@ -21317,14 +21074,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "media_id"
-      ],
+      "columns": ["media_id"],
       "schemaTo": "public",
       "tableTo": "media",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_media_attachments_media_id_media_id_fkey",
@@ -21334,14 +21087,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_media_attachments_organization_id_organization_id_fkey",
@@ -21351,14 +21100,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "post_id"
-      ],
+      "columns": ["post_id"],
       "schemaTo": "public",
       "tableTo": "post",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_meta_post_id_post_id_fkey",
@@ -21368,14 +21113,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "post_id"
-      ],
+      "columns": ["post_id"],
       "schemaTo": "public",
       "tableTo": "post",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_relationships_post_id_post_id_fkey",
@@ -21385,14 +21126,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "related_post_id"
-      ],
+      "columns": ["related_post_id"],
       "schemaTo": "public",
       "tableTo": "post",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_relationships_related_post_id_post_id_fkey",
@@ -21402,14 +21139,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "post_id"
-      ],
+      "columns": ["post_id"],
       "schemaTo": "public",
       "tableTo": "post",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_revisions_post_id_post_id_fkey",
@@ -21419,14 +21152,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "author_id"
-      ],
+      "columns": ["author_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "post_revisions_author_id_user_id_fkey",
@@ -21436,14 +21165,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_organization_id_organization_id_fkey",
@@ -21453,14 +21178,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "author_id"
-      ],
+      "columns": ["author_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "post_author_id_user_id_fkey",
@@ -21470,14 +21191,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "featured_image_id"
-      ],
+      "columns": ["featured_image_id"],
       "schemaTo": "public",
       "tableTo": "media",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "post_featured_image_id_media_id_fkey",
@@ -21487,14 +21204,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "featured_media_id"
-      ],
+      "columns": ["featured_media_id"],
       "schemaTo": "public",
       "tableTo": "media",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "post_featured_media_id_media_id_fkey",
@@ -21504,14 +21217,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "post_id"
-      ],
+      "columns": ["post_id"],
       "schemaTo": "public",
       "tableTo": "post",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_term_relationships_post_id_post_id_fkey",
@@ -21521,14 +21230,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "term_id"
-      ],
+      "columns": ["term_id"],
       "schemaTo": "public",
       "tableTo": "terms",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_term_relationships_term_id_terms_id_fkey",
@@ -21538,14 +21243,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "post_term_relationships_organization_id_organization_id_fkey",
@@ -21555,14 +21256,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "blog_options_organization_id_organization_id_fkey",
@@ -21572,14 +21269,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "blog_options_user_id_user_id_fkey",
@@ -21589,14 +21282,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "post_id"
-      ],
+      "columns": ["post_id"],
       "schemaTo": "public",
       "tableTo": "post",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "preview_tokens_post_id_post_id_fkey",
@@ -21606,14 +21295,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "RESTRICT",
       "name": "preview_tokens_created_by_user_id_fkey",
@@ -21623,14 +21308,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "activities_contact_id_contacts_id_fkey",
@@ -21640,14 +21321,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "activities_created_by_user_id_fkey",
@@ -21657,14 +21334,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "attachments_contact_id_contacts_id_fkey",
@@ -21674,14 +21347,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "uploaded_by"
-      ],
+      "columns": ["uploaded_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "attachments_uploaded_by_user_id_fkey",
@@ -21691,14 +21360,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_addresses_contact_id_contacts_id_fkey",
@@ -21708,14 +21373,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_emails_contact_id_contacts_id_fkey",
@@ -21725,14 +21386,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_phones_contact_id_contacts_id_fkey",
@@ -21742,14 +21399,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_social_profiles_contact_id_contacts_id_fkey",
@@ -21759,14 +21412,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_websites_contact_id_contacts_id_fkey",
@@ -21776,14 +21425,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_companies_contact_id_contacts_id_fkey",
@@ -21793,14 +21438,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "company_id"
-      ],
+      "columns": ["company_id"],
       "schemaTo": "public",
       "tableTo": "companies",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_companies_company_id_companies_id_fkey",
@@ -21810,14 +21451,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_newsletters_contact_id_contacts_id_fkey",
@@ -21827,14 +21464,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "company_id"
-      ],
+      "columns": ["company_id"],
       "schemaTo": "public",
       "tableTo": "companies",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_newsletters_company_id_companies_id_fkey",
@@ -21844,14 +21477,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_search_contact_id_contacts_id_fkey",
@@ -21861,14 +21490,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_tags_contact_id_contacts_id_fkey",
@@ -21878,14 +21503,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "tag_id"
-      ],
+      "columns": ["tag_id"],
       "schemaTo": "public",
       "tableTo": "terms",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "contact_tags_tag_id_terms_id_fkey",
@@ -21895,14 +21516,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "contact_id"
-      ],
+      "columns": ["contact_id"],
       "schemaTo": "public",
       "tableTo": "contacts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "tasks_contact_id_contacts_id_fkey",
@@ -21912,14 +21529,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "assigned_to"
-      ],
+      "columns": ["assigned_to"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "tasks_assigned_to_user_id_fkey",
@@ -21929,14 +21542,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "media_organization_id_organization_id_fkey",
@@ -21946,14 +21555,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "uploaded_by"
-      ],
+      "columns": ["uploaded_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "media_uploaded_by_user_id_fkey",
@@ -21963,14 +21568,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "media_folders_organization_id_organization_id_fkey",
@@ -21980,14 +21581,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "media_folders_created_by_user_id_fkey",
@@ -21997,14 +21594,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "media_id"
-      ],
+      "columns": ["media_id"],
       "schemaTo": "public",
       "tableTo": "media",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "media_variants_media_id_media_id_fkey",
@@ -22014,14 +21607,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "media_options_organization_id_organization_id_fkey",
@@ -22031,14 +21620,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "media_options_user_id_user_id_fkey",
@@ -22048,14 +21633,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "media_id"
-      ],
+      "columns": ["media_id"],
       "schemaTo": "public",
       "tableTo": "media",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "media_term_relationships_media_id_media_id_fkey",
@@ -22065,14 +21646,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "term_id"
-      ],
+      "columns": ["term_id"],
       "schemaTo": "public",
       "tableTo": "terms",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "media_term_relationships_term_id_terms_id_fkey",
@@ -22082,14 +21659,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "media_term_relationships_organization_id_organization_id_fkey",
@@ -22099,14 +21672,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "media_id"
-      ],
+      "columns": ["media_id"],
       "schemaTo": "public",
       "tableTo": "media",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "mls_media_media_id_media_id_fkey",
@@ -22116,14 +21685,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "listing_key"
-      ],
+      "columns": ["listing_key"],
       "schemaTo": "public",
       "tableTo": "properties",
-      "columnsTo": [
-        "listing_key"
-      ],
+      "columnsTo": ["listing_key"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "open_houses_listing_key_properties_listing_key_fkey",
@@ -22133,14 +21698,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "listing_key"
-      ],
+      "columns": ["listing_key"],
       "schemaTo": "public",
       "tableTo": "properties",
-      "columnsTo": [
-        "listing_key"
-      ],
+      "columnsTo": ["listing_key"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "property_rooms_listing_key_properties_listing_key_fkey",
@@ -22150,14 +21711,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "listing_key"
-      ],
+      "columns": ["listing_key"],
       "schemaTo": "public",
       "tableTo": "properties",
-      "columnsTo": [
-        "listing_key"
-      ],
+      "columnsTo": ["listing_key"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "property_unit_types_listing_key_properties_listing_key_fkey",
@@ -22167,14 +21724,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "notifications_user_id_user_id_fkey",
@@ -22184,14 +21737,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "send_id"
-      ],
+      "columns": ["send_id"],
       "schemaTo": "public",
       "tableTo": "email_sends",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_bounces_send_id_email_sends_id_fkey",
@@ -22201,14 +21750,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "campaign_id"
-      ],
+      "columns": ["campaign_id"],
       "schemaTo": "public",
       "tableTo": "email_campaigns",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_campaign_stats_campaign_id_email_campaigns_id_fkey",
@@ -22218,14 +21763,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "send_id"
-      ],
+      "columns": ["send_id"],
       "schemaTo": "public",
       "tableTo": "email_sends",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_events_send_id_email_sends_id_fkey",
@@ -22235,14 +21776,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "campaign_id"
-      ],
+      "columns": ["campaign_id"],
       "schemaTo": "public",
       "tableTo": "email_campaigns",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_events_campaign_id_email_campaigns_id_fkey",
@@ -22252,14 +21789,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "campaign_id"
-      ],
+      "columns": ["campaign_id"],
       "schemaTo": "public",
       "tableTo": "email_campaigns",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_events_hourly_campaign_id_email_campaigns_id_fkey",
@@ -22269,14 +21802,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "campaign_id"
-      ],
+      "columns": ["campaign_id"],
       "schemaTo": "public",
       "tableTo": "email_campaigns",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_link_stats_campaign_id_email_campaigns_id_fkey",
@@ -22286,14 +21815,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "campaign_id"
-      ],
+      "columns": ["campaign_id"],
       "schemaTo": "public",
       "tableTo": "email_campaigns",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_sends_campaign_id_email_campaigns_id_fkey",
@@ -22303,14 +21828,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "send_id"
-      ],
+      "columns": ["send_id"],
       "schemaTo": "public",
       "tableTo": "email_sends",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "email_suppression_list_send_id_email_sends_id_fkey",
@@ -22320,14 +21841,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "send_id"
-      ],
+      "columns": ["send_id"],
       "schemaTo": "public",
       "tableTo": "email_sends",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_tracking_tokens_send_id_email_sends_id_fkey",
@@ -22337,14 +21854,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "webhook_id"
-      ],
+      "columns": ["webhook_id"],
       "schemaTo": "public",
       "tableTo": "email_webhooks",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_webhook_deliveries_webhook_id_email_webhooks_id_fkey",
@@ -22354,14 +21867,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "event_id"
-      ],
+      "columns": ["event_id"],
       "schemaTo": "public",
       "tableTo": "email_events",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "email_webhook_deliveries_event_id_email_events_id_fkey",
@@ -22371,14 +21880,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "taxonomies_organization_id_organization_id_fkey",
@@ -22388,14 +21893,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "term_id"
-      ],
+      "columns": ["term_id"],
       "schemaTo": "public",
       "tableTo": "terms",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "term_meta_term_id_terms_id_fkey",
@@ -22405,14 +21906,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "taxonomy_id"
-      ],
+      "columns": ["taxonomy_id"],
       "schemaTo": "public",
       "tableTo": "taxonomies",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "terms_taxonomy_id_taxonomies_id_fkey",
@@ -22422,14 +21919,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "terms_organization_id_organization_id_fkey",
@@ -22438,9 +21931,7 @@
       "table": "terms"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "account_pkey",
       "schema": "public",
@@ -22448,9 +21939,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "invitation_pkey",
       "schema": "public",
@@ -22458,9 +21947,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "member_pkey",
       "schema": "public",
@@ -22468,9 +21955,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "organization_pkey",
       "schema": "public",
@@ -22478,9 +21963,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "organization_role_pkey",
       "schema": "public",
@@ -22488,9 +21971,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "passkey_pkey",
       "schema": "public",
@@ -22498,9 +21979,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "session_pkey",
       "schema": "public",
@@ -22508,9 +21987,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "team_pkey",
       "schema": "public",
@@ -22518,9 +21995,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "team_member_pkey",
       "schema": "public",
@@ -22528,9 +22003,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "two_factor_pkey",
       "schema": "public",
@@ -22538,9 +22011,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "user_pkey",
       "schema": "public",
@@ -22548,9 +22019,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "comment_flags_pkey",
       "schema": "public",
@@ -22558,9 +22027,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "comment_meta_pkey",
       "schema": "public",
@@ -22568,9 +22035,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "comment_subscriptions_pkey",
       "schema": "public",
@@ -22578,9 +22043,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "comment_votes_pkey",
       "schema": "public",
@@ -22588,9 +22051,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "comments_pkey",
       "schema": "public",
@@ -22598,9 +22059,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "post_media_attachments_pkey",
       "schema": "public",
@@ -22608,9 +22067,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "post_meta_pkey",
       "schema": "public",
@@ -22618,9 +22075,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "post_relationships_pkey",
       "schema": "public",
@@ -22628,9 +22083,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "post_revisions_pkey",
       "schema": "public",
@@ -22638,9 +22091,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "post_pkey",
       "schema": "public",
@@ -22648,9 +22099,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "post_term_relationships_pkey",
       "schema": "public",
@@ -22658,9 +22107,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "blog_options_pkey",
       "schema": "public",
@@ -22668,9 +22115,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "preview_tokens_pkey",
       "schema": "public",
@@ -22678,9 +22123,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contact_requests_pkey",
       "schema": "public",
@@ -22688,9 +22131,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "activities_pkey",
       "schema": "public",
@@ -22698,9 +22139,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "attachments_pkey",
       "schema": "public",
@@ -22708,9 +22147,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contact_addresses_pkey",
       "schema": "public",
@@ -22718,9 +22155,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contact_emails_pkey",
       "schema": "public",
@@ -22728,9 +22163,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contact_phones_pkey",
       "schema": "public",
@@ -22738,9 +22171,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contact_social_profiles_pkey",
       "schema": "public",
@@ -22748,9 +22179,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contact_websites_pkey",
       "schema": "public",
@@ -22758,9 +22187,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "companies_pkey",
       "schema": "public",
@@ -22768,9 +22195,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contact_companies_pkey",
       "schema": "public",
@@ -22778,9 +22203,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contact_newsletters_pkey",
       "schema": "public",
@@ -22788,9 +22211,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contacts_pkey",
       "schema": "public",
@@ -22798,9 +22219,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "contact_search_pkey",
       "schema": "public",
@@ -22808,9 +22227,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "tasks_pkey",
       "schema": "public",
@@ -22818,9 +22235,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "geo_cache_pkey",
       "schema": "public",
@@ -22828,9 +22243,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "media_pkey",
       "schema": "public",
@@ -22838,9 +22251,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "media_folders_pkey",
       "schema": "public",
@@ -22848,9 +22259,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "media_variants_pkey",
       "schema": "public",
@@ -22858,9 +22267,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "media_options_pkey",
       "schema": "public",
@@ -22868,9 +22275,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "media_term_relationships_pkey",
       "schema": "public",
@@ -22878,9 +22283,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "lookup_key"
-      ],
+      "columns": ["lookup_key"],
       "nameExplicit": false,
       "name": "lookups_pkey",
       "schema": "public",
@@ -22888,9 +22291,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "media_key"
-      ],
+      "columns": ["media_key"],
       "nameExplicit": false,
       "name": "mls_media_pkey",
       "schema": "public",
@@ -22898,9 +22299,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "member_mls_id"
-      ],
+      "columns": ["member_mls_id"],
       "nameExplicit": false,
       "name": "members_pkey",
       "schema": "public",
@@ -22908,9 +22307,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "office_mls_id"
-      ],
+      "columns": ["office_mls_id"],
       "nameExplicit": false,
       "name": "offices_pkey",
       "schema": "public",
@@ -22918,9 +22315,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "open_house_key"
-      ],
+      "columns": ["open_house_key"],
       "nameExplicit": false,
       "name": "open_houses_pkey",
       "schema": "public",
@@ -22928,9 +22323,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "listing_key"
-      ],
+      "columns": ["listing_key"],
       "nameExplicit": false,
       "name": "properties_pkey",
       "schema": "public",
@@ -22938,9 +22331,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "room_key"
-      ],
+      "columns": ["room_key"],
       "nameExplicit": false,
       "name": "property_rooms_pkey",
       "schema": "public",
@@ -22948,9 +22339,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "unit_type_key"
-      ],
+      "columns": ["unit_type_key"],
       "nameExplicit": false,
       "name": "property_unit_types_pkey",
       "schema": "public",
@@ -22958,9 +22347,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "mls_sync_cursors_pkey",
       "schema": "public",
@@ -22968,9 +22355,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "notifications_pkey",
       "schema": "public",
@@ -22978,9 +22363,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_audit_log_pkey",
       "schema": "public",
@@ -22988,9 +22371,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_bounces_pkey",
       "schema": "public",
@@ -22998,9 +22379,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "campaign_id"
-      ],
+      "columns": ["campaign_id"],
       "nameExplicit": false,
       "name": "email_campaign_stats_pkey",
       "schema": "public",
@@ -23008,9 +22387,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_campaigns_pkey",
       "schema": "public",
@@ -23018,9 +22395,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_events_pkey",
       "schema": "public",
@@ -23028,9 +22403,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_events_hourly_pkey",
       "schema": "public",
@@ -23038,9 +22411,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_link_stats_pkey",
       "schema": "public",
@@ -23048,9 +22419,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_report_schedules_pkey",
       "schema": "public",
@@ -23058,9 +22427,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_reports_pkey",
       "schema": "public",
@@ -23068,9 +22435,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_sends_pkey",
       "schema": "public",
@@ -23078,9 +22443,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "email"
-      ],
+      "columns": ["email"],
       "nameExplicit": false,
       "name": "email_suppression_list_pkey",
       "schema": "public",
@@ -23088,9 +22451,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "token"
-      ],
+      "columns": ["token"],
       "nameExplicit": false,
       "name": "email_tracking_tokens_pkey",
       "schema": "public",
@@ -23098,9 +22459,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_webhook_deliveries_pkey",
       "schema": "public",
@@ -23108,9 +22467,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "email_webhooks_pkey",
       "schema": "public",
@@ -23118,9 +22475,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "dead_letter_events_pkey",
       "schema": "public",
@@ -23128,9 +22483,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "job_idempotency_pkey",
       "schema": "public",
@@ -23138,9 +22491,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "job_runs_pkey",
       "schema": "public",
@@ -23148,9 +22499,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "queue_operation_audit_pkey",
       "schema": "public",
@@ -23158,9 +22507,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "scheduler_registry_pkey",
       "schema": "public",
@@ -23168,9 +22515,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "taxonomies_pkey",
       "schema": "public",
@@ -23178,9 +22523,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "term_meta_pkey",
       "schema": "public",
@@ -23188,9 +22531,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "terms_pkey",
       "schema": "public",
@@ -23199,9 +22540,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "slug"
-      ],
+      "columns": ["slug"],
       "nullsNotDistinct": false,
       "name": "organization_slug_key",
       "schema": "public",
@@ -23210,9 +22549,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "token"
-      ],
+      "columns": ["token"],
       "nullsNotDistinct": false,
       "name": "session_token_key",
       "schema": "public",
@@ -23221,9 +22558,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "email"
-      ],
+      "columns": ["email"],
       "nullsNotDistinct": false,
       "name": "user_email_key",
       "schema": "public",
@@ -23232,9 +22567,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "username"
-      ],
+      "columns": ["username"],
       "nullsNotDistinct": false,
       "name": "user_username_key",
       "schema": "public",
@@ -23243,9 +22576,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "token"
-      ],
+      "columns": ["token"],
       "nullsNotDistinct": false,
       "name": "preview_tokens_token_key",
       "schema": "public",

@@ -1,7 +1,5 @@
 import type { mlsMedia } from '@kws/schema';
 
-import type { MlsMediaPayload } from '../types';
-
 import {
   parseBoolean,
   parseIntegerValue,
@@ -9,6 +7,8 @@ import {
   parseStringArray,
   parseTimestamp,
 } from '@/lib/utils';
+
+import type { MlsMediaPayload } from '../types';
 
 type MediaInsert = typeof mlsMedia.$inferInsert;
 

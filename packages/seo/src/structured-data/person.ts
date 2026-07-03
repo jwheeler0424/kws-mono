@@ -1,14 +1,14 @@
-import { jsonLd, type JsonLdBase } from './common'
+import { jsonLd, type JsonLdBase } from './common';
 
 export type PersonSchemaInput = {
-  name: string
-  url?: string
-  image?: string | string[]
-  jobTitle?: string
-  sameAs?: string[]
-  worksFor?: { name: string; url?: string }
-  knowsAbout?: string[]
-}
+  name: string;
+  url?: string;
+  image?: string | string[];
+  jobTitle?: string;
+  sameAs?: string[];
+  worksFor?: { name: string; url?: string };
+  knowsAbout?: string[];
+};
 
 export function personSchema(input: PersonSchemaInput): JsonLdBase<'Person'> {
   return jsonLd({
@@ -20,13 +20,13 @@ export function personSchema(input: PersonSchemaInput): JsonLdBase<'Person'> {
     ...(input.sameAs?.length ? { sameAs: input.sameAs } : {}),
     ...(input.worksFor
       ? {
-        worksFor: {
-          '@type': 'Organization',
-          name: input.worksFor.name,
-          ...(input.worksFor.url ? { url: input.worksFor.url } : {}),
-        },
-      }
+          worksFor: {
+            '@type': 'Organization',
+            name: input.worksFor.name,
+            ...(input.worksFor.url ? { url: input.worksFor.url } : {}),
+          },
+        }
       : {}),
     ...(input.knowsAbout?.length ? { knowsAbout: input.knowsAbout } : {}),
-  })
+  });
 }

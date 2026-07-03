@@ -1,75 +1,79 @@
+import type { properties, standardStatusEnum } from '@kws/schema';
+
 import z from 'zod';
 
-import type { properties, standardStatusEnum } from '@kws/schema';
 import type { Resolve } from './utils';
-
 
 export type StandardStatus = (typeof standardStatusEnum.enumValues)[number];
 export type PropertyType = (typeof properties.propertyType.enumValues)[number];
 
 export type PropertyListing = typeof properties.$inferSelect;
 
-export type TAddressData = Resolve<Pick<
-  PropertyListing,
-  | 'streetDirPrefix'
-  | 'streetDirSuffix'
-  | 'streetName'
-  | 'streetNumber'
-  | 'streetSuffix'
-  | 'unitNumber'
-  | 'city'
-  | 'postalCode'
-  | 'stateOrProvince'
-  | 'unparsedAddress'
->>;
-
-export type TPropertyCard = Resolve<Pick<
-  PropertyListing,
-  | 'listingId'
-  | 'listingKey'
-  | 'livingArea'
-  | 'livingAreaUnits'
-  | 'bathroomsFull'
-  | 'bathroomsHalf'
-  | 'bathroomsThreeQuarter'
-  | 'bedroomsTotal'
-  | 'buildingAreaTotal'
-  | 'featuredListingYN'
-  | 'internetAddressDisplayYN'
-  | 'internetAutomatedValuationDisplayYN'
-  | 'levels'
-  | 'latitude'
-  | 'longitude'
-  | 'listPrice'
-  | 'propertySubType'
-  | 'propertyType'
-  | 'standardStatus'
-  | 'streetDirPrefix'
-  | 'streetDirSuffix'
-  | 'streetName'
-  | 'streetNumber'
-  | 'streetSuffix'
-  | 'unitNumber'
-  | 'city'
-  | 'postalCode'
-  | 'stateOrProvince'
-  | 'unparsedAddress'
-  | 'yearBuilt'
-> &
+export type TAddressData = Resolve<
   Pick<
-    NWM_Property,
-    | 'NWM_IDXMustRemovePrimaryPhotoYN'
-    | 'NWM_IDXMustRemovePhotosYN'
-    | 'NWM_ShowMapLink'
-    | 'NWM_StyleCode'
-  > & {
-    memberFullName: string | null;
-    officeName: string | null;
-    primaryPhotoUrl: string | null;
-    primaryPhotoFullUrl: string | null;
-    primaryPhotoPreviewUrl: string | null;
-    primaryPhotoThumbnailUrl: string | null;
-  }>;
+    PropertyListing,
+    | 'streetDirPrefix'
+    | 'streetDirSuffix'
+    | 'streetName'
+    | 'streetNumber'
+    | 'streetSuffix'
+    | 'unitNumber'
+    | 'city'
+    | 'postalCode'
+    | 'stateOrProvince'
+    | 'unparsedAddress'
+  >
+>;
+
+export type TPropertyCard = Resolve<
+  Pick<
+    PropertyListing,
+    | 'listingId'
+    | 'listingKey'
+    | 'livingArea'
+    | 'livingAreaUnits'
+    | 'bathroomsFull'
+    | 'bathroomsHalf'
+    | 'bathroomsThreeQuarter'
+    | 'bedroomsTotal'
+    | 'buildingAreaTotal'
+    | 'featuredListingYN'
+    | 'internetAddressDisplayYN'
+    | 'internetAutomatedValuationDisplayYN'
+    | 'levels'
+    | 'latitude'
+    | 'longitude'
+    | 'listPrice'
+    | 'propertySubType'
+    | 'propertyType'
+    | 'standardStatus'
+    | 'streetDirPrefix'
+    | 'streetDirSuffix'
+    | 'streetName'
+    | 'streetNumber'
+    | 'streetSuffix'
+    | 'unitNumber'
+    | 'city'
+    | 'postalCode'
+    | 'stateOrProvince'
+    | 'unparsedAddress'
+    | 'yearBuilt'
+  > &
+    Pick<
+      NWM_Property,
+      | 'NWM_IDXMustRemovePrimaryPhotoYN'
+      | 'NWM_IDXMustRemovePhotosYN'
+      | 'NWM_ShowMapLink'
+      | 'NWM_StyleCode'
+    > & {
+      memberFullName: string | null;
+      officeName: string | null;
+      primaryPhotoUrl: string | null;
+      primaryPhotoFullUrl: string | null;
+      primaryPhotoPreviewUrl: string | null;
+      primaryPhotoThumbnailUrl: string | null;
+    }
+>;
 
 export type TPropertyMediaVariants = {
   fullUrl: string;

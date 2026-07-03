@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import type * as React from "react";
+import type * as React from 'react';
 
 // ─── OverflowOrientation ──────────────────────────────────────────────────────
 
@@ -13,7 +13,7 @@ import type * as React from "react";
  * - `grid`       — CSS grid layout; excess hidden when height exceeded.
  * - `none`       — no overflow detection; all items always visible.
  */
-export type OverflowOrientation = "horizontal" | "vertical" | "wrap" | "grid" | "none";
+export type OverflowOrientation = 'horizontal' | 'vertical' | 'wrap' | 'grid' | 'none';
 
 // ─── OverflowFitStrategy ──────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ export type OverflowOrientation = "horizontal" | "vertical" | "wrap" | "grid" | 
  *                 Allows more items to appear when they can be compressed.
  * - `balanced`  — try `preferred` first; fall back to `min` when space is tight.
  */
-export type OverflowFitStrategy = "preferred" | "min" | "balanced";
+export type OverflowFitStrategy = 'preferred' | 'min' | 'balanced';
 
 // ─── OverflowInfo ─────────────────────────────────────────────────────────────
 

@@ -32,10 +32,7 @@ function normalizeStringValue(value: string): string {
   const first = s.charCodeAt(0);
   const last = s.charCodeAt(s.length - 1);
 
-  if (
-    first <= 32 ||
-    last <= 32
-  ) {
+  if (first <= 32 || last <= 32) {
     s = s.trim();
   }
 
@@ -171,10 +168,11 @@ export function parseRealNumber(v: unknown): number | null {
   return isFinite(n) ? n : null;
 }
 
-export function parseLocalFields(payload: Record<string, unknown>, prefix: string): Record<string, unknown> {
-  const normalizedPrefix = prefix.endsWith('_')
-    ? prefix
-    : `${prefix}_`;
+export function parseLocalFields(
+  payload: Record<string, unknown>,
+  prefix: string,
+): Record<string, unknown> {
+  const normalizedPrefix = prefix.endsWith('_') ? prefix : `${prefix}_`;
 
   const result: Record<string, unknown> = {};
 

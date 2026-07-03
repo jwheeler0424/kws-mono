@@ -1,10 +1,10 @@
-import type { NWM_Property, NWM_PropertyUnitType } from '@/types/property';
 import type { properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
-
-import { computePropertyCells } from '@/lib/h3';
+import type { PropertyType, StandardStatus } from '@kws/types';
 
 import type { MlsPropertyPayload, MlsRoomPayload, MlsUnitTypePayload } from '@/types';
+import type { NWM_Property, NWM_PropertyUnitType } from '@/types/property';
 
+import { computePropertyCells } from '@/lib/h3';
 import {
   parseBoolean,
   parseIntegerValue,
@@ -15,7 +15,7 @@ import {
   parseStringArray,
   parseTimestamp,
 } from '@/lib/utils';
-import type { PropertyType, StandardStatus } from '@kws/types';
+
 import { mapMedia, type MappedMedia } from './media.mapper';
 // ---------------------------------------------------------------------------
 // Output types
@@ -93,12 +93,17 @@ function normalizeStandardStatus(value: string | null | undefined): StandardStat
 
 export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
   const canView = parseBoolean(payload.MlgCanView) === true;
-  const nwm = parseLocalFields(payload, 'NWM_')
+  const nwm = parseLocalFields(payload, 'NWM_');
   const now = new Date();
 
-  const media = payload.Media?.map((mediaPayload => mapMedia(mediaPayload, payload.ListingKey))) ?? [];
-  const rooms = payload.Rooms?.map((roomPayload => mapPropertyRoom(roomPayload, payload.ListingKey))) ?? []
-  const unitTypes = payload.UnitTypes?.map((unitTypePayload => mapPropertyUnitType(unitTypePayload, payload.ListingKey))) ?? []
+  const media =
+    payload.Media?.map((mediaPayload) => mapMedia(mediaPayload, payload.ListingKey)) ?? [];
+  const rooms =
+    payload.Rooms?.map((roomPayload) => mapPropertyRoom(roomPayload, payload.ListingKey)) ?? [];
+  const unitTypes =
+    payload.UnitTypes?.map((unitTypePayload) =>
+      mapPropertyUnitType(unitTypePayload, payload.ListingKey),
+    ) ?? [];
 
   const lat = parseRealNumber(payload.Latitude);
   const lng = parseRealNumber(payload.Longitude);
@@ -419,7 +424,7 @@ export function mapPropertyUnitType(
   payload: MlsUnitTypePayload,
   listingKey: string,
 ): MappedPropertyUnitType {
-  const nwm = parseLocalFields(payload, 'NWM_')
+  const nwm = parseLocalFields(payload, 'NWM_');
   return {
     unitTypeKey: payload.UnitTypeKey,
     listingKey,

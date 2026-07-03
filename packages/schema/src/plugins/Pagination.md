@@ -51,24 +51,24 @@ Effective values:
 
 1. safePage = positive normalized page, fallback 1.
 2. safePageSize = positive normalized page size, capped to 100.
-3. offset = (safePage - 1) * safePageSize.
+3. offset = (safePage - 1) \* safePageSize.
 
 Applied builder calls:
 
 ```ts
-qb.limit(safePageSize).offset((safePage - 1) * safePageSize)
+qb.limit(safePageSize).offset((safePage - 1) * safePageSize);
 ```
 
 ## Input-to-output examples
 
 ```ts
-withPagination(qb, 1, 10);       // limit 10,  offset 0
-withPagination(qb, 2, 25);       // limit 25,  offset 25
-withPagination(qb, 0, 0);        // limit 10,  offset 0
-withPagination(qb, -2.7, 5.9);   // limit 5,   offset 0
-withPagination(qb, 2, 5000);     // limit 100, offset 100
+withPagination(qb, 1, 10); // limit 10,  offset 0
+withPagination(qb, 2, 25); // limit 25,  offset 25
+withPagination(qb, 0, 0); // limit 10,  offset 0
+withPagination(qb, -2.7, 5.9); // limit 5,   offset 0
+withPagination(qb, 2, 5000); // limit 100, offset 100
 withPagination(qb, Infinity, 50); // limit 50, offset 0
-withPagination(qb, 3, NaN);      // limit 10,  offset 20
+withPagination(qb, 3, NaN); // limit 10,  offset 20
 ```
 
 ## Recommended usage pattern
@@ -79,11 +79,11 @@ import { asc } from 'drizzle-orm';
 import { withPagination } from '../../plugins/pagination';
 
 const base = db
-	.select()
-	.from(properties)
-	.where(filters)
-	.orderBy(asc(properties.listingKey))
-	.$dynamic();
+  .select()
+  .from(properties)
+  .where(filters)
+  .orderBy(asc(properties.listingKey))
+  .$dynamic();
 
 const paged = withPagination(base, page, pageSize);
 ```

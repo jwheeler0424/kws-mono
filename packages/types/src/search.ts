@@ -19,19 +19,9 @@ export const mapBoundsSchema = z.object({
   southWest: mapPositionSchema,
 });
 
-export const isValidMapBounds = (
-  bounds: z.infer<typeof mapBoundsSchema> | null | undefined,
-): bounds is z.infer<typeof mapBoundsSchema> => {
-  if (!bounds) {
-    return false;
-  }
+export const sortBySchema = z.enum(['newest', 'priceAsc', 'priceDesc', 'proximity']);
 
-  return bounds.southWest.lat < bounds.northEast.lat && bounds.southWest.lng < bounds.northEast.lng;
-};
-
-const sortBySchema = z.enum(['newest', 'priceAsc', 'priceDesc', 'proximity']);
-
-const proximitySchema = z.object({
+export const proximitySchema = z.object({
   lat: z.number().refine((val) => val >= -90 && val <= 90, {
     message: 'Latitude must be between -90 and 90',
   }),
@@ -41,63 +31,7 @@ const proximitySchema = z.object({
   radiusMiles: z.number().positive(),
 });
 
-const parseLegacyBounds = (value: unknown): z.infer<typeof mapBoundsSchema> | undefined => {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const parts = value
-    .split(',')
-    .map((token) => Number(token.trim()))
-    .filter((num) => Number.isFinite(num));
-
-  if (parts.length !== 4) {
-    return undefined;
-  }
-
-  const [northEastLat, northEastLng, southWestLat, southWestLng] = parts;
-
-  return {
-    northEast: { lat: northEastLat, lng: northEastLng },
-    southWest: { lat: southWestLat, lng: southWestLng },
-  };
-};
-
-const parseLegacyNumber = (value: unknown): number | null => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.floor(value);
-  }
-
-  if (typeof value !== 'string' || value.trim() === '') {
-    return null;
-  }
-
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return null;
-  }
-
-  return Math.floor(numeric);
-};
-
-const parseLegacyLimit = (
-  min: unknown,
-  max: unknown,
-): z.infer<typeof queryResourceLimitSchema> | null => {
-  const parsedMin = parseLegacyNumber(min);
-  const parsedMax = parseLegacyNumber(max);
-
-  if (parsedMin === null && parsedMax === null) {
-    return null;
-  }
-
-  return {
-    min: parsedMin,
-    max: parsedMax,
-  };
-};
-
-const listingsSearchShapeSchema = z.object({
+export const listingsSearchShapeSchema = z.object({
   query: querySchema.nullable(),
   limit: queryLimitSchema.nullable(),
   price: queryResourceLimitSchema.nullable(),
@@ -110,7 +44,17 @@ const listingsSearchShapeSchema = z.object({
   proximity: proximitySchema.nullable(),
 });
 
-const normalizeRange = (
+export const isValidMapBounds = (
+  bounds: z.infer<typeof mapBoundsSchema> | null | undefined,
+): bounds is z.infer<typeof mapBoundsSchema> => {
+  if (!bounds) {
+    return false;
+  }
+
+  return bounds.southWest.lat < bounds.northEast.lat && bounds.southWest.lng < bounds.northEast.lng;
+};
+
+export const normalizeRange = (
   value: z.infer<typeof queryResourceLimitSchema> | null | undefined,
 ): z.infer<typeof queryResourceLimitSchema> | null => {
   if (!value) {
@@ -127,7 +71,7 @@ const normalizeRange = (
   return { min, max };
 };
 
-const normalizeListingsSearch = (
+export const normalizeListingsSearch = (
   value: z.infer<typeof listingsSearchShapeSchema>,
 ): z.infer<typeof listingsSearchShapeSchema> => {
   const useMapBounds = Boolean(value.useMapBounds);
@@ -147,69 +91,6 @@ const normalizeListingsSearch = (
   };
 };
 
-export const toCanonicalListingsSearch = (
-  search: Partial<z.infer<typeof listingsSearchShapeSchema>>,
-) =>
-  normalizeListingsSearch({
-    query: search.query ?? null,
-    limit: search.limit ?? null,
-    price: search.price ?? null,
-    sqFt: search.sqFt ?? null,
-    bedrooms: search.bedrooms ?? null,
-    bathrooms: search.bathrooms ?? null,
-    useMapBounds: search.useMapBounds ?? null,
-    bounds: search.bounds ?? null,
-    sortBy: search.sortBy ?? null,
-    proximity: search.proximity ?? null,
-  });
-
-export const listingsSearchSchema = z
-  .object({
-    query: querySchema.nullable().optional(),
-    q: z.string().trim().optional(),
-    limit: queryLimitSchema.nullable().optional(),
-    price: queryResourceLimitSchema.nullable().optional(),
-    sqFt: queryResourceLimitSchema.nullable().optional(),
-    bedrooms: queryResourceLimitSchema.nullable().optional(),
-    bathrooms: queryResourceLimitSchema.nullable().optional(),
-    useMapBounds: z.boolean().nullable().optional(),
-    mapBounds: z.string().optional(),
-    bounds: mapBoundsSchema.nullable().optional(),
-    sortBy: sortBySchema.nullable().optional(),
-    proximity: proximitySchema.nullable().optional(),
-    priceMin: z.union([z.string(), z.number()]).optional(),
-    priceMax: z.union([z.string(), z.number()]).optional(),
-    sqFtMin: z.union([z.string(), z.number()]).optional(),
-    sqFtMax: z.union([z.string(), z.number()]).optional(),
-    bedroomsMin: z.union([z.string(), z.number()]).optional(),
-    bedroomsMax: z.union([z.string(), z.number()]).optional(),
-    bathroomsMin: z.union([z.string(), z.number()]).optional(),
-    bathroomsMax: z.union([z.string(), z.number()]).optional(),
-  })
-  .transform((value) => {
-    const price = value.price ?? parseLegacyLimit(value.priceMin, value.priceMax) ?? null;
-    const sqFt = value.sqFt ?? parseLegacyLimit(value.sqFtMin, value.sqFtMax) ?? null;
-    const bedrooms =
-      value.bedrooms ?? parseLegacyLimit(value.bedroomsMin, value.bedroomsMax) ?? null;
-    const bathrooms =
-      value.bathrooms ?? parseLegacyLimit(value.bathroomsMin, value.bathroomsMax) ?? null;
-
-    return normalizeListingsSearch({
-      query: value.query ?? value.q ?? null,
-      limit: value.limit ?? null,
-      price,
-      sqFt,
-      bedrooms,
-      bathrooms,
-      useMapBounds:
-        value.useMapBounds ?? Boolean(value.bounds ?? parseLegacyBounds(value.mapBounds)),
-      bounds: value.bounds ?? parseLegacyBounds(value.mapBounds) ?? null,
-      sortBy: value.sortBy ?? null,
-      proximity: value.proximity ?? null,
-    });
-  })
-  .pipe(listingsSearchShapeSchema);
-
 export const toListingsSearchUrl = (search: z.infer<typeof listingsSearchShapeSchema>) => {
   const normalized = normalizeListingsSearch(search);
 
@@ -226,6 +107,7 @@ export const toListingsSearchUrl = (search: z.infer<typeof listingsSearchShapeSc
     proximity: normalized.proximity ?? undefined,
   };
 };
+
 export const mapQuerySchema = z.object({
   bounds: mapBoundsSchema.optional(),
   mapPosition: mapPositionSchema.optional(),
@@ -250,7 +132,7 @@ export type TQueryLimit = z.infer<typeof queryLimitSchema>;
 export type TQueryResourceLimit = z.infer<typeof queryResourceLimitSchema>;
 export type TMapPosition = z.infer<typeof mapPositionSchema>;
 export type TMapBounds = z.infer<typeof mapBoundsSchema>;
-export type TListingsSearch = z.infer<typeof listingsSearchSchema>;
+export type TListingsSearch = z.infer<typeof listingsSearchShapeSchema>;
 export type TListingsSortBy = z.infer<typeof sortBySchema>;
 export type TListingsProximity = z.infer<typeof proximitySchema>;
 export type TMapQuery = z.infer<typeof mapQuerySchema>;

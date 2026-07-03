@@ -1,7 +1,7 @@
+import type { TPropertyCard } from '@kws/types';
+
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import React from 'react';
-
-import type { TPropertyCard } from '@/types/property';
 
 import { PropertyCard } from '@/components/global/property-card';
 import {

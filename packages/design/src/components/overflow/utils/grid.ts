@@ -1,4 +1,4 @@
-"use client";
+'use client';
 // @refresh reset
 
 /**
@@ -25,8 +25,8 @@ export function splitTracks(template: string): Array<string> {
 
   for (let i = 0; i < template.length; i++) {
     const ch = template[i];
-    if (ch === "(") depth += 1;
-    else if (ch === ")") depth = Math.max(0, depth - 1);
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
     else if (/\s/.test(ch) && depth === 0) {
       if (start < i) tokens.push(template.slice(start, i));
       start = i + 1;

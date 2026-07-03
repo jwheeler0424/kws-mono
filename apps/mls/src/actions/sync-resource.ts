@@ -8,13 +8,14 @@
 //   4. Return aggregate run metrics
 // ---------------------------------------------------------------------------
 
-import { env } from '@kws/config'
+import { env } from '@kws/config';
 
-import { persistHistoryPage, quarantineInvalidTimestampRecords } from '@/lib/history-store'
-import type { ErrorDetail, ODataPageBatch, SyncResult } from '../types'
+import type { MlsResource } from '@/types';
 
-import { logger } from '@/lib/logger'
-import type { MlsResource } from '@/types'
+import { persistHistoryPage, quarantineInvalidTimestampRecords } from '@/lib/history-store';
+import { logger } from '@/lib/logger';
+
+import type { ErrorDetail, ODataPageBatch, SyncResult } from '../types';
 
 // ---------------------------------------------------------------------------
 // Configuration contract
@@ -22,36 +23,36 @@ import type { MlsResource } from '@/types'
 
 export interface SyncResourceConfig<TPayload extends Record<string, unknown>> {
   /** MLS Grid resource name */
-  resource: MlsResource
-  osn: string
+  resource: MlsResource;
+  osn: string;
   /** Async generator that pages through the resource */
   fetchFn: (
     osn: string,
     options?: {
-      afterTimestamp?: Date
-      beforeTimestamp?: Date
-      startUrl?: string
+      afterTimestamp?: Date;
+      beforeTimestamp?: Date;
+      startUrl?: string;
     },
-  ) => AsyncGenerator<ODataPageBatch<TPayload>>
+  ) => AsyncGenerator<ODataPageBatch<TPayload>>;
   /** DB high-watermark for this resource */
-  getLatestTimestamp: () => Promise<Date | string | null | undefined>
+  getLatestTimestamp: () => Promise<Date | string | null | undefined>;
   /** Extract the source modification timestamp from payload records */
-  getTimestamp: (record: TPayload) => string | undefined
+  getTimestamp: (record: TPayload) => string | undefined;
   /** Upsert a visible record */
-  upsert: (records: TPayload[]) => Promise<Date>
+  upsert: (records: TPayload[]) => Promise<Date>;
 }
 
 function normalizeTimestamp(input: Date | string | null | undefined): Date | undefined {
   if (!input) {
-    return undefined
+    return undefined;
   }
 
   if (input instanceof Date) {
-    return Number.isNaN(input.getTime()) ? undefined : input
+    return Number.isNaN(input.getTime()) ? undefined : input;
   }
 
-  const parsed = new Date(input)
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed
+  const parsed = new Date(input);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,37 +62,34 @@ function normalizeTimestamp(input: Date | string | null | undefined): Date | und
 export async function syncResource<TPayload extends Record<string, unknown>>(
   config: SyncResourceConfig<TPayload>,
 ): Promise<SyncResult> {
-  const { resource, osn, getTimestamp } = config
-  const startedAt = Date.now()
+  const { resource, osn, getTimestamp } = config;
+  const startedAt = Date.now();
 
-  let upserted = 0
-  let errors = 0
-  let quarantined = 0
-  const errorDetails: ErrorDetail[] = []
+  let upserted = 0;
+  let errors = 0;
+  let quarantined = 0;
+  const errorDetails: ErrorDetail[] = [];
 
-  logger.info('sync started', { resource, osn })
+  logger.info('sync started', { resource, osn });
 
-  const dbWatermark = normalizeTimestamp(await config.getLatestTimestamp())
-  let activeAfterTimestamp = dbWatermark
+  const dbWatermark = normalizeTimestamp(await config.getLatestTimestamp());
+  let activeAfterTimestamp = dbWatermark;
 
-  const overlapMs = Math.max(
-    env.MLS_DELTA_OVERLAP_MS,
-    env.MLS_MIN_DELTA_OVERLAP_MS ?? 0,
-  )
-  const precisionSafetyMs = env.MLS_TIMESTAMP_PRECISION_SAFETY_MS ?? 0
+  const overlapMs = Math.max(env.MLS_DELTA_OVERLAP_MS, env.MLS_MIN_DELTA_OVERLAP_MS ?? 0);
+  const precisionSafetyMs = env.MLS_TIMESTAMP_PRECISION_SAFETY_MS ?? 0;
 
   if (activeAfterTimestamp && overlapMs + precisionSafetyMs > 0) {
-    activeAfterTimestamp = new Date(activeAfterTimestamp.getTime() - overlapMs - precisionSafetyMs)
+    activeAfterTimestamp = new Date(activeAfterTimestamp.getTime() - overlapMs - precisionSafetyMs);
   }
 
   logger.info('delta sync', {
     resource,
     osn,
     ...(activeAfterTimestamp ? { afterTimestamp: activeAfterTimestamp.toISOString() } : {}),
-  })
+  });
 
   try {
-    let page = 0
+    let page = 0;
 
     for await (const pageBatch of config.fetchFn(osn, {
       afterTimestamp: activeAfterTimestamp,
@@ -106,10 +104,10 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
           page: page + 1,
           requestUrl: pageBatch.requestUrl,
         },
-      })
-      quarantined += pageSanitized.summary.quarantinedCount
+      });
+      quarantined += pageSanitized.summary.quarantinedCount;
 
-      const batch = pageSanitized.validRecords
+      const batch = pageSanitized.validRecords;
       if (batch.length === 0) {
         logger.warn('sync page skipped after timestamp quarantine', {
           resource,
@@ -117,20 +115,20 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
           page: page + 1,
           requestUrl: pageBatch.requestUrl,
           quarantinedInPage: pageSanitized.summary.quarantinedCount,
-        })
-        continue
+        });
+        continue;
       }
 
       await persistHistoryPage({
         resource,
         records: batch,
         getTimestamp,
-      })
+      });
 
-      await config.upsert(batch)
-      page++
+      await config.upsert(batch);
+      page++;
 
-      upserted += batch.length
+      upserted += batch.length;
 
       logger.trace('sync page complete', {
         resource,
@@ -140,7 +138,7 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
         quarantined,
         requestUrl: pageBatch.requestUrl,
         nextUrl: pageBatch.nextUrl,
-      })
+      });
 
       logger.info('resource batch complete', {
         resource,
@@ -148,16 +146,16 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
         page,
         recordCount: batch.length,
         quarantined,
-      })
+      });
     }
 
     if (errors > 0) {
-      const message = `sync finished with ${errors} record error${errors === 1 ? '' : 's'}`
+      const message = `sync finished with ${errors} record error${errors === 1 ? '' : 's'}`;
       logger.warn('sync finished with record errors', {
         resource,
         osn,
         errors,
-      })
+      });
 
       return {
         resource,
@@ -167,10 +165,10 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
         durationMs: Date.now() - startedAt,
         error: `${message}; quarantined=${quarantined}`,
         errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
-      }
+      };
     }
 
-    logger.info('sync complete', { resource, osn })
+    logger.info('sync complete', { resource, osn });
 
     return {
       resource,
@@ -180,10 +178,10 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
       durationMs: Date.now() - startedAt,
       error: quarantined > 0 ? `quarantined=${quarantined}` : undefined,
       errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
-    }
+    };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    logger.error('sync failed', { resource, osn, message })
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error('sync failed', { resource, osn, message });
 
     return {
       resource,
@@ -193,7 +191,7 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
       durationMs: Date.now() - startedAt,
       error: message,
       errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
-    }
+    };
   }
 }
 

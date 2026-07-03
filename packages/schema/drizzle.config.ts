@@ -1,4 +1,3 @@
-
 import { env } from '@kws/config';
 import { defineConfig } from 'drizzle-kit';
 

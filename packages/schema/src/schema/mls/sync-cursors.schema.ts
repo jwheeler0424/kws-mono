@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
+import { integer, pgTable, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
 
 // ---------------------------------------------------------------------------
 // mls_sync_cursors — tracks replication state per resource
@@ -31,4 +31,4 @@ export const mlsSyncCursors = pgTable(
   (t) => [
     uniqueIndex('idx_mls_sync_cursors_resource_unique').on(t.resource, t.originatingSystemName),
   ],
-)
+);

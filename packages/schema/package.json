@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@kws/config": "*",
+    "@kws/types": "*",
     "@kws/typescript": "*",
     "@types/bun": "latest",
     "@types/pg": "^8.20.0",

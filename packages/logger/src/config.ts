@@ -1,6 +1,5 @@
-import path from 'node:path';
-
 import { env } from '@kws/config';
+import path from 'node:path';
 
 import type { LoggerConfig, LoggerFileConfig, LogLevel } from './types';
 

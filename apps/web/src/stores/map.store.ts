@@ -1,11 +1,10 @@
 'use client';
 
+import type { TMapBounds, TMapPosition, TUserPosition } from '@kws/types/search';
+
+import { userPositionSchema } from '@kws/types/search';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-import type { TMapBounds, TMapPosition, TUserPosition } from '@/types/search';
-
-import { userPositionSchema } from '@/types/search';
 
 interface MapStoreState {
   timestamp: number;

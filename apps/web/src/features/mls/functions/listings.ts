@@ -1,15 +1,16 @@
+import type { UUIDv7 } from '@kws/types';
+
+import { env } from '@kws/config';
+import { processImage } from '@kws/media';
+import { media, mediaVariants, mlsMedia } from '@kws/schema';
 import { createServerFn } from '@tanstack/react-start';
 import { and, asc, eq, isNotNull, isNull, or } from 'drizzle-orm';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 
-import { env } from '@kws/config';
-import { processImage } from '@kws/media';
-import { media, mediaVariants, mlsMedia } from '@kws/schema';
-import type { UUIDv7 } from '@kws/types';
-
 import { db } from '@/lib/database';
+
 import { getListingDetailByKey, getListingMarkers } from '../queries';
 
 const listingDetailsParamsSchema = z.object({
@@ -146,7 +147,10 @@ function isPermanentImageProcessingError(error: unknown): boolean {
   );
 }
 
-function isMlsNewerThanLinkedMedia(mlsUpdatedAt: string | null, linkedUpdatedAt: Date | null): boolean {
+function isMlsNewerThanLinkedMedia(
+  mlsUpdatedAt: string | null,
+  linkedUpdatedAt: Date | null,
+): boolean {
   if (!mlsUpdatedAt || !linkedUpdatedAt) {
     return false;
   }
@@ -406,8 +410,9 @@ export const getListingDetailsServerFn = createServerFn({ method: 'GET' })
   .validator(listingDetailsParamsSchema)
   .handler(({ data }) => getListingDetailByKey(data));
 
-export const getListingMarkersServerFn = createServerFn({ method: 'GET' })
-  .handler(() => getListingMarkers());
+export const getListingMarkersServerFn = createServerFn({ method: 'GET' }).handler(() =>
+  getListingMarkers(),
+);
 
 export const ensureListingMediaServerFn = createServerFn({ method: 'POST' })
   .validator(listingDetailsParamsSchema)

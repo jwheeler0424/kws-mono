@@ -1,4 +1,4 @@
-export type { UUID, UUIDv7 } from "@kws/types/uuid";
+export type { UUID, UUIDv7 } from '@kws/types';
 
 // NWMLS payload metadata stored in JSONB columns.
 // Schema only needs structural typing at the boundary; detailed parsing lives in @kws/types.

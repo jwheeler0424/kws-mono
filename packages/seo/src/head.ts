@@ -1,21 +1,22 @@
-import type { SiteConfig } from './config'
-import type { AlternateLanguage } from './links'
-import { alternateLanguageLinks, canonicalLink } from './links'
-import type { SeoInput } from './seo'
-import { seo } from './seo'
-import type { JsonLdBase } from './structured-data/index.ts'
-import { jsonLdScript } from './structured-data/index.ts'
-import type { SeoHeadConfig, SeoLinkTag, SeoScriptTag } from './types'
+import type { SiteConfig } from './config';
+import type { AlternateLanguage } from './links';
+import type { SeoInput } from './seo';
+import type { JsonLdBase } from './structured-data/index.ts';
+import type { SeoHeadConfig, SeoLinkTag, SeoScriptTag } from './types';
+
+import { alternateLanguageLinks, canonicalLink } from './links';
+import { seo } from './seo';
+import { jsonLdScript } from './structured-data/index.ts';
 
 export type CreateHeadInput = SeoInput & {
   /** Adds `<link rel="canonical">`. Pass `true` to reuse `url`, or an explicit URL. */
-  canonical?: boolean | string
-  alternates?: AlternateLanguage[]
+  canonical?: boolean | string;
+  alternates?: AlternateLanguage[];
   /** One or more JSON-LD schemas (see structured-data.ts builders), each rendered as its own `<script>`. */
-  jsonLd?: JsonLdBase | JsonLdBase[]
+  jsonLd?: JsonLdBase | JsonLdBase[];
   /** Escape hatch for anything not covered above - merged in as-is. */
-  extra?: SeoHeadConfig
-}
+  extra?: SeoHeadConfig;
+};
 
 /**
  * Builds a complete `head()` return value - meta, links, and JSON-LD scripts -
@@ -38,22 +39,26 @@ export type CreateHeadInput = SeoInput & {
  * ```
  */
 export function createHead(input: CreateHeadInput, site?: SiteConfig): SeoHeadConfig {
-  const meta = seo(input, site)
+  const meta = seo(input, site);
 
-  const links: SeoLinkTag[] = []
+  const links: SeoLinkTag[] = [];
   const canonicalUrl =
-    input.canonical === true ? input.url : typeof input.canonical === 'string' ? input.canonical : undefined
-  if (canonicalUrl) links.push(canonicalLink(canonicalUrl))
-  if (input.alternates?.length) links.push(...alternateLanguageLinks(input.alternates))
+    input.canonical === true
+      ? input.url
+      : typeof input.canonical === 'string'
+        ? input.canonical
+        : undefined;
+  if (canonicalUrl) links.push(canonicalLink(canonicalUrl));
+  if (input.alternates?.length) links.push(...alternateLanguageLinks(input.alternates));
 
-  const scripts: SeoScriptTag[] = input.jsonLd ? jsonLdScript(input.jsonLd) : []
+  const scripts: SeoScriptTag[] = input.jsonLd ? jsonLdScript(input.jsonLd) : [];
 
   return {
     meta: [...meta, ...(input.extra?.meta ?? [])],
     links: [...links, ...(input.extra?.links ?? [])],
     scripts: [...scripts, ...(input.extra?.scripts ?? [])],
     ...(input.extra?.styles?.length ? { styles: input.extra.styles } : {}),
-  }
+  };
 }
 
 /**
@@ -83,7 +88,7 @@ export function createSeoHelpers(site: SiteConfig) {
     seo: (input: SeoInput) => seo(input, site),
     createHead: (input: CreateHeadInput) => createHead(input, site),
     site,
-  }
+  };
 }
 
 /**
@@ -103,5 +108,5 @@ export function mergeHead(...heads: Array<SeoHeadConfig | undefined>): SeoHeadCo
       scripts: [...(acc.scripts ?? []), ...(head?.scripts ?? [])],
     }),
     {},
-  )
+  );
 }

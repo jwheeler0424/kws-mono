@@ -1,4 +1,4 @@
-import { listingsSearchSchema } from '@kws/types';
+import { listingsSearchShapeSchema } from '@kws/types';
 import { createFileRoute, Outlet, stripSearchParams } from '@tanstack/react-router';
 
 const DEFAULT_LISTINGS_SEARCH = {
@@ -15,7 +15,7 @@ const DEFAULT_LISTINGS_SEARCH = {
 } as const;
 
 export const Route = createFileRoute('/listings/_listings')({
-  validateSearch: listingsSearchSchema,
+  validateSearch: listingsSearchShapeSchema,
   search: {
     middlewares: [stripSearchParams(DEFAULT_LISTINGS_SEARCH)],
   },

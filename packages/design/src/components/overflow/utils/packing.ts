@@ -1,4 +1,4 @@
-"use client";
+'use client';
 // @refresh reset
 
 /**
@@ -20,8 +20,8 @@
  *   result = lo
  */
 
-import type { OuterSizeBounds } from "./measurement";
-import type { OverflowFitStrategy } from "../types";
+import type { OverflowFitStrategy } from '../types';
+import type { OuterSizeBounds } from './measurement';
 
 // ─── areSetsEqual ─────────────────────────────────────────────────────────────
 
@@ -50,16 +50,16 @@ export function areSetsEqual(a: ReadonlySet<string>, b: ReadonlySet<string>): bo
  */
 export function pickAxisFitSize(
   bounds: OuterSizeBounds,
-  axis: "w" | "h",
+  axis: 'w' | 'h',
   strategy: OverflowFitStrategy,
   remainingSpace = Number.POSITIVE_INFINITY,
 ): number {
-  const preferred = axis === "w" ? bounds.preferredW : bounds.preferredH;
-  const min = axis === "w" ? bounds.minW : bounds.minH;
+  const preferred = axis === 'w' ? bounds.preferredW : bounds.preferredH;
+  const min = axis === 'w' ? bounds.minW : bounds.minH;
   const floor = min > 0 ? min : preferred;
 
-  if (strategy === "preferred") return preferred;
-  if (strategy === "min") return floor;
+  if (strategy === 'preferred') return preferred;
+  if (strategy === 'min') return floor;
   // balanced
   return preferred <= remainingSpace ? preferred : floor;
 }
@@ -87,7 +87,7 @@ export function packHorizontal(
 
   // Fast path: check whether everything fits without indicator overhead.
   const totalWidth = itemSizes.reduce(
-    (sum, bounds, i) => sum + (i > 0 ? colGap : 0) + pickAxisFitSize(bounds, "w", strategy),
+    (sum, bounds, i) => sum + (i > 0 ? colGap : 0) + pickAxisFitSize(bounds, 'w', strategy),
     0,
   );
   if (totalWidth <= flowW) return n;
@@ -119,7 +119,7 @@ function _canShowHorizontal(
   if (visible === total) {
     // All items visible — no indicator slot needed.
     const w = itemSizes.reduce(
-      (sum, bounds, i) => sum + (i > 0 ? colGap : 0) + pickAxisFitSize(bounds, "w", strategy),
+      (sum, bounds, i) => sum + (i > 0 ? colGap : 0) + pickAxisFitSize(bounds, 'w', strategy),
       0,
     );
     return w <= flowW;
@@ -130,7 +130,7 @@ function _canShowHorizontal(
     const g = i > 0 ? colGap : 0;
     const indicatorSlot = hasIndicator ? colGap + indicatorW : 0;
     const remaining = Math.max(0, flowW - used - g - indicatorSlot);
-    const w = pickAxisFitSize(itemSizes[i], "w", strategy, remaining);
+    const w = pickAxisFitSize(itemSizes[i], 'w', strategy, remaining);
     if (used + g + w + indicatorSlot > flowW) return false;
     used += g + w;
   }
@@ -159,7 +159,7 @@ export function packVertical(
 
   // Fast path
   const totalHeight = itemSizes.reduce(
-    (sum, bounds, i) => sum + (i > 0 ? rowGap : 0) + pickAxisFitSize(bounds, "h", strategy),
+    (sum, bounds, i) => sum + (i > 0 ? rowGap : 0) + pickAxisFitSize(bounds, 'h', strategy),
     0,
   );
   if (totalHeight <= flowH) return n;
@@ -189,7 +189,7 @@ function _canShowVertical(
 ): boolean {
   if (visible === total) {
     const h = itemSizes.reduce(
-      (sum, bounds, i) => sum + (i > 0 ? rowGap : 0) + pickAxisFitSize(bounds, "h", strategy),
+      (sum, bounds, i) => sum + (i > 0 ? rowGap : 0) + pickAxisFitSize(bounds, 'h', strategy),
       0,
     );
     return h <= flowH;
@@ -200,7 +200,7 @@ function _canShowVertical(
     const g = i > 0 ? rowGap : 0;
     const indicatorSlot = hasIndicator ? rowGap + indicatorH : 0;
     const remaining = Math.max(0, flowH - used - g - indicatorSlot);
-    const h = pickAxisFitSize(itemSizes[i], "h", strategy, remaining);
+    const h = pickAxisFitSize(itemSizes[i], 'h', strategy, remaining);
     if (used + g + h + indicatorSlot > flowH) return false;
     used += g + h;
   }
@@ -291,8 +291,8 @@ function _canFitWrap(
 
   for (let i = 0; i < visible; i++) {
     const remainingRowSpace = Math.max(0, flowW - (rowUsedW === 0 ? 0 : rowUsedW + colGap));
-    const w = pickAxisFitSize(itemSizes[i], "w", strategy, remainingRowSpace);
-    const h = pickAxisFitSize(itemSizes[i], "h", strategy);
+    const w = pickAxisFitSize(itemSizes[i], 'w', strategy, remainingRowSpace);
+    const h = pickAxisFitSize(itemSizes[i], 'h', strategy);
     if (!packItem(w, h)) return false;
   }
 

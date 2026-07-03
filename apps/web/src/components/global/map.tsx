@@ -1,17 +1,17 @@
-import type { PropertyMapMarker } from '@kws/types';
+import type { TListingMarker } from '@kws/types';
 
 import { DEFAULT_POSITION } from '@kws/config/constants/properties';
 import { useQueryClient } from '@tanstack/react-query';
+import L, { DivIcon, type LeafletEvent } from 'leaflet';
 import 'leaflet-edgebuffer';
 import 'leaflet/dist/leaflet.css';
-import L, { DivIcon, type LeafletEvent } from 'leaflet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 
+import { markerCardByListingKeyOptions } from '@/features/mls/options/search';
 import { abbreviateNumber } from '@/lib/utils';
-import { markerCardByListingKeyOptions } from '@/packages/mls/search.options';
 import { useMapActions, useMapStore } from '@/stores/map.store';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
@@ -22,7 +22,7 @@ import MapPopupCard from './map-popup-card';
 export const ZOOM_BREAKPOINT = 14;
 
 type MapProps = {
-  properties: PropertyMapMarker[];
+  properties: TListingMarker[];
   markersLoading?: boolean;
   onInitialMarkersRendered?: () => void;
 };
@@ -89,7 +89,7 @@ export function MapView({
     [queryClient],
   );
 
-  const mountPopupContent = React.useCallback((e: LeafletEvent, property: PropertyMapMarker) => {
+  const mountPopupContent = React.useCallback((e: LeafletEvent, property: TListingMarker) => {
     const marker = e.target as L.Marker;
     const container = document.createElement('div');
     container.className = 'w-72';

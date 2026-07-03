@@ -1,6 +1,6 @@
-import { useOverflowContext } from "../context";
-import { selectHiddenCount, selectIsOverflowing, selectVisibleCount } from "../utils/selectors";
-import { useStore } from "./use-store";
+import { useOverflowContext } from '../context';
+import { selectHiddenCount, selectIsOverflowing, selectVisibleCount } from '../utils/selectors';
+import { useStore } from './use-store';
 
 // ─── useOverflow ──────────────────────────────────────────────────────────────
 /**
@@ -19,7 +19,7 @@ import { useStore } from "./use-store";
  * }
  */
 export function useOverflow() {
-  const ctx = useOverflowContext("useOverflow");
+  const ctx = useOverflowContext('useOverflow');
 
   const isOverflowing = useStore(selectIsOverflowing, ctx.store);
   const visibleCount = useStore(selectVisibleCount, ctx.store);

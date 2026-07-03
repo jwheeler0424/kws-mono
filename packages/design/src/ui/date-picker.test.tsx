@@ -33,7 +33,8 @@ vi.mock('./button', () => ({
 vi.mock('./popover', () => ({
   Popover: ({ children }: MockPopoverProps) => React.createElement('div', null, children),
   PopoverTrigger: ({ render }: MockPopoverTriggerProps) => React.createElement('div', null, render),
-  PopoverContent: ({ children }: MockPopoverContentProps) => React.createElement('div', null, children),
+  PopoverContent: ({ children }: MockPopoverContentProps) =>
+    React.createElement('div', null, children),
 }));
 
 vi.mock('./calendar', () => ({
@@ -68,11 +69,16 @@ vi.mock('./calendar', () => ({
 
 vi.mock('./card', () => ({
   Card: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
-  CardHeader: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
-  CardTitle: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
-  CardDescription: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
-  CardContent: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
-  CardFooter: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
+  CardHeader: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', null, children),
+  CardTitle: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', null, children),
+  CardDescription: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', null, children),
+  CardContent: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', null, children),
+  CardFooter: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', null, children),
 }));
 
 function getTriggerButton() {

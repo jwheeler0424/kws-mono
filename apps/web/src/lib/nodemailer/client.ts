@@ -1,7 +1,6 @@
+import { env } from '@kws/config';
 import nodemailer, { type Transporter } from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
-
-import { env } from '@kws/config';
 
 const transportOptions: SMTPTransport.Options = {
   host: env.SMTP_HOST,
@@ -10,17 +9,17 @@ const transportOptions: SMTPTransport.Options = {
   auth:
     env.SMTP_USER && env.SMTP_PASS
       ? {
-        user: env.SMTP_USER,
-        pass: env.SMTP_PASS,
-      }
+          user: env.SMTP_USER,
+          pass: env.SMTP_PASS,
+        }
       : undefined,
   dkim:
     env.DKIM_PRIVATE_KEY && env.DKIM_DOMAIN && env.DKIM_SELECTOR
       ? {
-        domainName: env.DKIM_DOMAIN,
-        keySelector: env.DKIM_SELECTOR,
-        privateKey: env.DKIM_PRIVATE_KEY,
-      }
+          domainName: env.DKIM_DOMAIN,
+          keySelector: env.DKIM_SELECTOR,
+          privateKey: env.DKIM_PRIVATE_KEY,
+        }
       : undefined,
 };
 

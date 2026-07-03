@@ -1,8 +1,8 @@
 import type { lookups } from '@kws/schema';
 
-import type { MlsLookupPayload } from '../types';
-
 import { parseBoolean, parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
+
+import type { MlsLookupPayload } from '../types';
 
 type LookupInsert = typeof lookups.$inferInsert;
 

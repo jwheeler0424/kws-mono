@@ -1,3 +1,5 @@
+import type { MlsResource } from '@/types';
+
 import {
   compactHistoryStore,
   getHistoryQuarantineSummary,
@@ -6,7 +8,6 @@ import {
   verifyHistoryStore,
 } from '@/lib/history-store';
 import { logger } from '@/lib/logger';
-import type { MlsResource } from '@/types';
 
 function parseResourceArg(raw?: string): MlsResource | undefined {
   if (!raw) {
@@ -24,7 +25,9 @@ function parseResourceArg(raw?: string): MlsResource | undefined {
     return normalized;
   }
 
-  throw new Error(`Invalid resource "${raw}". Expected one of Lookup|Member|Office|Property|OpenHouse.`);
+  throw new Error(
+    `Invalid resource "${raw}". Expected one of Lookup|Member|Office|Property|OpenHouse.`,
+  );
 }
 
 function parseResourceFromArgs(args: string[]): MlsResource | undefined {

@@ -18,7 +18,6 @@ import { z } from 'zod';
 import type { UUIDv7 } from '../types';
 
 import { tsvector } from '../../plugins/tsvector';
-
 import { organization, user } from '../auth';
 import { idPrimaryKey, softDelete, timestamps } from '../common.schema';
 import { posts } from './posts.schema';
@@ -319,16 +318,28 @@ export const blogCommentRelations = defineRelationsPart(
     },
 
     commentMeta: {
-      comment: r.one.comments({ from: r.commentMeta.commentId, to: r.comments.id, optional: false }),
+      comment: r.one.comments({
+        from: r.commentMeta.commentId,
+        to: r.comments.id,
+        optional: false,
+      }),
     },
 
     commentVotes: {
-      comment: r.one.comments({ from: r.commentVotes.commentId, to: r.comments.id, optional: false }),
+      comment: r.one.comments({
+        from: r.commentVotes.commentId,
+        to: r.comments.id,
+        optional: false,
+      }),
       user: r.one.user({ from: r.commentVotes.userId, to: r.user.id, optional: false }),
     },
 
     commentFlags: {
-      comment: r.one.comments({ from: r.commentFlags.commentId, to: r.comments.id, optional: false }),
+      comment: r.one.comments({
+        from: r.commentFlags.commentId,
+        to: r.comments.id,
+        optional: false,
+      }),
       user: r.one.user({ from: r.commentFlags.userId, to: r.user.id, optional: false }),
       resolvedByUser: r.one.user({ from: r.commentFlags.resolvedBy, to: r.user.id }),
     },
@@ -390,7 +401,7 @@ export const insertCommentFlagSchema = createInsertSchema(commentFlags, {
 });
 
 export const insertCommentSubscriptionSchema = createInsertSchema(commentSubscriptions, {
-  email: z.string().email("Invalid email").max(255),
+  email: z.string().email('Invalid email').max(255),
 }).omit({
   id: true,
   createdAt: true,

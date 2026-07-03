@@ -1,5 +1,5 @@
-"use client";
-import type { OverflowStoreState } from "../store";
+'use client';
+import type { OverflowStoreState } from '../store';
 
 // ─── Module-level selectors (PERF-1) ─────────────────────────────────────────
 //

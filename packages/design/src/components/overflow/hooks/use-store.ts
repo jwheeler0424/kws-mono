@@ -1,5 +1,6 @@
-import React from "react";
-import type { OverflowStore, OverflowStoreState } from "../store";
+import React from 'react';
+
+import type { OverflowStore, OverflowStoreState } from '../store';
 
 // ─── useStore ─────────────────────────────────────────────────────────────────
 /**

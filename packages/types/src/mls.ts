@@ -1,4 +1,5 @@
 import type { standardStatusEnum } from '@kws/schema';
+
 import type { CursorDirection, CursorResult } from './cursor';
 import type { NWM_Property, TPropertyCard } from './property';
 import type { TMapBounds, TQueryResourceLimit } from './search';
@@ -28,12 +29,12 @@ export interface PropertySearchParams {
   proximity?: PropertyProximityFilter | null;
 }
 
-
-
-export type PropertyMapMarker = Pick<
+export type TListingMarker = Pick<
   TPropertyCard,
-  'listingId' | 'listingKey' | 'latitude' | 'longitude' | 'listPrice' | 'standardStatus'
+  'listingKey' | 'latitude' | 'longitude' | 'listPrice' | 'standardStatus'
 >;
+
+export type PropertyMapMarker = TListingMarker;
 
 export type PropertyMapMarkerPageResult = CursorResult<PropertyMapMarker>;
 

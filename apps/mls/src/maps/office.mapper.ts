@@ -1,8 +1,9 @@
 import type { offices } from '@kws/schema';
 
+import { parseBoolean, parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
+
 import type { MlsOfficePayload } from '../types';
 
-import { parseBoolean, parseNullableString, parseStringArray, parseTimestamp } from '@/lib/utils';
 import { mapMedia, type MappedMedia } from './media.mapper';
 
 type OfficeInsert = typeof offices.$inferInsert;
@@ -15,7 +16,8 @@ export function mapOffice(payload: MlsOfficePayload): MappedOffice {
   const canView = parseBoolean(payload.MlgCanView) === true;
   const now = new Date();
   const officeMlsId = payload.OfficeMlsId;
-  const media = payload.Media?.map((mediaPayload => mapMedia(mediaPayload, payload.OfficeMlsId))) ?? [];
+  const media =
+    payload.Media?.map((mediaPayload) => mapMedia(mediaPayload, payload.OfficeMlsId)) ?? [];
 
   return {
     officeMlsId,

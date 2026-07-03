@@ -43,9 +43,9 @@ export interface OverflowItemProps extends useRender.ComponentProps<'div'> {
    */
   keepMounted?: boolean;
   /**
-   * @reserved Priority-based overflow eviction — planned for a future release.
+   * ## reserved ## Priority-based overflow eviction — planned for a future release.
    * Higher-priority items are kept visible longer when space is tight.
-   * @defaultValue undefined
+   * ## defaultValue ## undefined
    */
   priority?: number;
 }

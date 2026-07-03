@@ -1,6 +1,13 @@
 import type { PropertyParams } from '@kws/types';
+
 import { queryOptions } from '@tanstack/react-query';
-import { getAvailablePropertiesServerFn, getFeaturedPropertiesServerFn, getPendingPropertiesServerFn, getSoldPropertiesServerFn } from '../functions';
+
+import {
+  getAvailablePropertiesServerFn,
+  getFeaturedPropertiesServerFn,
+  getPendingPropertiesServerFn,
+  getSoldPropertiesServerFn,
+} from '../functions';
 
 // ============================================================================
 // QUERY KEYS

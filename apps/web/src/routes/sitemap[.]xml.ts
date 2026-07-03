@@ -1,5 +1,5 @@
 // src/routes/sitemap[.]xml.ts
-import { siteConfig } from '@/lib/tools/seo';
+import { env } from '@kws/config';
 import { buildSitemapXml } from '@kws/seo';
 import { createFileRoute } from '@tanstack/react-router';
 
@@ -10,17 +10,17 @@ export const Route = createFileRoute('/sitemap.xml')({
         // const posts = await fetchAllPosts()
 
         const xml = buildSitemapXml([
-          { loc: siteConfig.siteUrl, changefreq: 'daily', priority: 1.0 },
-          { loc: `${siteConfig.siteUrl}/blog`, changefreq: 'daily', priority: 0.8 },
+          { loc: env.APP_URL, changefreq: 'daily', priority: 1.0 },
+          { loc: `${env.APP_URL}/blog`, changefreq: 'daily', priority: 0.8 },
           // ...posts.map((post) => ({
-          //   loc: `${siteConfig.siteUrl}/posts/${post.id}`,
+          //   loc: `${env.APP_URL}/blog/${post.id}`,
           //   lastmod: post.updatedAt,
           //   changefreq: 'weekly' as const,
           //   priority: 0.7,
           // })),
-        ])
+        ]);
 
-        return new Response(xml, { headers: { 'Content-Type': 'application/xml' } })
+        return new Response(xml, { headers: { 'Content-Type': 'application/xml' } });
       },
     },
   },

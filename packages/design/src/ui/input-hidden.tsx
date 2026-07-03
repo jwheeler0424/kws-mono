@@ -13,7 +13,13 @@ function normalizeHiddenValue(value: HiddenValue): string {
   return String(value);
 }
 
-export function InputHidden({ type = 'hidden', value, style, control: _control, ...props }: InputHiddenProps) {
+export function InputHidden({
+  type = 'hidden',
+  value,
+  style,
+  control: _control,
+  ...props
+}: InputHiddenProps) {
   return (
     <input
       type={type}

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 // @refresh reset
 
-import * as React from "react";
+import * as React from 'react';
 
-import type { OverflowOrientation } from "./types";
-import type { OverflowStore } from "./store";
+import type { OverflowStore } from './store';
+import type { OverflowOrientation } from './types';
 
 // ─── OverflowContext ──────────────────────────────────────────────────────────
 

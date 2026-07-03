@@ -1,11 +1,11 @@
-import type { RobotsDirectives, SeoImage } from './types'
+import type { RobotsDirectives, SeoImage } from './types';
 
 export type OrganizationConfig = {
-  name: string
-  url: string
-  logo?: string
-  sameAs?: string[]
-}
+  name: string;
+  url: string;
+  logo?: string;
+  sameAs?: string[];
+};
 
 /**
  * Site-wide defaults that get layered under every page's SEO input. Define
@@ -13,37 +13,37 @@ export type OrganizationConfig = {
  * routes only ever need to supply page-specific values.
  */
 export type SiteConfig = {
-  siteName: string
-  siteUrl: string
-  defaultTitle: string
+  siteName: string;
+  siteUrl: string;
+  defaultTitle: string;
   /** Applied to every page title. Use `%s` as the placeholder, e.g. `'%s | My App'`. */
-  titleTemplate?: string
-  defaultDescription?: string
-  defaultImage?: SeoImage
+  titleTemplate?: string;
+  defaultDescription?: string;
+  defaultImage?: SeoImage;
   /** BCP 47 locale, e.g. `'en_US'`. */
-  locale?: string
-  alternateLocales?: string[]
+  locale?: string;
+  alternateLocales?: string[];
   /** `@handle` used for `twitter:creator`. */
-  twitterHandle?: string
+  twitterHandle?: string;
   /** `@handle` used for `twitter:site`. */
-  twitterSite?: string
-  themeColor?: string
-  defaultRobots?: RobotsDirectives | boolean
-  organization?: OrganizationConfig
-}
+  twitterSite?: string;
+  themeColor?: string;
+  defaultRobots?: RobotsDirectives | boolean;
+  organization?: OrganizationConfig;
+};
 
 /** Identity helper - exists purely so config objects get inferred/checked against `SiteConfig`. */
 export function defineSiteConfig(config: SiteConfig): SiteConfig {
-  return config
+  return config;
 }
 
 export function resolveTitle(
   title: string | undefined,
   config: Pick<SiteConfig, 'defaultTitle' | 'titleTemplate'>,
 ): string {
-  if (!title) return config.defaultTitle
-  if (!config.titleTemplate) return title
+  if (!title) return config.defaultTitle;
+  if (!config.titleTemplate) return title;
   return config.titleTemplate.includes('%s')
     ? config.titleTemplate.replace('%s', title)
-    : `${title} ${config.titleTemplate}`
+    : `${title} ${config.titleTemplate}`;
 }

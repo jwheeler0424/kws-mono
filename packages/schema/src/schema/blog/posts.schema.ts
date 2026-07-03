@@ -18,11 +18,9 @@ import { z } from 'zod';
 import type { UUIDv7 } from '../types';
 
 import { tsvector } from '../../plugins/tsvector';
-
 import { organization, user } from '../auth';
 import { idPrimaryKey, softDelete, timestamps } from '../common.schema';
 import { media } from '../media';
-
 
 // ============================================================================
 // ENUMS
@@ -344,10 +342,16 @@ export const blogPostRelations = defineRelationsPart(
       originalPost: r.one.posts({ from: r.posts.revisionOf, to: r.posts.id }),
       revisions: r.many.posts({ from: r.posts.id, to: r.posts.revisionOf }),
       meta: r.many.postMeta({ from: r.posts.id, to: r.postMeta.postId }),
-      attachments: r.many.postMediaAttachments({ from: r.posts.id, to: r.postMediaAttachments.postId }),
+      attachments: r.many.postMediaAttachments({
+        from: r.posts.id,
+        to: r.postMediaAttachments.postId,
+      }),
       revisionHistory: r.many.postRevisions({ from: r.posts.id, to: r.postRevisions.postId }),
       relatedPosts: r.many.postRelationships({ from: r.posts.id, to: r.postRelationships.postId }),
-      relatedToPosts: r.many.postRelationships({ from: r.posts.id, to: r.postRelationships.relatedPostId }),
+      relatedToPosts: r.many.postRelationships({
+        from: r.posts.id,
+        to: r.postRelationships.relatedPostId,
+      }),
     },
 
     postMeta: {
@@ -361,13 +365,20 @@ export const blogPostRelations = defineRelationsPart(
 
     postRelationships: {
       post: r.one.posts({ from: r.postRelationships.postId, to: r.posts.id, optional: false }),
-      relatedPost: r.one.posts({ from: r.postRelationships.relatedPostId, to: r.posts.id, optional: false }),
+      relatedPost: r.one.posts({
+        from: r.postRelationships.relatedPostId,
+        to: r.posts.id,
+        optional: false,
+      }),
     },
 
     postMediaAttachments: {
       post: r.one.posts({ from: r.postMediaAttachments.postId, to: r.posts.id, optional: false }),
       media: r.one.media({ from: r.postMediaAttachments.mediaId, to: r.media.id, optional: false }),
-      organization: r.one.organization({ from: r.postMediaAttachments.organizationId, to: r.organization.id }),
+      organization: r.one.organization({
+        from: r.postMediaAttachments.organizationId,
+        to: r.organization.id,
+      }),
     },
   }),
 );

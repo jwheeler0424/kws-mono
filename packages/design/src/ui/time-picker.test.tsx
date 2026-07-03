@@ -62,9 +62,11 @@ vi.mock('./select', () => {
       React.createElement('div', null, children),
     );
 
-  const SelectTrigger = ({ children }: MockSelectChildProps) => React.createElement('div', null, children);
+  const SelectTrigger = ({ children }: MockSelectChildProps) =>
+    React.createElement('div', null, children);
   const SelectValue = () => null;
-  const SelectContent = ({ children }: MockSelectChildProps) => React.createElement('div', null, children);
+  const SelectContent = ({ children }: MockSelectChildProps) =>
+    React.createElement('div', null, children);
   const SelectItem = ({ value, children }: MockSelectItemProps) => {
     const context = React.useContext(SelectContext);
     return React.createElement(

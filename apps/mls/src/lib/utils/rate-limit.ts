@@ -1,7 +1,9 @@
-import { HOUR_MS } from "@/lib/constants";
 import { env } from '@kws/config';
+
+import { HOUR_MS } from '@/lib/constants';
+
 import { sleep } from './helpers';
-import { mlsQuotaTracker, type QuotaSnapshot } from "./quota";
+import { mlsQuotaTracker, type QuotaSnapshot } from './quota';
 
 // ---------------------------------------------------------------------------
 // Rate limiter — serialized promise queue, same pattern as geocoder.ts
@@ -52,10 +54,7 @@ function computeEffectivePerSecondLimit(
     1,
     overrides?.requestsPerHourLimit ?? env.MLS_REQUESTS_PER_HOUR_LIMIT,
   );
-  const dailyLimit = Math.max(
-    1,
-    overrides?.requestsPerDayLimit ?? env.MLS_REQUESTS_PER_DAY_LIMIT,
-  );
+  const dailyLimit = Math.max(1, overrides?.requestsPerDayLimit ?? env.MLS_REQUESTS_PER_DAY_LIMIT);
 
   const usedHour = Math.max(0, snapshot.hour.requests);
   const usedDay = Math.max(0, snapshot.day.requests);

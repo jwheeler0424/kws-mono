@@ -6,34 +6,17 @@
     "declaration": false,
     "declarationMap": false,
     // Environment setup & latest features
-    "lib": [
-      "ESNext",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-    },
+      "@/*": ["./src/*"]
+    }
   },
-  "types": [
-    "bun",
-    "node",
-    "react",
-    "react-dom",
-    "vite/client"
-  ],
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "types": ["bun", "node", "react", "react-dom", "vite/client"],
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

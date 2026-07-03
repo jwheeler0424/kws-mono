@@ -1,24 +1,21 @@
-import type { SeoScriptTag } from '../types'
+import type { SeoScriptTag } from '../types';
 
-export const SCHEMA_CONTEXT = 'https://schema.org'
+export const SCHEMA_CONTEXT = 'https://schema.org';
 
-export type JsonLdProps = Record<string, unknown>
+export type JsonLdProps = Record<string, unknown>;
 
-export type JsonLdBase<
-  TType extends string = string,
-  TProps extends JsonLdProps = JsonLdProps,
-> = {
-  '@context'?: string | string[]
-  '@type': TType
-} & TProps
+export type JsonLdBase<TType extends string = string, TProps extends JsonLdProps = JsonLdProps> = {
+  '@context'?: string | string[];
+  '@type': TType;
+} & TProps;
 
-export type JsonLdNode = JsonLdBase<string, JsonLdProps>
+export type JsonLdNode = JsonLdBase<string, JsonLdProps>;
 
 /** Wraps a plain schema.org object with `@context`. Mostly used internally by the builders below. */
 export function jsonLd<TType extends string, TProps extends JsonLdProps>(
   data: { '@type': TType } & TProps,
 ): JsonLdBase<TType, TProps> {
-  return { '@context': SCHEMA_CONTEXT, ...data } as JsonLdBase<TType, TProps>
+  return { '@context': SCHEMA_CONTEXT, ...data } as JsonLdBase<TType, TProps>;
 }
 
 /**
@@ -26,11 +23,11 @@ export function jsonLd<TType extends string, TProps extends JsonLdProps>(
  * tags ready to drop into a route's `head().scripts`.
  */
 export function jsonLdScript(data: JsonLdBase | JsonLdBase[]): SeoScriptTag[] {
-  const items = Array.isArray(data) ? data : [data]
+  const items = Array.isArray(data) ? data : [data];
   return items.map((item) => ({
     type: 'application/ld+json',
     children: JSON.stringify(item),
-  }))
+  }));
 }
 
 /**
@@ -45,11 +42,11 @@ export function jsonLdGraph(data: JsonLdBase[]): SeoScriptTag {
       '@context': SCHEMA_CONTEXT,
       '@graph': data.map(withoutContext),
     }),
-  }
+  };
 }
 
 /** Strips `@context` so a JsonLdBase can be safely nested inside another schema. */
 export function withoutContext<T extends JsonLdBase>(node: T): Omit<T, '@context'> {
-  const { '@context': _ctx, ...rest } = node
-  return rest as Omit<T, '@context'>
+  const { '@context': _ctx, ...rest } = node;
+  return rest as Omit<T, '@context'>;
 }

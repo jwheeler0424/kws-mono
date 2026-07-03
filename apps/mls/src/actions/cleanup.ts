@@ -1,40 +1,41 @@
-import { and, eq, isNotNull, lte } from 'drizzle-orm'
+import mlsEnv from '@kws/config/env/mls';
+import { lookups, members, offices, openHouses, properties } from '@kws/schema';
+import { and, eq, isNotNull, lte } from 'drizzle-orm';
 
-import { db } from '@/lib/database'
-import mlsEnv from '@kws/config/env/mls'
-import { lookups, members, offices, openHouses, properties } from '@kws/schema'
+import { db } from '@/lib/database';
+
 import {
   purgeEntityMedia,
   type EntityMediaPurgeSummary,
-} from '../repositories/media-cleanup.repository'
+} from '../repositories/media-cleanup.repository';
 
 export interface MlsCleanupSummary {
-  cutoffAt: string
-  retentionDays: number
+  cutoffAt: string;
+  retentionDays: number;
   deleted: {
-    lookups: number
-    offices: number
-    members: number
-    openHouses: number
-    properties: number
-  }
+    lookups: number;
+    offices: number;
+    members: number;
+    openHouses: number;
+    properties: number;
+  };
   mediaPurged: {
-    members: EntityMediaPurgeSummary
-    offices: EntityMediaPurgeSummary
-    properties: EntityMediaPurgeSummary
-    totals: EntityMediaPurgeSummary
-  }
-  totalDeleted: number
+    members: EntityMediaPurgeSummary;
+    offices: EntityMediaPurgeSummary;
+    properties: EntityMediaPurgeSummary;
+    totals: EntityMediaPurgeSummary;
+  };
+  totalDeleted: number;
 }
 
 function getCutoffDate(retentionDays: number) {
-  return new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
+  return new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
 }
 
 export async function runMlsCleanup(
   retentionDays = mlsEnv.MLS_CLEANUP_RETENTION_DAYS,
 ): Promise<MlsCleanupSummary> {
-  const cutoff = getCutoffDate(retentionDays)
+  const cutoff = getCutoffDate(retentionDays);
 
   const [memberRowsToDelete, officeRowsToDelete, propertyRowsToDelete] = await Promise.all([
     db
@@ -55,23 +56,23 @@ export async function runMlsCleanup(
           lte(properties.deletedAt, cutoff),
         ),
       ),
-  ])
+  ]);
 
   const memberKeys = memberRowsToDelete
     .map((row) => row.resourceRecordKey)
-    .filter((key): key is string => Boolean(key))
+    .filter((key): key is string => Boolean(key));
   const officeKeys = officeRowsToDelete
     .map((row) => row.resourceRecordKey)
-    .filter((key): key is string => Boolean(key))
+    .filter((key): key is string => Boolean(key));
   const propertyKeys = propertyRowsToDelete
     .map((row) => row.resourceRecordKey)
-    .filter((key): key is string => Boolean(key))
+    .filter((key): key is string => Boolean(key));
 
   const [membersMediaPurge, officesMediaPurge, propertiesMediaPurge] = await Promise.all([
     purgeEntityMedia(memberKeys),
     purgeEntityMedia(officeKeys),
     purgeEntityMedia(propertyKeys),
-  ])
+  ]);
 
   const [lookupDeleted, officeDeleted, memberDeleted, openHouseDeleted, propertyDeleted] =
     await Promise.all([
@@ -101,7 +102,7 @@ export async function runMlsCleanup(
           ),
         )
         .returning({ id: properties.listingKey }),
-    ])
+    ]);
 
   const deleted = {
     lookups: lookupDeleted.length,
@@ -109,7 +110,7 @@ export async function runMlsCleanup(
     members: memberDeleted.length,
     openHouses: openHouseDeleted.length,
     properties: propertyDeleted.length,
-  }
+  };
 
   const mediaPurged = {
     members: membersMediaPurge,
@@ -129,7 +130,7 @@ export async function runMlsCleanup(
         officesMediaPurge.mlsMediaRowsDeleted +
         propertiesMediaPurge.mlsMediaRowsDeleted,
     },
-  }
+  };
 
   return {
     cutoffAt: cutoff.toISOString(),
@@ -137,5 +138,5 @@ export async function runMlsCleanup(
     deleted,
     mediaPurged,
     totalDeleted: Object.values(deleted).reduce((sum, count) => sum + count, 0),
-  }
+  };
 }

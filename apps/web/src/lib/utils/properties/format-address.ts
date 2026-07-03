@@ -1,4 +1,4 @@
-import type { TAddressData } from '@/types/property';
+import type { TAddressData } from '@kws/types';
 
 export const getAddressStreet = (address: TAddressData): string => {
   const { streetNumber, streetDirPrefix, streetName, streetSuffix, streetDirSuffix, unitNumber } =

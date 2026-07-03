@@ -2,9 +2,8 @@
 
 Type-safe JSON-LD builders for TypeScript applications.
 
-This library provides strongly-typed helpers for generating
-[Schema.org](https://schema.org) structured data for SEO, rich results,
-and search engine indexing.
+This library provides strongly-typed helpers for generating [Schema.org](https://schema.org)
+structured data for SEO, rich results, and search engine indexing.
 
 It is designed for:
 
@@ -16,8 +15,8 @@ It is designed for:
 - Agent / brokerage platforms
 - E-commerce product pages
 
-Instead of manually writing JSON-LD objects, use typed builder functions
-that validate input shapes and produce clean schema output.
+Instead of manually writing JSON-LD objects, use typed builder functions that validate input shapes
+and produce clean schema output.
 
 ---
 
@@ -50,7 +49,7 @@ bun add your-package-name
 ## Basic Usage
 
 ```ts
-import { articleSchema, jsonLdScript } from '@your/package'
+import { articleSchema, jsonLdScript } from '@your/package';
 
 const schema = articleSchema({
   headline: 'How to Buy a House',
@@ -59,9 +58,9 @@ const schema = articleSchema({
   author: {
     name: 'Jane Doe',
   },
-})
+});
 
-const scripts = jsonLdScript(schema)
+const scripts = jsonLdScript(schema);
 ```
 
 Output:
@@ -89,7 +88,7 @@ Wraps a schema object with `@context`.
 jsonLd({
   '@type': 'Thing',
   name: 'Example',
-})
+});
 ```
 
 Output:
@@ -109,7 +108,7 @@ Output:
 Converts schema nodes into script tags.
 
 ```ts
-const scripts = jsonLdScript(schema)
+const scripts = jsonLdScript(schema);
 ```
 
 Returns:
@@ -178,7 +177,7 @@ articleSchema({
   author: {
     name: 'John Smith',
   },
-})
+});
 ```
 
 ---
@@ -193,7 +192,7 @@ faqPageSchema([
     question: 'What is escrow?',
     answer: 'Escrow is ...',
   },
-])
+]);
 ```
 
 ---
@@ -204,7 +203,7 @@ faqPageSchema([
 breadcrumbListSchema([
   { name: 'Home', url: '/' },
   { name: 'Blog', url: '/blog' },
-])
+]);
 ```
 
 ---
@@ -228,7 +227,7 @@ videoObjectSchema({
   description: 'Weekly market update',
   thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
   uploadDate: '2026-06-01',
-})
+});
 ```
 
 ---
@@ -254,7 +253,7 @@ organizationSchema({
   name: 'Acme Realty',
   url: 'https://acme.com',
   logo: 'https://acme.com/logo.png',
-})
+});
 ```
 
 ---
@@ -280,7 +279,7 @@ localBusinessSchema({
     postalCode: '78701',
     addressCountry: 'US',
   },
-})
+});
 ```
 
 ---
@@ -317,7 +316,7 @@ Example:
 personSchema({
   name: 'John Smith',
   jobTitle: 'Realtor',
-})
+});
 ```
 
 ---
@@ -336,7 +335,7 @@ profilePageSchema({
     name: 'Jane Doe',
     jobTitle: 'Broker Associate',
   },
-})
+});
 ```
 
 ---
@@ -364,7 +363,7 @@ productSchema({
     price: 500000,
     priceCurrency: 'USD',
   },
-})
+});
 ```
 
 ---
@@ -382,7 +381,7 @@ reviewSchema({
   reviewRating: {
     ratingValue: 5,
   },
-})
+});
 ```
 
 ---
@@ -397,7 +396,7 @@ Example:
 aggregateRatingSchema({
   ratingValue: 4.9,
   reviewCount: 124,
-})
+});
 ```
 
 ---
@@ -416,9 +415,8 @@ Example:
 websiteSchema({
   name: 'Acme Realty',
   url: 'https://acme.com',
-  searchUrlTemplate:
-    'https://acme.com/search?q={search_term_string}',
-})
+  searchUrlTemplate: 'https://acme.com/search?q={search_term_string}',
+});
 ```
 
 ---
@@ -453,7 +451,7 @@ residenceSchema({
   },
   numberOfBedrooms: 4,
   numberOfBathroomsTotal: 3,
-})
+});
 ```
 
 ---
@@ -540,7 +538,7 @@ openHouseSchema({
       addressCountry: 'US',
     },
   },
-})
+});
 ```
 
 ---
@@ -603,7 +601,7 @@ Recommended patterns:
 
 ```tsx
 <script
-  type="application/ld+json"
+  type='application/ld+json'
   dangerouslySetInnerHTML={{
     __html: JSON.stringify(schema),
   }}
@@ -617,7 +615,7 @@ Recommended patterns:
 ```ts
 head: () => ({
   scripts: jsonLdScript(schema),
-})
+});
 ```
 
 ---
@@ -631,8 +629,8 @@ This library intentionally:
 - avoids giant schema abstractions
 - preserves raw schema.org compatibility
 
-If Schema.org introduces new properties, you can extend builders
-or compose custom JSON-LD nodes using `jsonLd()`.
+If Schema.org introduces new properties, you can extend builders or compose custom JSON-LD nodes
+using `jsonLd()`.
 
 ---
 
@@ -641,12 +639,12 @@ or compose custom JSON-LD nodes using `jsonLd()`.
 You can build custom schemas:
 
 ```ts
-import { jsonLd } from '@your/package'
+import { jsonLd } from '@your/package';
 
 const customSchema = jsonLd({
   '@type': 'SoftwareApplication',
   name: 'My App',
-})
+});
 ```
 
 ---

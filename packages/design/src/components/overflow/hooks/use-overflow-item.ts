@@ -1,6 +1,6 @@
-import * as React from "react";
+import * as React from 'react';
 
-import { OverflowItemContext, type OverflowItemContextValue } from "../context";
+import { OverflowItemContext, type OverflowItemContextValue } from '../context';
 
 // ─── useOverflowItem ──────────────────────────────────────────────────────────
 
@@ -23,6 +23,6 @@ import { OverflowItemContext, type OverflowItemContextValue } from "../context";
  */
 export function useOverflowItem(): OverflowItemContextValue {
   const ctx = React.useContext(OverflowItemContext);
-  if (!ctx) throw new Error("`useOverflowItem` must be used within `OverflowItem`");
+  if (!ctx) throw new Error('`useOverflowItem` must be used within `OverflowItem`');
   return ctx;
 }

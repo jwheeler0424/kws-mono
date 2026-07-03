@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import './preload.ts';
 
 const domainSchema = z.string().regex(z.regexes.domain);

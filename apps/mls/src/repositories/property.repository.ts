@@ -1,17 +1,18 @@
-import { eq, getColumns, sql } from 'drizzle-orm';
-
 import { env } from '@kws/config';
 import { mlsMedia, properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
+import { eq, getColumns, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
 import { logger } from '@/lib/logger';
 import { dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
+
 import type { MappedMedia } from '../maps/media.mapper';
 import type {
   MappedProperty,
   MappedPropertyRoom,
   MappedPropertyUnitType,
 } from '../maps/property.mapper';
+
 import { upsertMlsMedia } from './media.repository';
 
 const PROPERTY_BATCH_SIZE = env.MLS_PROPERTY_BATCH_SIZE ?? 100;
@@ -24,12 +25,16 @@ const STAGING_TABLE_NAME = 'mls_property_stage';
 const PROPERTY_UPSERT_EXCLUDED_COLUMNS = new Set(['listingKey', 'createdAt', 'searchVector']);
 const PROPERTY_NON_INSERTABLE_COLUMNS = new Set(['searchVector']);
 
-async function applySeedStagingSettings(execute: (query: string) => Promise<unknown>): Promise<void> {
+async function applySeedStagingSettings(
+  execute: (query: string) => Promise<unknown>,
+): Promise<void> {
   if (env.MLS_PROPERTY_SEED_STAGING_SYNC_COMMIT_OFF ?? false) {
     await execute('SET LOCAL synchronous_commit TO OFF');
   }
   if (env.MLS_PROPERTY_SEED_STAGING_STATEMENT_TIMEOUT_MS) {
-    await execute(`SET LOCAL statement_timeout TO '${env.MLS_PROPERTY_SEED_STAGING_STATEMENT_TIMEOUT_MS}ms'`);
+    await execute(
+      `SET LOCAL statement_timeout TO '${env.MLS_PROPERTY_SEED_STAGING_STATEMENT_TIMEOUT_MS}ms'`,
+    );
   }
   if (env.MLS_PROPERTY_SEED_STAGING_LOCK_TIMEOUT_MS) {
     await execute(`SET LOCAL lock_timeout TO '${env.MLS_PROPERTY_SEED_STAGING_LOCK_TIMEOUT_MS}ms'`);
@@ -99,7 +104,6 @@ function getAppliedRowCount(result: unknown): number {
   return Array.isArray(rows) ? rows.length : 0;
 }
 
-
 export interface PropertyChildren {
   media: MappedMedia[];
   rooms: MappedPropertyRoom[];
@@ -109,7 +113,7 @@ export interface PropertyChildren {
 export const getLatestPropertyTimestamp = async () => {
   const result = await db.query.properties.findFirst({
     columns: {
-      modificationTimestamp: true
+      modificationTimestamp: true,
     },
     orderBy: (properties, { desc }) => desc(properties.modificationTimestamp),
   });
@@ -130,9 +134,8 @@ export async function upsertSingleProperty(record: MappedProperty): Promise<void
     media.length > 0 ? upsertMlsMedia(media) : Promise.resolve(),
     rooms.length > 0 ? upsertPropertyRooms(rooms) : Promise.resolve(),
     unitTypes.length > 0 ? upsertPropertyUnitTypes(unitTypes) : Promise.resolve(),
-  ])
+  ]);
 }
-
 
 /**
  * Soft-deactivate a property. Sets mlgCanView=false, deletedAt=now.
@@ -156,14 +159,16 @@ export async function upsertProperties(
 
   const deduped = dedupeByKey(data, (row) => row.listingKey);
   const setFields = getUpsertSetFields(properties, ['listingKey', 'createdAt', 'searchVector']);
-  const insertColumnNames = getPropertyInsertColumnNames();
+  // const insertColumnNames = getPropertyInsertColumnNames();
   const insertColumnsSql = getPropertyInsertColumnsSql();
   const updateWhereSql = getPropertyUpdateWhereSql();
   const updateWhere = sql`
     ${sql.raw(updateWhereSql)}
   `;
   const maxTimestamp = deduped.reduce((max, row) => {
-    const rowTimestamp = row.modificationTimestamp ? new Date(row.modificationTimestamp) : new Date(0);
+    const rowTimestamp = row.modificationTimestamp
+      ? new Date(row.modificationTimestamp)
+      : new Date(0);
     return rowTimestamp > max ? rowTimestamp : max;
   }, new Date(0));
   const useSeedStaging = options?.useSeedStaging ?? false;
@@ -244,7 +249,10 @@ export async function upsertProperties(
   return maxTimestamp;
 }
 
-async function runWithConcurrencyLimit(tasks: Array<() => Promise<Date | void>>, limit: number): Promise<void> {
+async function runWithConcurrencyLimit(
+  tasks: Array<() => Promise<Date | void>>,
+  limit: number,
+): Promise<void> {
   if (tasks.length === 0) return;
 
   const active = new Set<Promise<Date | void>>();
@@ -262,7 +270,6 @@ async function runWithConcurrencyLimit(tasks: Array<() => Promise<Date | void>>,
 
   await Promise.all(active);
 }
-
 
 export async function upsertPropertyRooms(data: (typeof propertyRooms.$inferInsert)[]) {
   if (data.length === 0) return new Date(0);
@@ -308,7 +315,11 @@ export async function upsertPropertyUnitTypes(data: (typeof propertyUnitTypes.$i
   if (data.length === 0) return;
 
   const deduped = dedupeByKey(data, (row) => row.unitTypeKey);
-  const setFields = getUpsertSetFields(propertyUnitTypes, ['unitTypeKey', 'searchVector', 'createdAt']);
+  const setFields = getUpsertSetFields(propertyUnitTypes, [
+    'unitTypeKey',
+    'searchVector',
+    'createdAt',
+  ]);
   const updateWhere = sql`
     excluded.unit_type_beds_total is distinct from ${propertyUnitTypes.unitTypeBedsTotal}
     or excluded.unit_type_baths_total is distinct from ${propertyUnitTypes.unitTypeBathsTotal}

@@ -1,11 +1,11 @@
+import { mlsMedia } from '@kws/schema';
 import { and, eq, notInArray } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
-import { mlsMedia } from '@kws/schema';
+import { chunkArray } from '@/lib/utils/helpers';
 
 import type { MappedMedia } from '../maps/media.mapper';
 
-import { chunkArray } from '@/lib/utils/helpers';
 import { buildMlsMediaConflictSet } from './mls-media-conflict-set';
 
 const MEDIA_UPSERT_CHUNK_SIZE = 250;

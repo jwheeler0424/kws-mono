@@ -1,13 +1,13 @@
-"use client";
+'use client';
 // @refresh reset
 
-import { useOverflowContext } from "./context";
-import { useStore } from "./hooks";
-import { selectHiddenCount, selectVisibleCount } from "./utils/selectors";
+import { useOverflowContext } from './context';
+import { useStore } from './hooks';
+import { selectHiddenCount, selectVisibleCount } from './utils/selectors';
 
 // ─── Component name ───────────────────────────────────────────────────────────
 
-const ANNOUNCER_NAME = "OverflowAnnouncer";
+const ANNOUNCER_NAME = 'OverflowAnnouncer';
 
 // ─── OverflowAnnouncerProps ───────────────────────────────────────────────────
 
@@ -51,10 +51,10 @@ export function OverflowAnnouncer({ announce }: OverflowAnnouncerProps) {
       : `Showing all ${total} items.`;
 
   return (
-    <span aria-live="polite" aria-atomic="true" data-slot="overflow-announcer" className="sr-only">
+    <span aria-live='polite' aria-atomic='true' data-slot='overflow-announcer' className='sr-only'>
       {message}
     </span>
   );
 }
 
-OverflowAnnouncer.displayName = "OverflowAnnouncer";
+OverflowAnnouncer.displayName = 'OverflowAnnouncer';
