@@ -11,7 +11,7 @@ import {
   searchListingsPageMarkers,
 } from '../queries/search';
 
-const listingsSearchSchema = listingsSearchShapeSchema;
+const listingsSearchSchema = listingsSearchShapeSchema.partial();
 
 const statusesSchema = z.array(z.string()).optional();
 

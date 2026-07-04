@@ -1,6 +1,5 @@
 import type { TListingMarker } from '@kws/types';
 
-import { normalizeListingsSearch } from '@kws/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
@@ -14,9 +13,35 @@ import {
 } from '@/features/mls/options/search';
 import { useSeo } from '@/lib/tools';
 
+const isQueryCancellationError = (error: unknown) => {
+  if (!error || (typeof error !== 'object' && typeof error !== 'function')) {
+    return false;
+  }
+
+  const candidate = error as {
+    name?: unknown;
+    message?: unknown;
+    stack?: unknown;
+    constructor?: { name?: unknown };
+    revert?: unknown;
+    silent?: unknown;
+  };
+
+  const text = [candidate.name, candidate.constructor?.name, candidate.message, candidate.stack]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+
+  if (text.includes('cancellederror') || text.includes('cancelled') || text.includes('abort')) {
+    return true;
+  }
+
+  return typeof candidate.revert === 'boolean' && 'silent' in candidate;
+};
+
 export const Route = createFileRoute('/listings/_listings/')({
-  // loaderDeps exposes the canonical search params to loader so it re-runs on search change.
-  loaderDeps: ({ search }) => normalizeListingsSearch(search),
+  // loaderDeps mirrors route search params so loader re-runs on search change.
+  loaderDeps: ({ search }) => search,
   // Keep the listings route non-blocking for the map. Marker pages load on the client so the
   // Leaflet shell can render first and then fetch prioritized sectors in the background.
   loader: async ({ context, deps }) => {
@@ -37,7 +62,13 @@ export const Route = createFileRoute('/listings/_listings/')({
             hydrateListingCardsByKeysOptions({ listingKeys, maxBatchSize: pageSize }),
           );
         }),
-    ]);
+    ]).catch((error) => {
+      if (isQueryCancellationError(error)) {
+        return;
+      }
+
+      console.error('Listings loader prefetch failed', error);
+    });
 
     return {
       siteConfig: context.siteConfig,
@@ -83,7 +114,7 @@ function RouteComponent() {
     <main className='w-full'>
       <section className='relative w-full'>
         <ListingsSearch />
-        <ListingsMap params={search} markers={markers} markersLoading={isMarkersPending} />
+        <ListingsMap markers={markers} markersLoading={isMarkersPending} />
       </section>
       <section className='content relative'>
         <ListingsResults params={search} resultCount={markers.length} />

@@ -1,23 +1,17 @@
-import { listingsSearchShapeSchema } from '@kws/types';
-import { createFileRoute, Outlet, stripSearchParams } from '@tanstack/react-router';
+import { listingsSearchShapeSchema, type TListingsSearch } from '@kws/types';
+import { createFileRoute, Outlet } from '@tanstack/react-router';
 
-const DEFAULT_LISTINGS_SEARCH = {
-  query: null,
-  limit: null,
-  price: null,
-  sqFt: null,
-  bedrooms: null,
-  bathrooms: null,
-  useMapBounds: false,
-  bounds: null,
-  sortBy: null,
-  proximity: null,
-} as const;
+const validateListingsSearch = (value: unknown): Partial<TListingsSearch> => {
+  const parsed = listingsSearchShapeSchema.partial().safeParse(value);
+
+  if (!parsed.success) {
+    return {};
+  }
+
+  return parsed.data;
+};
 
 export const Route = createFileRoute('/listings/_listings')({
-  validateSearch: listingsSearchShapeSchema,
-  search: {
-    middlewares: [stripSearchParams(DEFAULT_LISTINGS_SEARCH)],
-  },
+  validateSearch: validateListingsSearch,
   component: () => <Outlet />,
 });

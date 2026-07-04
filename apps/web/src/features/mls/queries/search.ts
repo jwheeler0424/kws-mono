@@ -8,7 +8,6 @@ import type {
 } from '@kws/types';
 
 import { properties } from '@kws/schema';
-import { normalizeListingsSearch } from '@kws/types';
 import {
   and,
   asc,
@@ -44,7 +43,7 @@ type TMarkerCursorPayload = {
 };
 
 type TMarkerQueryInput = {
-  search: TListingsSearch;
+  search: Partial<TListingsSearch>;
   limit?: number | null;
   cursor?: string | null;
   statuses?: StandardStatus[];
@@ -66,19 +65,17 @@ const normalizeLimit = (value: number | null | undefined) => {
   return Math.min(Math.floor(value), MAX_LIMIT);
 };
 
-const normalizeSearch = (search: TListingsSearch) => {
-  const normalized = normalizeListingsSearch(search);
-
+const normalizeSearch = (search: Partial<TListingsSearch>) => {
   const normalizedSortBy: TListingsSortBy =
-    normalized.sortBy === 'priceAsc' ||
-    normalized.sortBy === 'priceDesc' ||
-    (normalized.sortBy === 'proximity' && normalized.proximity)
-      ? normalized.sortBy
+    search.sortBy === 'priceAsc' ||
+      search.sortBy === 'priceDesc' ||
+      (search.sortBy === 'proximity' && search.proximity)
+      ? search.sortBy
       : 'newest';
 
   return {
-    ...normalized,
-    limit: normalizeLimit(normalized.limit),
+    ...search,
+    limit: normalizeLimit(search.limit),
     sortBy: normalizedSortBy,
   };
 };

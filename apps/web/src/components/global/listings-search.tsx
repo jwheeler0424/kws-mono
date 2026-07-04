@@ -1,5 +1,5 @@
 import type { CheckboxRootState } from '@base-ui/react/checkbox';
-import type { TPropertyCard } from '@kws/types';
+import type { TListingsSearch, TMapBounds, TPropertyCard } from '@kws/types';
 
 import {
   DEFAULT_POSITION,
@@ -7,9 +7,9 @@ import {
   PROPERTY_IMAGE_PLACEHOLDER_URL,
 } from '@kws/config/constants/properties';
 import { Checkbox } from '@kws/design/ui/checkbox';
-import { Combobox, ComboboxContent, ComboboxInputDebounced } from '@kws/design/ui/combobox';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@kws/design/ui/empty';
 import { Input } from '@kws/design/ui/input';
+import { InputDebounced } from '@kws/design/ui/input-debounced';
 import {
   Item,
   ItemContent,
@@ -30,9 +30,8 @@ import {
 } from '@kws/design/ui/sheet';
 import { Slider } from '@kws/design/ui/slider';
 import { toast } from '@kws/design/ui/toast';
-import { normalizeListingsSearch } from '@kws/types';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { Search, X } from 'lucide-react';
 import React from 'react';
 
@@ -48,9 +47,51 @@ import { useMapActions, useMapStore } from '@/stores/map.store';
 
 import { ScrollArea } from './listings-search-scroll-area';
 
+type TListingsSearchPatch = Partial<TListingsSearch>;
+
+type TListingsRouteSearch = Partial<TListingsSearch>;
+
+const toOptional = <T,>(value: T | null | undefined): T | undefined => value ?? undefined;
+
+const mergePatchIntoRouteSearch = (
+  base: TListingsRouteSearch,
+  patch: TListingsSearchPatch,
+): TListingsRouteSearch => ({
+  query: patch.query === undefined ? base.query : toOptional(patch.query),
+  limit: patch.limit === undefined ? base.limit : toOptional(patch.limit),
+  price: patch.price === undefined ? base.price : toOptional(patch.price),
+  sqFt: patch.sqFt === undefined ? base.sqFt : toOptional(patch.sqFt),
+  bedrooms: patch.bedrooms === undefined ? base.bedrooms : toOptional(patch.bedrooms),
+  bathrooms: patch.bathrooms === undefined ? base.bathrooms : toOptional(patch.bathrooms),
+  useMapBounds:
+    patch.useMapBounds === undefined ? base.useMapBounds : patch.useMapBounds ? true : undefined,
+  bounds: patch.bounds === undefined ? base.bounds : toOptional(patch.bounds),
+  sortBy: patch.sortBy === undefined ? base.sortBy : toOptional(patch.sortBy),
+  proximity: patch.proximity === undefined ? base.proximity : toOptional(patch.proximity),
+});
+
+const areBoundsEqual = (a: TMapBounds | null | undefined, b: TMapBounds | null | undefined) => {
+  if (!a && !b) {
+    return true;
+  }
+
+  if (!a || !b) {
+    return false;
+  }
+
+  const epsilon = 0.000001;
+
+  return (
+    Math.abs(a.northEast.lat - b.northEast.lat) <= epsilon &&
+    Math.abs(a.northEast.lng - b.northEast.lng) <= epsilon &&
+    Math.abs(a.southWest.lat - b.southWest.lat) <= epsilon &&
+    Math.abs(a.southWest.lng - b.southWest.lng) <= epsilon
+  );
+};
+
 export default function ListingsSearch() {
   const search = ListingsRoute.useSearch();
-  const navigate = useNavigate();
+  const navigate = ListingsRoute.useNavigate();
   const [filterOpen, setFilterOpen] = React.useState<boolean>(false);
   const { min: priceMin, max: priceMax } = search.price ?? { min: null, max: null };
   const { min: sqFtMin, max: sqFtMax } = search.sqFt ?? { min: null, max: null };
@@ -62,7 +103,6 @@ export default function ListingsSearch() {
     min: null,
     max: null,
   };
-  const limit = search.limit;
   const query = search.query;
   const useMapBounds = search.useMapBounds;
   const queryClient = useQueryClient();
@@ -96,20 +136,28 @@ export default function ListingsSearch() {
   const { minPrice, maxPrice, minSqFt, maxSqFt, minBedroom, maxBedroom, minBathroom, maxBathroom } =
     FILTER_LIMITS;
 
-  const buildRouteSearchFromLocal = React.useCallback(
-    (queryValue: string | undefined) => ({
+  const buildSearchPatchFromLocal = React.useCallback(
+    (queryValue: string | undefined): TListingsSearchPatch => ({
       query: queryValue && queryValue.length >= 3 ? queryValue : null,
-      limit: limit ?? null,
       price: { min: priceValues[0], max: priceValues[1] },
       sqFt: { min: sqFtValues[0], max: sqFtValues[1] },
       bedrooms: { min: bedroomValues[0], max: bedroomValues[1] },
       bathrooms: { min: bathroomValues[0], max: bathroomValues[1] },
       useMapBounds: Boolean(useMapBoundsLocal),
       bounds: Boolean(useMapBoundsLocal) && mapBounds ? mapBounds : null,
-      sortBy: null,
-      proximity: null,
     }),
-    [bathroomValues, bedroomValues, limit, mapBounds, priceValues, sqFtValues, useMapBoundsLocal],
+    [bathroomValues, bedroomValues, mapBounds, priceValues, sqFtValues, useMapBoundsLocal],
+  );
+
+  const commitSearchPatch = React.useCallback(
+    (patch: TListingsSearchPatch, options?: { replace?: boolean }) => {
+      void navigate({
+        to: '.',
+        replace: options?.replace ?? false,
+        search: (prev) => mergePatchIntoRouteSearch(prev, patch),
+      });
+    },
+    [navigate],
   );
 
   const handleClearSearchQuery = (_e: React.MouseEvent) => {
@@ -117,22 +165,7 @@ export default function ListingsSearch() {
     setSearchResults([]);
     setIsSearchLoading(false);
 
-    void navigate({
-      to: '/listings',
-      search: (prev) =>
-        normalizeListingsSearch({
-          query: null,
-          limit: prev.limit ?? null,
-          price: prev.price ?? null,
-          sqFt: prev.sqFt ?? null,
-          bedrooms: prev.bedrooms ?? null,
-          bathrooms: prev.bathrooms ?? null,
-          useMapBounds: prev.useMapBounds ?? null,
-          bounds: prev.bounds ?? null,
-          sortBy: prev.sortBy ?? null,
-          proximity: prev.proximity ?? null,
-        }),
-    });
+    commitSearchPatch({ query: null }, { replace: true });
   };
 
   const handleSetBounds = (checked: CheckboxRootState['checked']) => {
@@ -171,57 +204,32 @@ export default function ListingsSearch() {
   const handleDebouncedQueryChange = React.useCallback(
     async (queryValue?: string) => {
       const keyword = queryValue?.trim();
+      const patch = buildSearchPatchFromLocal(keyword);
+      const routeSearch = mergePatchIntoRouteSearch(search, patch);
 
       if (!keyword || keyword.length < 3) {
+        if (search.query !== undefined) {
+          commitSearchPatch({ query: null }, { replace: true });
+        }
+
         latestSearchRequestRef.current += 1;
         setIsSearchLoading(false);
         setSearchResults([]);
         return;
       }
 
+      commitSearchPatch(patch, { replace: true });
+
       const requestId = latestSearchRequestRef.current + 1;
       latestSearchRequestRef.current = requestId;
       setIsSearchLoading(true);
 
-      const filters = {
-        keywords: keyword,
-        limit: 25,
-        minPrice: priceValues[0] ?? undefined,
-        maxPrice: priceValues[1] ?? undefined,
-        minSqFt: sqFtValues[0] ?? undefined,
-        maxSqFt: sqFtValues[1] ?? undefined,
-        minBeds: bedroomValues[0] ?? undefined,
-        maxBeds: bedroomValues[1] ?? undefined,
-        minBaths: bathroomValues[0] ?? undefined,
-        maxBaths: bathroomValues[1] ?? undefined,
-        bbox:
-          Boolean(useMapBoundsLocal) && mapBounds
-            ? ([
-                mapBounds.southWest.lng,
-                mapBounds.southWest.lat,
-                mapBounds.northEast.lng,
-                mapBounds.northEast.lat,
-              ] as [number, number, number, number])
-            : undefined,
-      };
-
       try {
-        const routeSearch = normalizeListingsSearch({
-          query: keyword,
-          limit: limit ?? 25,
-          price: { min: priceValues[0], max: priceValues[1] },
-          sqFt: { min: sqFtValues[0], max: sqFtValues[1] },
-          bedrooms: { min: bedroomValues[0], max: bedroomValues[1] },
-          bathrooms: { min: bathroomValues[0], max: bathroomValues[1] },
-          useMapBounds: Boolean(useMapBoundsLocal),
-          bounds: Boolean(useMapBoundsLocal) && mapBounds ? mapBounds : null,
-          sortBy: null,
-          proximity: null,
-        });
+        const previewLimit = routeSearch.limit ?? 25;
 
         const page = await queryClient.ensureQueryData(
           searchListingsPageFromRouteOptions(routeSearch, {
-            limit: filters.limit,
+            limit: previewLimit,
           }),
         );
 
@@ -230,7 +238,7 @@ export default function ListingsSearch() {
           ? await queryClient.ensureQueryData(
               hydrateListingCardsByKeysOptions({
                 listingKeys,
-                maxBatchSize: filters.limit,
+                maxBatchSize: previewLimit,
               }),
             )
           : [];
@@ -252,16 +260,7 @@ export default function ListingsSearch() {
         }
       }
     },
-    [
-      bathroomValues,
-      bedroomValues,
-      limit,
-      mapBounds,
-      priceValues,
-      queryClient,
-      sqFtValues,
-      useMapBoundsLocal,
-    ],
+    [buildSearchPatchFromLocal, commitSearchPatch, search, queryClient],
   );
 
   const resetSearchFilters = (_e: React.MouseEvent<HTMLButtonElement>) => {
@@ -270,16 +269,28 @@ export default function ListingsSearch() {
     setBedroomValuesLocal([null, null]);
     setBathroomValuesLocal([null, null]);
     setUseBoundsLocal(false);
+
+    commitSearchPatch(
+      {
+        price: null,
+        sqFt: null,
+        bedrooms: null,
+        bathrooms: null,
+        useMapBounds: false,
+        bounds: null,
+      },
+      { replace: true },
+    );
   };
 
   const handleInputSearch = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && e.currentTarget.value.length >= 3) {
         const queryValue = e.currentTarget.value;
-        const search = normalizeListingsSearch(buildRouteSearchFromLocal(queryValue));
+        const patch = buildSearchPatchFromLocal(queryValue);
         setIsSearchLoading(false);
         setSearchResults([]);
-        void navigate({ to: '/listings', search });
+        commitSearchPatch(patch);
         return;
       }
       if (e.currentTarget.value.length < 3) {
@@ -287,7 +298,7 @@ export default function ListingsSearch() {
         setSearchResults([]);
       }
     },
-    [buildRouteSearchFromLocal, navigate],
+    [buildSearchPatchFromLocal, commitSearchPatch],
   );
 
   React.useEffect(() => {
@@ -311,6 +322,24 @@ export default function ListingsSearch() {
     search.useMapBounds,
   ]);
 
+  React.useEffect(() => {
+    if (!search.useMapBounds || !mapBounds) {
+      return;
+    }
+
+    if (areBoundsEqual(search.bounds, mapBounds)) {
+      return;
+    }
+
+    commitSearchPatch(
+      {
+        useMapBounds: true,
+        bounds: mapBounds,
+      },
+      { replace: true },
+    );
+  }, [commitSearchPatch, mapBounds, search.bounds, search.useMapBounds]);
+
   const trimmedSearchQuery = searchQueryLocal?.trim() ?? '';
   const hasSearchKeyword = trimmedSearchQuery.length >= 3;
   const hasSearchResults = searchResults.length > 0;
@@ -328,14 +357,14 @@ export default function ListingsSearch() {
         setMapBounds(null);
         setMapZoom(DEFAULT_POSITION.zoom);
       }
-      const search = normalizeListingsSearch(buildRouteSearchFromLocal(queryValue));
+      const patch = buildSearchPatchFromLocal(queryValue);
       setSearchResults([]);
-      void navigate({ to: '/listings', search });
+      commitSearchPatch(patch);
       setFilterOpen(false);
     },
     [
-      buildRouteSearchFromLocal,
-      navigate,
+      buildSearchPatchFromLocal,
+      commitSearchPatch,
       searchQueryLocal,
       setMapBounds,
       setMapZoom,
@@ -739,9 +768,14 @@ export default function ListingsSearch() {
   return (
     <Sheet open={filterOpen} onOpenChange={setFilterOpen} modal>
       <div className='absolute top-10 left-1/2 z-30 flex w-11/12 max-w-lg -translate-x-1/2 flex-col gap-4 px-4'>
-        <Combobox open={showSearchSurface}>
-          <div className='w-full rounded-[1.25rem] focus-within:ring-2 focus-within:ring-polaris-primary focus-within:ring-offset-2'>
-            <ComboboxInputDebounced
+        <div className='w-full rounded-[1.25rem] focus-within:ring-2 focus-within:ring-polaris-primary focus-within:ring-offset-2'>
+          <div
+            className={cn(
+              'relative h-10 w-full rounded-[1.25rem] border border-polaris-primary/40 bg-white shadow-none',
+              showSearchSurface && 'rounded-b-none border-b-0',
+            )}>
+            <Search className='text-icon pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2' />
+            <InputDebounced
               placeholder='Search property listings...'
               value={searchQueryLocal ?? ''}
               onValueChange={(value) => setSearchQueryLocal(value)}
@@ -753,111 +787,105 @@ export default function ListingsSearch() {
                   setIsSearchLoading(true);
                 }
               }}
-              showTrigger={false}
-              showClear={false}
-              startAddon={<Search className='text-icon size-5' />}
-              endAddon={
-                searchQueryLocal ? (
-                  <Button className='size-10 shrink-0 p-1' onClick={handleClearSearchQuery}>
-                    <X className='size-5 text-polaris-primary drop-shadow transition-colors duration-200 ease-linear hover:text-polaris-primary-600' />
-                  </Button>
-                ) : null
-              }
               className={cn(
-                'h-10 w-full rounded-[1.25rem] border-polaris-primary/40 bg-white shadow-none has-[[data-slot=input-group-control]:focus-visible]:border-polaris-primary/40 has-[[data-slot=input-group-control]:focus-visible]:ring-0',
-                showSearchSurface && 'rounded-b-none border-b-0',
-              )}
-              inputClassName={cn(
-                'placeholder:text-icon-200 h-10 rounded-[1.25rem] bg-transparent px-0 py-0.5 text-gray-900 placeholder:italic focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none',
+                'placeholder:text-icon-200 h-10 rounded-[1.25rem] border-0 bg-transparent py-0.5 pr-10 pl-10 text-gray-900 placeholder:italic shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none',
                 showSearchSurface && 'rounded-b-none',
               )}
             />
-            <ComboboxContent
-              inline
-              className={cn(
-                'min-h-8 max-w-full border-polaris-primary/40 bg-white p-0',
-                !showSearchSurface && 'hidden',
-              )}>
-              {isSearchLoading ? (
-                <div className='flex min-h-28 w-full items-center justify-center px-4 py-6 text-sm text-muted-foreground'>
-                  Searching listings for "{trimmedSearchQuery}"...
-                </div>
-              ) : null}
-              {showSearchEmptyState ? (
-                <Empty className='rounded-none border-0 px-4 py-8'>
-                  <EmptyHeader>
-                    <EmptyMedia variant='icon'>
-                      <Search className='size-4' />
-                    </EmptyMedia>
-                    <EmptyTitle>No listings found</EmptyTitle>
-                    <EmptyDescription>
-                      No properties matched "{trimmedSearchQuery}". Try a broader phrase or reset
-                      your filters.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              ) : null}
-              {hasSearchResults ? (
-                <ScrollArea
-                  className={cn(
-                    'w-full overscroll-contain px-1.5 py-2 [&>div>div]:max-w-full',
-                    searchResults.length > 3 ? 'h-72 lg:h-96' : 'h-auto',
-                  )}>
-                  <ItemGroup className='gap-1'>
-                    {searchResults.map((result) => (
-                      <Link
-                        key={result.listingKey}
-                        className='group m-0 flex w-full items-start gap-1 rounded-none text-left text-black no-underline hover:no-underline'
-                        to={`/listings/$listingKey`}
-                        preload='intent'
-                        params={{
-                          listingKey: result.listingKey,
-                        }}>
-                        <Item className='items-center px-2.5 group-hover:bg-muted'>
-                          <ItemMedia className='-mt-0.5 aspect-video h-10 w-fit overflow-clip rounded-sm bg-muted shadow transition-all duration-200 ease-linear group-hover:ring-2 group-hover:ring-polaris-primary group-hover:ring-offset-2 group-hover:ring-offset-white'>
-                            <img
-                              src={
-                                result.primaryPhotoThumbnailUrl ||
-                                result.primaryPhotoPreviewUrl ||
-                                result.primaryPhotoFullUrl ||
-                                result.primaryPhotoUrl ||
-                                PROPERTY_IMAGE_PLACEHOLDER_URL
-                              }
-                              alt={result.unparsedAddress ?? 'Property image'}
-                              className='object-cover object-center'
-                            />
-                          </ItemMedia>
-                          <ItemContent className='h-10 justify-center py-0'>
-                            <ItemTitle className='line-clamp-1 w-full truncate text-sm font-semibold transition-colors duration-200 ease-linear group-hover:text-polaris-primary'>
-                              <span className='block w-full truncate'>
-                                {getAddressStreet(result)}
-                              </span>
-                            </ItemTitle>
-                            <ItemDescription className='text-xs font-normal'>
-                              <span>
-                                {result.internetAutomatedValuationDisplayYN === false
-                                  ? 'Unavailable'
-                                  : numberFormat({ value: parseInt(result.listPrice ?? '0') })}
-                              </span>
-                              <span className='hidden @sm:inline'>
-                                {' '}
-                                | {result.propertySubType ?? result.propertyType}
-                              </span>
-                              <span>
-                                {' '}
-                                | {result.city}, {result.stateOrProvince}
-                              </span>
-                            </ItemDescription>
-                          </ItemContent>
-                        </Item>
-                      </Link>
-                    ))}
-                  </ItemGroup>
-                </ScrollArea>
-              ) : null}
-            </ComboboxContent>
+            {searchQueryLocal ? (
+              <Button
+                className='absolute top-1/2 right-1 size-8 -translate-y-1/2 shrink-0 p-1'
+                onClick={handleClearSearchQuery}>
+                <X className='size-5 text-polaris-primary drop-shadow transition-colors duration-200 ease-linear hover:text-polaris-primary-600' />
+              </Button>
+            ) : null}
           </div>
-        </Combobox>
+          <div
+            data-slot='combobox-content'
+            data-inline='true'
+            className={cn(
+              'group/combobox-content relative min-h-8 max-w-full overflow-hidden border border-t-0 border-polaris-primary/40 bg-white p-0 text-popover-foreground shadow-none',
+              !showSearchSurface && 'hidden',
+            )}>
+            {isSearchLoading ? (
+              <div className='flex min-h-28 w-full items-center justify-center px-4 py-6 text-sm text-muted-foreground'>
+                Searching listings for "{trimmedSearchQuery}"...
+              </div>
+            ) : null}
+            {showSearchEmptyState ? (
+              <Empty className='rounded-none border-0 px-4 py-8'>
+                <EmptyHeader>
+                  <EmptyMedia variant='icon'>
+                    <Search className='size-4' />
+                  </EmptyMedia>
+                  <EmptyTitle>No listings found</EmptyTitle>
+                  <EmptyDescription>
+                    No properties matched "{trimmedSearchQuery}". Try a broader phrase or reset your
+                    filters.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : null}
+            {hasSearchResults ? (
+              <ScrollArea
+                className={cn(
+                  'w-full overscroll-contain px-1.5 py-2 [&>div>div]:max-w-full',
+                  searchResults.length > 3 ? 'h-72 lg:h-96' : 'h-auto',
+                )}>
+                <ItemGroup className='gap-1'>
+                  {searchResults.map((result) => (
+                    <Link
+                      key={result.listingKey}
+                      className='group m-0 flex w-full items-start gap-1 rounded-none text-left text-black no-underline hover:no-underline'
+                      to={`/listings/$listingKey`}
+                      preload='intent'
+                      params={{
+                        listingKey: result.listingKey,
+                      }}>
+                      <Item className='items-center px-2.5 group-hover:bg-muted'>
+                        <ItemMedia className='-mt-0.5 aspect-video h-10 w-fit overflow-clip rounded-sm bg-muted shadow transition-all duration-200 ease-linear group-hover:ring-2 group-hover:ring-polaris-primary group-hover:ring-offset-2 group-hover:ring-offset-white'>
+                          <img
+                            src={
+                              result.primaryPhotoThumbnailUrl ||
+                              result.primaryPhotoPreviewUrl ||
+                              result.primaryPhotoFullUrl ||
+                              result.primaryPhotoUrl ||
+                              PROPERTY_IMAGE_PLACEHOLDER_URL
+                            }
+                            alt={result.unparsedAddress ?? 'Property image'}
+                            className='object-cover object-center'
+                          />
+                        </ItemMedia>
+                        <ItemContent className='h-10 justify-center py-0'>
+                          <ItemTitle className='line-clamp-1 w-full truncate text-sm font-semibold transition-colors duration-200 ease-linear group-hover:text-polaris-primary'>
+                            <span className='block w-full truncate'>
+                              {getAddressStreet(result)}
+                            </span>
+                          </ItemTitle>
+                          <ItemDescription className='text-xs font-normal'>
+                            <span>
+                              {result.internetAutomatedValuationDisplayYN === false
+                                ? 'Unavailable'
+                                : numberFormat({ value: parseInt(result.listPrice ?? '0') })}
+                            </span>
+                            <span className='hidden @sm:inline'>
+                              {' '}
+                              | {result.propertySubType ?? result.propertyType}
+                            </span>
+                            <span>
+                              {' '}
+                              | {result.city}, {result.stateOrProvince}
+                            </span>
+                          </ItemDescription>
+                        </ItemContent>
+                      </Item>
+                    </Link>
+                  ))}
+                </ItemGroup>
+              </ScrollArea>
+            ) : null}
+          </div>
+        </div>
         <div className='flex w-full items-center justify-end'>
           <SheetTrigger
             render={
@@ -871,7 +899,7 @@ export default function ListingsSearch() {
           />
         </div>
       </div>
-      <SheetContent className='overflow-y-auto border-none bg-white' side={'right'}>
+      <SheetContent className='border-none bg-white' side={'right'}>
         <SheetHeader className='space-y-1'>
           <SheetTitle className='-mt-1 text-2xl leading-1 font-normal'>Property Filters</SheetTitle>
           <SheetDescription className='text-xs!'>

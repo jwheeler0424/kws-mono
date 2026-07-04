@@ -1,6 +1,5 @@
 import type { StandardStatus, TListingsSearch, TPropertyCard } from '@kws/types';
 
-import { normalizeListingsSearch, toListingsSearchUrl } from '@kws/types';
 import { queryOptions } from '@tanstack/react-query';
 
 import {
@@ -11,12 +10,12 @@ import {
 } from '../functions';
 
 type TSearchScope = {
-  search: TListingsSearch;
+  search: Partial<TListingsSearch>;
   statuses?: StandardStatus[];
 };
 
 type TNormalizedSearchScope = {
-  search: TListingsSearch;
+  search: Partial<TListingsSearch>;
   statuses?: StandardStatus[];
 };
 
@@ -40,7 +39,7 @@ const normalizeStatuses = (statuses?: StandardStatus[]) => {
 };
 
 const normalizeSearchScope = ({ search, statuses }: TSearchScope): TNormalizedSearchScope => ({
-  search: normalizeListingsSearch(search),
+  search,
   statuses: normalizeStatuses(statuses),
 });
 
@@ -48,7 +47,7 @@ const normalizeSearchScopeForKey = ({ search, statuses }: TSearchScope) => {
   const normalized = normalizeSearchScope({ search, statuses });
 
   return {
-    search: toListingsSearchUrl(normalized.search),
+    search: normalized.search,
     statuses: normalized.statuses,
   };
 };
@@ -92,16 +91,12 @@ export const searchKeys = {
 } as const;
 
 export const toSearchInput = (
-  search: TListingsSearch,
+  search: Partial<TListingsSearch>,
   overrides: Partial<{ limit: number | null; cursor: string | null }> = {},
-): TListingsSearch => {
-  const normalized = normalizeListingsSearch(search);
-
-  return {
-    ...normalized,
-    limit: overrides.limit ?? normalized.limit,
-  };
-};
+): Partial<TListingsSearch> => ({
+  ...search,
+  limit: overrides.limit ?? search.limit,
+});
 
 export function searchListingsCountOptions(input: TSearchScope) {
   const normalized = normalizeSearchScope(input);
@@ -207,12 +202,12 @@ export function markerCardByListingKeyOptions(listingKey: string, statuses?: Sta
 
 // Backward-compatible aliases for existing caller naming patterns.
 export const searchListingsCountFromRouteOptions = (
-  search: TListingsSearch,
+  search: Partial<TListingsSearch>,
   statuses?: StandardStatus[],
 ) => searchListingsCountOptions({ search, statuses });
 
 export const searchListingsPageFromRouteOptions = (
-  search: TListingsSearch,
+  search: Partial<TListingsSearch>,
   input: Partial<Pick<TSearchPageInput, 'limit' | 'cursor' | 'statuses'>> = {},
 ) =>
   searchListingMarkersPageOptions({

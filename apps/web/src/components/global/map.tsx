@@ -27,6 +27,106 @@ type MapProps = {
   onInitialMarkersRendered?: () => void;
 };
 
+type MapEventsProps = {
+  mapTimestamp: number;
+  positionUpdated: boolean;
+  mapPosition: { lat: number; lng: number };
+  userPosition: { lat: number; lng: number } | null;
+  zoom: number;
+  setPositionUpdated: (positionUpdated: boolean) => void;
+  setBounds: (bounds: {
+    northEast: { lat: number; lng: number };
+    southWest: { lat: number; lng: number };
+  }) => void;
+  setMapPosition: (position: { lat: number; lng: number }) => void;
+  setZoom: (zoom: number) => void;
+  setMapLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setMapReady: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+function MapEvents({
+  mapTimestamp,
+  positionUpdated,
+  mapPosition,
+  userPosition,
+  zoom,
+  setPositionUpdated,
+  setBounds,
+  setMapPosition,
+  setZoom,
+  setMapLoading,
+  setMapReady,
+}: MapEventsProps) {
+  const map = useMap();
+  const initializedRef = useRef(false);
+
+  const handleMapChange = React.useCallback(
+    (targetMap: L.Map) => {
+      const currentZoom = targetMap.getZoom();
+      const mapBounds = targetMap.getBounds();
+      const { lat, lng } = targetMap.getCenter();
+      const bounds = {
+        northEast: {
+          lat: mapBounds.getNorthEast().lat,
+          lng: mapBounds.getNorthEast().lng,
+        },
+        southWest: {
+          lat: mapBounds.getSouthWest().lat,
+          lng: mapBounds.getSouthWest().lng,
+        },
+      };
+
+      setBounds(bounds);
+      setZoom(currentZoom);
+      setMapPosition({ lat, lng });
+    },
+    [setBounds, setMapPosition, setZoom],
+  );
+
+  useMapEvents({
+    movestart: () => {
+      setMapLoading(true);
+    },
+    moveend: (e: LeafletEvent) => {
+      handleMapChange(e.target as L.Map);
+      setMapLoading(false);
+    },
+    zoomstart: () => {
+      setMapLoading(true);
+    },
+    zoomend: (e: LeafletEvent) => {
+      handleMapChange(e.target as L.Map);
+      setMapLoading(false);
+    },
+  });
+
+  useEffect(() => {
+    if (initializedRef.current) {
+      return;
+    }
+    initializedRef.current = true;
+
+    const timestamp = Date.now() - mapTimestamp;
+    const millisecondsInOneDay = 24 * 60 * 60 * 1000;
+
+    if (!positionUpdated && userPosition) {
+      map.flyTo([userPosition.lat, userPosition.lng], zoom);
+      setPositionUpdated(true);
+    } else if (timestamp < millisecondsInOneDay) {
+      map.flyTo([mapPosition.lat, mapPosition.lng], zoom);
+      setPositionUpdated(true);
+    }
+
+    setMapLoading(false);
+    setMapReady(true);
+    handleMapChange(map);
+    // We only want to apply initial camera restoration once after the map mounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map]);
+
+  return null;
+}
+
 export function MapView({
   properties,
   markersLoading = false,
@@ -133,74 +233,6 @@ export function MapView({
     }
   }, [mapReady, markersLoading, onInitialMarkersRendered, properties.length]);
 
-  function MapEvents() {
-    const map = useMap();
-    const initializedRef = useRef(false);
-
-    const handleMapChange = (targetMap: L.Map) => {
-      const currentZoom = targetMap.getZoom();
-      const mapBounds = targetMap.getBounds();
-      const { lat, lng } = targetMap.getCenter();
-      const bounds = {
-        northEast: {
-          lat: mapBounds.getNorthEast().lat,
-          lng: mapBounds.getNorthEast().lng,
-        },
-        southWest: {
-          lat: mapBounds.getSouthWest().lat,
-          lng: mapBounds.getSouthWest().lng,
-        },
-      };
-
-      setBounds(bounds);
-      setZoom(currentZoom);
-      setMapPosition({ lat, lng });
-    };
-
-    useMapEvents({
-      movestart: () => {
-        setMapLoading(true);
-      },
-      moveend: (e: LeafletEvent) => {
-        handleMapChange(e.target as L.Map);
-        setMapLoading(false);
-      },
-      zoomstart: () => {
-        setMapLoading(true);
-      },
-      zoomend: (e: LeafletEvent) => {
-        handleMapChange(e.target as L.Map);
-        setMapLoading(false);
-      },
-    });
-
-    useEffect(() => {
-      if (initializedRef.current) {
-        return;
-      }
-      initializedRef.current = true;
-
-      const timestamp = Date.now() - mapTimestamp;
-      const millisecondsInOneDay = 24 * 60 * 60 * 1000;
-
-      if (!positionUpdated && userPosition) {
-        map.flyTo([userPosition.lat, userPosition.lng], zoom);
-        setPositionUpdated(true);
-      } else if (timestamp < millisecondsInOneDay) {
-        map.flyTo([mapPosition.lat, mapPosition.lng], zoom);
-        setPositionUpdated(true);
-      }
-
-      setMapLoading(false);
-      setMapReady(true);
-      handleMapChange(map);
-      // We only want to apply initial camera restoration once after the map mounts.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [map]);
-
-    return null;
-  }
-
   return (
     <>
       <MapContainer
@@ -216,7 +248,19 @@ export function MapView({
           edgeBufferTiles={2}
         />
 
-        <MapEvents />
+        <MapEvents
+          mapTimestamp={mapTimestamp}
+          positionUpdated={positionUpdated}
+          mapPosition={mapPosition}
+          userPosition={userPosition}
+          zoom={zoom}
+          setPositionUpdated={setPositionUpdated}
+          setBounds={setBounds}
+          setMapPosition={setMapPosition}
+          setZoom={setZoom}
+          setMapLoading={setMapLoading}
+          setMapReady={setMapReady}
+        />
 
         <MarkerClusterGroup
           animate={false}

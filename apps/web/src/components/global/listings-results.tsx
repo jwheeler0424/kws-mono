@@ -15,7 +15,7 @@ export function ListingsResults({
   params,
   resultCount,
 }: {
-  params: TListingsSearch;
+  params: Partial<TListingsSearch>;
   resultCount: number;
 }) {
   const queryClient = useQueryClient();

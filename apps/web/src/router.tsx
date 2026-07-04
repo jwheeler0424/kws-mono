@@ -19,7 +19,7 @@ function createRouterInstance() {
     defaultErrorComponent: (props) => <DefaultCatchBoundary {...props} />,
     defaultNotFoundComponent: () => <NotFound />,
     context,
-    scrollRestoration: true,
+    scrollRestoration: false,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
   });
