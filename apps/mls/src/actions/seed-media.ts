@@ -43,6 +43,10 @@ export interface MlsMediaSyncOptions {
    */
   primaryOnlyForNonPrioritizedProperties?: boolean;
   /**
+   * When true, all property media processing is restricted to primary photos.
+   */
+  primaryOnlyForAllProperties?: boolean;
+  /**
    * When set, only candidates whose resolved entity type is one of the
    * provided values are returned.  Use to run per-entity-type media phases.
    */
@@ -444,6 +448,7 @@ export async function runMlsMediaSync(
   const prioritizeOfficeKeys = options.prioritizeOfficeKeys ?? [];
   const primaryOnlyForNonPrioritizedProperties =
     options.primaryOnlyForNonPrioritizedProperties ?? false;
+  const primaryOnlyForAllProperties = options.primaryOnlyForAllProperties ?? false;
   const associationMode = options.associationMode ?? 'stale-or-unprocessed';
   const filterEntityTypes = options.filterEntityTypes;
   const restrictToMemberPropertyKeys = options.restrictToMemberPropertyKeys;
@@ -561,6 +566,7 @@ export async function runMlsMediaSync(
       prioritizeMemberKeys,
       prioritizeOfficeKeys,
       primaryOnlyForNonPrioritizedProperties,
+      primaryOnlyForAllProperties,
       associationMode,
       filterEntityTypes,
       restrictToMemberPropertyKeys,
@@ -639,6 +645,7 @@ export async function runMlsMediaSync(
         prioritizeMemberKeys,
         prioritizeOfficeKeys,
         primaryOnlyForNonPrioritizedProperties,
+        primaryOnlyForAllProperties,
         associationMode: 'repair-missing-files',
         filterEntityTypes,
         restrictToMemberPropertyKeys,
@@ -783,5 +790,6 @@ export async function runInitialMlsMediaSync(
     ...options,
     maxBatches: options.maxBatches ?? Number.MAX_SAFE_INTEGER,
     primaryOnlyForNonPrioritizedProperties: options.primaryOnlyForNonPrioritizedProperties ?? true,
+    primaryOnlyForAllProperties: options.primaryOnlyForAllProperties ?? true,
   });
 }

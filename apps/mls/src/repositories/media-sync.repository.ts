@@ -43,6 +43,11 @@ export interface ListMlsMediaSyncCandidatesOptions {
    */
   primaryOnlyForNonPrioritizedProperties?: boolean;
   /**
+   * When true, all property media rows are restricted to primary media
+   * (`preferredPhotoYN = true` OR `order = 1`) regardless of prioritization.
+   */
+  primaryOnlyForAllProperties?: boolean;
+  /**
    * When set, only rows whose resolved entity type is one of the provided
    * values are returned.  Useful for running per-entity-type media phases.
    */
@@ -141,6 +146,7 @@ export async function listMlsMediaSyncCandidates(
   const prioritizedOfficeKeys = [...new Set((options.prioritizeOfficeKeys ?? []).filter(Boolean))];
   const primaryOnlyForNonPrioritizedProperties =
     options.primaryOnlyForNonPrioritizedProperties ?? false;
+  const primaryOnlyForAllProperties = options.primaryOnlyForAllProperties ?? false;
   const filterEntityTypes = options.filterEntityTypes ?? [];
   const associationMode = options.associationMode ?? 'stale-or-unprocessed';
   const restrictToMemberPropertyKeys = [
@@ -186,21 +192,21 @@ export async function listMlsMediaSyncCandidates(
   const prioritizedMemberPropertyMatchClause =
     prioritizedMemberKeys.length > 0
       ? or(
-          inArray(properties.listAgentKey, prioritizedMemberKeys),
-          inArray(properties.listAgentMlsId, prioritizedMemberKeys),
-          inArray(properties.coListAgentKey, prioritizedMemberKeys),
-          inArray(properties.coListAgentMlsId, prioritizedMemberKeys),
-        )
+        inArray(properties.listAgentKey, prioritizedMemberKeys),
+        inArray(properties.listAgentMlsId, prioritizedMemberKeys),
+        inArray(properties.coListAgentKey, prioritizedMemberKeys),
+        inArray(properties.coListAgentMlsId, prioritizedMemberKeys),
+      )
       : undefined;
 
   const prioritizedOfficePropertyMatchClause =
     prioritizedOfficeKeys.length > 0
       ? or(
-          inArray(properties.listOfficeKey, prioritizedOfficeKeys),
-          inArray(properties.listOfficeMlsId, prioritizedOfficeKeys),
-          inArray(properties.coListOfficeKey, prioritizedOfficeKeys),
-          inArray(properties.coListOfficeMlsId, prioritizedOfficeKeys),
-        )
+        inArray(properties.listOfficeKey, prioritizedOfficeKeys),
+        inArray(properties.listOfficeMlsId, prioritizedOfficeKeys),
+        inArray(properties.coListOfficeKey, prioritizedOfficeKeys),
+        inArray(properties.coListOfficeMlsId, prioritizedOfficeKeys),
+      )
       : undefined;
 
   const prioritizedPropertyMatchClause =
@@ -217,39 +223,47 @@ export async function listMlsMediaSyncCandidates(
     : isNotNull(properties.listingKey);
   const primaryPhotoClause = or(eq(mlsMedia.preferredPhotoYN, true), eq(mlsMedia.order, 1));
 
-  const candidateWhereClause = primaryOnlyForNonPrioritizedProperties
+  const candidateWhereClause = primaryOnlyForAllProperties
     ? and(
+      baseEligibilityClause,
+      or(isEntityMediaClause, and(isNotNull(properties.listingKey), primaryPhotoClause)),
+    )
+    : primaryOnlyForNonPrioritizedProperties
+      ? and(
         baseEligibilityClause,
         prioritizedPropertyListingClause
           ? or(
-              isEntityMediaClause,
-              prioritizedPropertyListingClause,
-              and(nonPrioritizedPropertyListingClause, primaryPhotoClause),
-            )
-          : or(isEntityMediaClause, and(nonPrioritizedPropertyListingClause, primaryPhotoClause)),
+            isEntityMediaClause,
+            prioritizedPropertyListingClause,
+            and(nonPrioritizedPropertyListingClause, primaryPhotoClause),
+          )
+          : or(
+            isEntityMediaClause,
+            and(nonPrioritizedPropertyListingClause, primaryPhotoClause),
+          ),
       )
-    : baseEligibilityClause;
+      : baseEligibilityClause;
 
   const entityTypeFilterClause =
     filterEntityTypes.length > 0
       ? or(
-          filterEntityTypes.includes('properties') ? isNotNull(properties.listingKey) : undefined,
-          filterEntityTypes.includes('members') ? isNotNull(members.memberMlsId) : undefined,
-          filterEntityTypes.includes('offices') ? isNotNull(offices.officeMlsId) : undefined,
-        )
+        filterEntityTypes.includes('properties') ? isNotNull(properties.listingKey) : undefined,
+        filterEntityTypes.includes('members') ? isNotNull(members.memberMlsId) : undefined,
+        filterEntityTypes.includes('offices') ? isNotNull(offices.officeMlsId) : undefined,
+      )
       : undefined;
 
   const memberPropertyRestrictionClause =
     restrictToMemberPropertyKeys.length > 0
       ? and(
-          isNotNull(properties.listingKey),
-          or(
-            inArray(properties.listAgentKey, restrictToMemberPropertyKeys),
-            inArray(properties.listAgentMlsId, restrictToMemberPropertyKeys),
-            inArray(properties.coListAgentKey, restrictToMemberPropertyKeys),
-            inArray(properties.coListAgentMlsId, restrictToMemberPropertyKeys),
-          ),
-        )
+        isNotNull(properties.listingKey),
+        or(
+          inArray(properties.listAgentKey, restrictToMemberPropertyKeys),
+          inArray(properties.listAgentMlsId, restrictToMemberPropertyKeys),
+          inArray(properties.coListAgentKey, restrictToMemberPropertyKeys),
+          inArray(properties.coListAgentMlsId, restrictToMemberPropertyKeys),
+        ),
+      )
       : undefined;
 
   const finalWhereClause = and(
@@ -296,9 +310,9 @@ export async function listMlsMediaSyncCandidates(
   const rows: CandidateRow[] =
     limit > 0
       ? await baseSelect
-          .where(finalWhereClause)
-          .orderBy(priorityBucket, asc(mlsMedia.updatedAt), asc(mlsMedia.mediaKey))
-          .limit(limit)
+        .where(finalWhereClause)
+        .orderBy(priorityBucket, asc(mlsMedia.updatedAt), asc(mlsMedia.mediaKey))
+        .limit(limit)
       : [];
 
   return toMlsMediaSyncCandidates(rows);

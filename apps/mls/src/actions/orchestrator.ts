@@ -152,7 +152,7 @@ async function propertyMediaSeedConfig(osn: string): Promise<SyncResult> {
   const startedAt = new Date();
   return runInitialMlsMediaSync({
     filterEntityTypes: ['properties'],
-    primaryOnlyForNonPrioritizedProperties: true,
+    primaryOnlyForAllProperties: true,
     associationMode: 'unprocessed-only',
     includeMissingFilesRepair: true,
   }).then((summary) => mediaSummaryToSyncResult('Property:Media', osn, summary, startedAt));
@@ -189,7 +189,7 @@ async function memberPropertyMediaSeedConfig(osn: string): Promise<SyncResult> {
   return runInitialMlsMediaSync({
     filterEntityTypes: ['properties'],
     restrictToMemberPropertyKeys: memberKeys,
-    primaryOnlyForNonPrioritizedProperties: false,
+    primaryOnlyForAllProperties: true,
     includeMissingFilesRepair: true,
   }).then((summary) => mediaSummaryToSyncResult('Property:MemberMedia', osn, summary, startedAt));
 }

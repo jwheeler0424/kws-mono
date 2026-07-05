@@ -5,6 +5,7 @@ import type { MlsResource } from '@/types';
 import { MLS_RESOURCE_NAMES } from '@/lib/constants';
 import { mlsLogger } from '@/lib/logger';
 
+import { purgeDeadMlsPropertyMedia } from '../repositories/media-cleanup.repository';
 import { runMlsCleanup } from './cleanup';
 import { isMlsDeltaResourceName, runDeltaSyncResource } from './orchestrator';
 import { runMlsMediaSync } from './seed-media';
@@ -142,7 +143,7 @@ function resolveScheduledMediaSyncProcessConcurrency() {
   return Math.max(
     1,
     env.MLS_QUEUE_MEDIA_SYNC_PROCESS_CONCURRENCY ??
-      DEFAULT_SCHEDULED_MEDIA_SYNC_PROCESS_CONCURRENCY,
+    DEFAULT_SCHEDULED_MEDIA_SYNC_PROCESS_CONCURRENCY,
   );
 }
 
@@ -225,14 +226,26 @@ export function registerMlsSyncJobTypes() {
     }
 
     await runScheduledJob(mediaSyncSchedule.scheduleId, async () => {
-      await runMlsMediaSync({
+      const syncSummary = await runMlsMediaSync({
         batchSize: mediaSyncBatchSize,
         maxBatches: mediaSyncMaxBatches,
         processConcurrency: mediaSyncProcessConcurrency,
         prioritizeMemberKeys: env.MLS_MEMBER_ID ?? [],
         prioritizeOfficeKeys: env.MLS_OFFICE_ID ?? [],
+        primaryOnlyForAllProperties: true,
         includeMissingFilesRepair: mediaSyncIncludeMissingFilesRepair,
         repairMaxBatches: mediaSyncRepairMaxBatches,
+      });
+
+      const deadPropertyMediaPurgeSummary = await purgeDeadMlsPropertyMedia();
+
+      syncMlsLogger.info('scheduled MLS media sync + dead property media purge completed', {
+        scheduleId: mediaSyncSchedule.scheduleId,
+        scanned: syncSummary.scanned,
+        processed: syncSummary.processed,
+        failed: syncSummary.failed,
+        deadPropertyMediaDeleted: deadPropertyMediaPurgeSummary.mediaDeleted,
+        deadPropertyVariantFilesDeleted: deadPropertyMediaPurgeSummary.variantFilesDeleted,
       });
     });
   });

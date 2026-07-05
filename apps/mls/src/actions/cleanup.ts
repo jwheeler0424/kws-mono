@@ -5,7 +5,9 @@ import { and, eq, isNotNull, lte } from 'drizzle-orm';
 import { db } from '@/lib/database';
 
 import {
+  purgeDeadMlsPropertyMedia,
   purgeEntityMedia,
+  type DeadMlsMediaPurgeSummary,
   type EntityMediaPurgeSummary,
 } from '../repositories/media-cleanup.repository';
 
@@ -23,6 +25,7 @@ export interface MlsCleanupSummary {
     members: EntityMediaPurgeSummary;
     offices: EntityMediaPurgeSummary;
     properties: EntityMediaPurgeSummary;
+    deadPropertyMedia: DeadMlsMediaPurgeSummary;
     totals: EntityMediaPurgeSummary;
   };
   totalDeleted: number;
@@ -68,11 +71,13 @@ export async function runMlsCleanup(
     .map((row) => row.resourceRecordKey)
     .filter((key): key is string => Boolean(key));
 
-  const [membersMediaPurge, officesMediaPurge, propertiesMediaPurge] = await Promise.all([
-    purgeEntityMedia(memberKeys),
-    purgeEntityMedia(officeKeys),
-    purgeEntityMedia(propertyKeys),
-  ]);
+  const [membersMediaPurge, officesMediaPurge, propertiesMediaPurge, deadPropertyMediaPurge] =
+    await Promise.all([
+      purgeEntityMedia(memberKeys),
+      purgeEntityMedia(officeKeys),
+      purgeEntityMedia(propertyKeys),
+      purgeDeadMlsPropertyMedia(),
+    ]);
 
   const [lookupDeleted, officeDeleted, memberDeleted, openHouseDeleted, propertyDeleted] =
     await Promise.all([
@@ -116,15 +121,18 @@ export async function runMlsCleanup(
     members: membersMediaPurge,
     offices: officesMediaPurge,
     properties: propertiesMediaPurge,
+    deadPropertyMedia: deadPropertyMediaPurge,
     totals: {
       mediaDeleted:
         membersMediaPurge.mediaDeleted +
         officesMediaPurge.mediaDeleted +
-        propertiesMediaPurge.mediaDeleted,
+        propertiesMediaPurge.mediaDeleted +
+        deadPropertyMediaPurge.mediaDeleted,
       variantFilesDeleted:
         membersMediaPurge.variantFilesDeleted +
         officesMediaPurge.variantFilesDeleted +
-        propertiesMediaPurge.variantFilesDeleted,
+        propertiesMediaPurge.variantFilesDeleted +
+        deadPropertyMediaPurge.variantFilesDeleted,
       mlsMediaRowsDeleted:
         membersMediaPurge.mlsMediaRowsDeleted +
         officesMediaPurge.mlsMediaRowsDeleted +

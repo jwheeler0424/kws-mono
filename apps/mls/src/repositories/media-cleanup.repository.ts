@@ -1,7 +1,7 @@
 import type { UUIDv7 } from '@kws/types';
 
 import { media, mediaVariants, mlsMedia } from '@kws/schema';
-import { and, inArray, isNotNull } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 
 import { db } from '@/lib/database';
@@ -24,6 +24,11 @@ export interface EntityMediaPurgeSummary {
   mediaDeleted: number;
   variantFilesDeleted: number;
   mlsMediaRowsDeleted: number;
+}
+
+export interface DeadMlsMediaPurgeSummary {
+  mediaDeleted: number;
+  variantFilesDeleted: number;
 }
 
 /**
@@ -79,5 +84,54 @@ export async function purgeEntityMedia(
     mediaDeleted: mediaIds.length,
     variantFilesDeleted,
     mlsMediaRowsDeleted: deletedMlsMedia.length,
+  };
+}
+
+/**
+ * Purges unattached MLS property media rows from `media` and their variant
+ * files.
+ *
+ * This only targets media stored under the MLS properties local namespace
+ * (`.../mls/properties/...`) and with no referencing row in `mls_media`.
+ */
+export async function purgeDeadMlsPropertyMedia(): Promise<DeadMlsMediaPurgeSummary> {
+  const deadMediaRows = await db
+    .select({ id: media.id })
+    .from(media)
+    .leftJoin(mlsMedia, eq(media.id, mlsMedia.mediaId))
+    .where(
+      and(
+        isNull(mlsMedia.mediaId),
+        isNull(media.deletedAt),
+        or(
+          sql`${media.storagePath} like ${'%/mls/properties/%'}`,
+          sql`${media.storagePath} like ${'%\\mls\\properties\\%'}`,
+        ),
+      ),
+    );
+
+  const mediaIds = deadMediaRows.map((row) => row.id);
+
+  if (mediaIds.length === 0) {
+    return { mediaDeleted: 0, variantFilesDeleted: 0 };
+  }
+
+  const variants = await db
+    .select({ storagePath: mediaVariants.storagePath })
+    .from(mediaVariants)
+    .where(inArray(mediaVariants.mediaId, mediaIds));
+
+  const variantFilesDeleted = await deleteVariantFilesInChunks(
+    variants.map((variant) => variant.storagePath),
+  );
+
+  const deletedMediaRows = await db
+    .delete(media)
+    .where(inArray(media.id, mediaIds))
+    .returning({ id: media.id });
+
+  return {
+    mediaDeleted: deletedMediaRows.length,
+    variantFilesDeleted,
   };
 }
