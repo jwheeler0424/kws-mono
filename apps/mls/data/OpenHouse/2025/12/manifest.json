@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "resource": "OpenHouse",
+  "year": "2025",
+  "month": "12",
+  "updatedAt": "2026-07-06T18:29:28.027Z",
+  "chunks": [
+    {
+      "file": "openhouse-2026-07-06T18-29-28-026Z-4m4dal9j.jsonl.gz",
+      "checksumSha256": "d5b17299167be2db7565c391343d7bc850abef502a9fdaf19ea897a8bbc11e19",
+      "recordCount": 2,
+      "firstTimestamp": "2025-12-07T05:10:08.543Z",
+      "lastTimestamp": "2025-12-26T23:40:08.886Z",
+      "createdAt": "2026-07-06T18:29:28.027Z"
+    }
+  ]
+}

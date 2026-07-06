@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "resource": "Member",
+  "year": "2025",
+  "month": "12",
+  "updatedAt": "2026-07-06T17:36:10.011Z",
+  "chunks": [
+    {
+      "file": "member-2026-07-06T17-36-08-308Z-mudm0net.jsonl.gz",
+      "checksumSha256": "42d2199d7214aa22970c135b07962e039602cd2ae1f57fd6c62218887966b6f3",
+      "recordCount": 14,
+      "firstTimestamp": "2025-12-01T00:58:08.696Z",
+      "lastTimestamp": "2025-12-01T19:28:09.202Z",
+      "createdAt": "2026-07-06T17:36:08.308Z"
+    },
+    {
+      "file": "member-2026-07-06T17-36-09-100Z-3s0ysxsl.jsonl.gz",
+      "checksumSha256": "e9163a76a742eb40e6a76848795522d906d15beb8a1cd1cd758467e7cd7f9b00",
+      "recordCount": 1000,
+      "firstTimestamp": "2025-12-01T19:28:09.221Z",
+      "lastTimestamp": "2025-12-29T19:28:08.865Z",
+      "createdAt": "2026-07-06T17:36:09.107Z"
+    },
+    {
+      "file": "member-2026-07-06T17-36-10-009Z-3fqgs1ar.jsonl.gz",
+      "checksumSha256": "809bc891d418164d2dedb68330febd5b3768908e7e3eb2c0009177113fec3251",
+      "recordCount": 74,
+      "firstTimestamp": "2025-12-29T19:43:08.635Z",
+      "lastTimestamp": "2025-12-31T22:43:08.768Z",
+      "createdAt": "2026-07-06T17:36:10.011Z"
+    }
+  ]
+}

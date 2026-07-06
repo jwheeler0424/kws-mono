@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "resource": "Lookup",
+  "year": "2025",
+  "month": "05",
+  "updatedAt": "2026-07-06T17:35:56.223Z",
+  "chunks": [
+    {
+      "file": "lookup-2026-07-06T17-35-56-220Z-wpg6azsg.jsonl.gz",
+      "checksumSha256": "f2bf40b70dde73579d27ecbdf830da1dd13bd524305ec2ad4a94ceeb98ea216a",
+      "recordCount": 24,
+      "firstTimestamp": "2025-05-22T16:23:33.965Z",
+      "lastTimestamp": "2025-05-29T17:26:23.329Z",
+      "createdAt": "2026-07-06T17:35:56.222Z"
+    }
+  ]
+}

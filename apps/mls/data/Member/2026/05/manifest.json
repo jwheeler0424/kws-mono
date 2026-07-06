@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "resource": "Member",
+  "year": "2026",
+  "month": "05",
+  "updatedAt": "2026-07-06T17:36:24.727Z",
+  "chunks": [
+    {
+      "file": "member-2026-07-06T17-36-19-833Z-keaelw16.jsonl.gz",
+      "checksumSha256": "61c2bc8dcebabd2ed5c75f43aa41a868eea322a4da61763ccba6575a1f5d6d46",
+      "recordCount": 405,
+      "firstTimestamp": "2026-05-01T00:13:10.930Z",
+      "lastTimestamp": "2026-05-04T21:13:16.239Z",
+      "createdAt": "2026-07-06T17:36:19.836Z"
+    },
+    {
+      "file": "member-2026-07-06T17-36-20-752Z-c8eflu0n.jsonl.gz",
+      "checksumSha256": "bafe519bbbb703035a3bd0a479d7b221169524eab23ae5f994329703cd5896a6",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-05-04T21:13:22.867Z",
+      "lastTimestamp": "2026-05-06T23:58:12.163Z",
+      "createdAt": "2026-07-06T17:36:20.757Z"
+    },
+    {
+      "file": "member-2026-07-06T17-36-21-970Z-5gmse64i.jsonl.gz",
+      "checksumSha256": "fe714d0038309234a5eb15da8cb54ead20efebffeac51a87088381aa58448144",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-05-07T00:13:08.794Z",
+      "lastTimestamp": "2026-05-13T20:43:19.833Z",
+      "createdAt": "2026-07-06T17:36:21.975Z"
+    },
+    {
+      "file": "member-2026-07-06T17-36-22-874Z-iepo839a.jsonl.gz",
+      "checksumSha256": "12aad1e5fa2c62fb67b47cf689b82ccf76ead895b0e90e151b926834901d7451",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-05-13T20:43:20.065Z",
+      "lastTimestamp": "2026-05-20T01:28:10.280Z",
+      "createdAt": "2026-07-06T17:36:22.880Z"
+    },
+    {
+      "file": "member-2026-07-06T17-36-23-723Z-igoqtusu.jsonl.gz",
+      "checksumSha256": "e8c0b0ce61b2de051a77dae122e3e7fb0578ee17556f761b72d5ba7b0d399236",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-05-20T01:43:08.591Z",
+      "lastTimestamp": "2026-05-28T00:28:09.714Z",
+      "createdAt": "2026-07-06T17:36:23.728Z"
+    },
+    {
+      "file": "member-2026-07-06T17-36-24-722Z-g5ov7op5.jsonl.gz",
+      "checksumSha256": "e1c749dd17cba6525451fcc195089ffc4db08f3f1cb92859028ec43ed99aeeba",
+      "recordCount": 445,
+      "firstTimestamp": "2026-05-28T00:28:10.652Z",
+      "lastTimestamp": "2026-05-31T23:58:08.848Z",
+      "createdAt": "2026-07-06T17:36:24.725Z"
+    }
+  ]
+}

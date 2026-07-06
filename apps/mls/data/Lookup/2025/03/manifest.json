@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "resource": "Lookup",
+  "year": "2025",
+  "month": "03",
+  "updatedAt": "2026-07-06T17:35:56.215Z",
+  "chunks": [
+    {
+      "file": "lookup-2026-07-06T17-35-56-214Z-cfrzoso5.jsonl.gz",
+      "checksumSha256": "904bef020a8d181588cc947c2f0aa2f29b14be032abbd928f00780ce40d7d491",
+      "recordCount": 10,
+      "firstTimestamp": "2025-03-07T22:14:30.590Z",
+      "lastTimestamp": "2025-03-24T18:59:46.032Z",
+      "createdAt": "2026-07-06T17:35:56.214Z"
+    }
+  ]
+}

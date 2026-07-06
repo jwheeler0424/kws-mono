@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "resource": "Property",
+  "year": "2026",
+  "month": "04",
+  "updatedAt": "2026-07-06T18:23:50.203Z",
+  "chunks": [
+    {
+      "file": "property-2026-07-06T18-23-05-250Z-krct3q1z.jsonl.gz",
+      "checksumSha256": "53dd2bb4169c3b5c09ce3c699b2ba649a13eccbef64dd817946d42b9cd5b6d80",
+      "recordCount": 74,
+      "firstTimestamp": "2026-04-01T00:12:11.041Z",
+      "lastTimestamp": "2026-04-02T11:03:16.158Z",
+      "createdAt": "2026-07-06T18:23:05.277Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-07-509Z-70wz46s3.jsonl.gz",
+      "checksumSha256": "92efa620cdef6bb88dd69334084ecb4160e2c4bb634a1ae5a08b9b8c8548f201",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-02T11:03:16.366Z",
+      "lastTimestamp": "2026-04-03T16:20:20.697Z",
+      "createdAt": "2026-07-06T18:23:07.672Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-10-244Z-r49f3kau.jsonl.gz",
+      "checksumSha256": "8bd7b51bac0f6a4a903084a43c5cad58a4a98c537e55425522845243cb63cf0e",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-03T16:20:20.809Z",
+      "lastTimestamp": "2026-04-05T11:02:22.994Z",
+      "createdAt": "2026-07-06T18:23:10.389Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-13-332Z-gl2vuit1.jsonl.gz",
+      "checksumSha256": "e8bc6a3b0d1e8c61cca0b101bbc0094248e7dde729d6c28fdbba8001b64df26c",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-05T11:02:23.124Z",
+      "lastTimestamp": "2026-04-06T11:04:59.987Z",
+      "createdAt": "2026-07-06T18:23:13.487Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-18-060Z-fadqcios.jsonl.gz",
+      "checksumSha256": "9fa23ed0adbf3e3327edf78ffa8743d0104384631db8cc942d2811ec7702ea06",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-06T11:05:00.085Z",
+      "lastTimestamp": "2026-04-10T11:03:45.703Z",
+      "createdAt": "2026-07-06T18:23:18.195Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-20-698Z-jd4jo5iw.jsonl.gz",
+      "checksumSha256": "c94602a88a94139c5887eca44d5bdd3795ecf6945054a97ca98e832fe3da18bd",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-10T11:03:45.864Z",
+      "lastTimestamp": "2026-04-12T11:03:49.364Z",
+      "createdAt": "2026-07-06T18:23:20.848Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-23-548Z-b5zo0egh.jsonl.gz",
+      "checksumSha256": "c60462e4c8ba736fbf98d254a8836f5bd8082bb7e89259510cf21723b6a68336",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-12T11:03:49.540Z",
+      "lastTimestamp": "2026-04-15T02:27:10.764Z",
+      "createdAt": "2026-07-06T18:23:23.681Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-26-403Z-3nz205pk.jsonl.gz",
+      "checksumSha256": "56ef2164e4e6789ce9865b432ac0200439629ef93d12cf7952a1361dd98f9f50",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-15T05:08:10.663Z",
+      "lastTimestamp": "2026-04-17T11:04:32.199Z",
+      "createdAt": "2026-07-06T18:23:26.560Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-29-833Z-t2g6nsgo.jsonl.gz",
+      "checksumSha256": "afea2b4c5cce78686eb12ee18b8af38e70c099963dbc2a479db8a7e0f58e5695",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-17T11:04:32.334Z",
+      "lastTimestamp": "2026-04-20T02:57:10.594Z",
+      "createdAt": "2026-07-06T18:23:29.986Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-32-968Z-9cfhr235.jsonl.gz",
+      "checksumSha256": "b431ebcd806801433fe68121bb1b5df5dd9834b708d19b9a839bac7e0ee8dc09",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-20T11:04:11.791Z",
+      "lastTimestamp": "2026-04-21T23:42:15.228Z",
+      "createdAt": "2026-07-06T18:23:33.069Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-35-782Z-9s6tp6xj.jsonl.gz",
+      "checksumSha256": "3b160a0f4ca86aa8b8fa5e36511e9cbf0881309dfc8349b6076fa7690b2de245",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-22T00:11:12.066Z",
+      "lastTimestamp": "2026-04-24T11:01:31.109Z",
+      "createdAt": "2026-07-06T18:23:35.918Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-38-781Z-lwquu7w9.jsonl.gz",
+      "checksumSha256": "2a2b6f26844be448cf964ceefd5c290a47d1ce1cefc90afbdc4188d339a9d50e",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-24T11:01:31.260Z",
+      "lastTimestamp": "2026-04-26T11:01:17.829Z",
+      "createdAt": "2026-07-06T18:23:39.019Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-42-350Z-xcd21w04.jsonl.gz",
+      "checksumSha256": "29dc8b8fba5df7aa734201e5aa448feca226faa95962b164f3500e3901eb2152",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-26T11:01:17.995Z",
+      "lastTimestamp": "2026-04-27T11:04:53.129Z",
+      "createdAt": "2026-07-06T18:23:42.502Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-45-358Z-sf6ozpou.jsonl.gz",
+      "checksumSha256": "23bd800bf6f24f718719c6d057802d2a73047afc61db79fb10eb21a287a4baed",
+      "recordCount": 500,
+      "firstTimestamp": "2026-04-27T11:04:53.454Z",
+      "lastTimestamp": "2026-04-30T11:03:55.834Z",
+      "createdAt": "2026-07-06T18:23:45.497Z"
+    },
+    {
+      "file": "property-2026-07-06T18-23-50-172Z-rypu88rr.jsonl.gz",
+      "checksumSha256": "871a81b75d2a01b87466d7d266f7b9a73758dde7b1150d2796189d9d9cc01f5c",
+      "recordCount": 69,
+      "firstTimestamp": "2026-04-30T11:03:55.992Z",
+      "lastTimestamp": "2026-04-30T23:29:11.221Z",
+      "createdAt": "2026-07-06T18:23:50.202Z"
+    }
+  ]
+}

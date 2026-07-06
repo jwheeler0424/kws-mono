@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "resource": "Member",
+  "year": "2025",
+  "month": "01",
+  "updatedAt": "2026-07-06T17:36:01.210Z",
+  "chunks": [
+    {
+      "file": "member-2026-07-06T17-36-01-207Z-tdn85eet.jsonl.gz",
+      "checksumSha256": "f26fa752ab8e261553f06b85341570932fa93dfbae6c5456e037fff26bde445e",
+      "recordCount": 270,
+      "firstTimestamp": "2025-01-02T19:28:08.203Z",
+      "lastTimestamp": "2025-01-31T23:43:08.227Z",
+      "createdAt": "2026-07-06T17:36:01.210Z"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "resource": "Member",
+  "year": "2025",
+  "month": "09",
+  "updatedAt": "2026-07-06T17:36:06.238Z",
+  "chunks": [
+    {
+      "file": "member-2026-07-06T17-36-06-235Z-hbytrmcb.jsonl.gz",
+      "checksumSha256": "c1c7b9947546ba13ebb987734251b6a7eba969d483c82814173e3537916fb5a5",
+      "recordCount": 546,
+      "firstTimestamp": "2025-09-02T16:43:08.570Z",
+      "lastTimestamp": "2025-09-30T23:28:08.588Z",
+      "createdAt": "2026-07-06T17:36:06.238Z"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "resource": "Office",
+  "year": "2026",
+  "month": "07",
+  "updatedAt": "2026-07-06T19:34:35.988Z",
+  "chunks": [
+    {
+      "file": "office-2026-07-06T17-36-00-230Z-lt1o4t7c.jsonl.gz",
+      "checksumSha256": "735477e77e9670585d28d6468a59ead88b934d2f0adb84cdf9bd8a4e28dd96f5",
+      "recordCount": 35,
+      "firstTimestamp": "2026-07-01T14:56:08.946Z",
+      "lastTimestamp": "2026-07-06T17:26:08.727Z",
+      "createdAt": "2026-07-06T17:36:00.230Z"
+    },
+    {
+      "file": "office-2026-07-06T18-12-04-622Z-yl2wzyj2.jsonl.gz",
+      "checksumSha256": "eae060a53753b3f01838b3f91d04d206477e7cc3e24816a71a5d687f003461b4",
+      "recordCount": 6,
+      "firstTimestamp": "2026-07-06T17:41:08.732Z",
+      "lastTimestamp": "2026-07-06T18:11:09.686Z",
+      "createdAt": "2026-07-06T18:12:04.626Z"
+    },
+    {
+      "file": "office-2026-07-06T19-34-35-987Z-lhajzhay.jsonl.gz",
+      "checksumSha256": "a24a193c36debec19cbaa4d5c42554d95d896af8e4f4275007944f3d02c32c15",
+      "recordCount": 7,
+      "firstTimestamp": "2026-07-06T19:11:08.783Z",
+      "lastTimestamp": "2026-07-06T19:26:09.479Z",
+      "createdAt": "2026-07-06T19:34:35.988Z"
+    }
+  ]
+}

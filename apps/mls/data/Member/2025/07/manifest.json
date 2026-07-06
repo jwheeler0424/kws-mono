@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "resource": "Member",
+  "year": "2025",
+  "month": "07",
+  "updatedAt": "2026-07-06T17:36:05.310Z",
+  "chunks": [
+    {
+      "file": "member-2026-07-06T17-36-03-043Z-fs8i8rpi.jsonl.gz",
+      "checksumSha256": "3652a422900e4b7d06de10d270b34c941b75844066f2dfaa2b777918a610c815",
+      "recordCount": 13,
+      "firstTimestamp": "2025-07-01T01:58:08.716Z",
+      "lastTimestamp": "2025-07-02T03:43:08.675Z",
+      "createdAt": "2026-07-06T17:36:03.043Z"
+    },
+    {
+      "file": "member-2026-07-06T17-36-05-305Z-8ok0n1nq.jsonl.gz",
+      "checksumSha256": "81e80d8481e3005c1517c44bbbfce56f946eb68be6855b50bf50385ffa22f7af",
+      "recordCount": 678,
+      "firstTimestamp": "2025-07-02T05:13:08.610Z",
+      "lastTimestamp": "2025-07-31T23:58:08.725Z",
+      "createdAt": "2026-07-06T17:36:05.310Z"
+    }
+  ]
+}
