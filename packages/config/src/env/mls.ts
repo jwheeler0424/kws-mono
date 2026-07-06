@@ -1,8 +1,8 @@
 import { parseCronExpression } from 'cron-schedule';
 import { z } from 'zod';
 
-import './preload.ts';
 import { KEY_FIELDS_PREFIX, ORIGINATING_SYSTEM_NAMES, RESOURCE_NAMING } from '../constants/mls';
+import './preload.ts';
 
 const keyPrefixSchema = z.enum(KEY_FIELDS_PREFIX);
 const cronScheduleSchema = z.string().superRefine((value, ctx) => {
@@ -170,6 +170,7 @@ const envSchema = z.object({
   MLS_QUEUE_MEDIA_SYNC_MAX_BATCHES: z.coerce.number().int().positive().optional(),
   MLS_QUEUE_MEDIA_SYNC_PROCESS_CONCURRENCY: z.coerce.number().int().positive().optional(),
   MLS_QUEUE_MEDIA_SYNC_JOB_CONCURRENCY: z.coerce.number().int().positive().optional(),
+  MLS_QUEUE_MAX_CONCURRENT_SCHEDULED_JOBS: z.coerce.number().int().positive().optional(),
   MLS_QUEUE_MEDIA_SYNC_INCLUDE_MISSING_FILES_REPAIR: z
     .union([z.boolean(), z.stringbool()])
     .optional(),

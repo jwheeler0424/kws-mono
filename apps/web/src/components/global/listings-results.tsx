@@ -3,10 +3,7 @@ import type { CursorResult, TListingsSearch, TPropertyCard } from '@kws/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 
-import {
-  hydrateListingCardsByKeysOptions,
-  searchListingsPageFromRouteOptions,
-} from '@/features/mls/options/search';
+import { searchListingsCardsPageFromRouteOptions } from '@/features/mls/options/search';
 
 import ListingsSection from './listings-section';
 import Loader from './map-loader';
@@ -19,29 +16,20 @@ export function ListingsResults({
   resultCount: number;
 }) {
   const queryClient = useQueryClient();
-  const pageSize = params.limit ?? 48;
+  const pageSize = params.limit ?? 24;
 
   const {
-    data: firstPageMarkers,
+    data: firstPageCards,
     isPending,
     isFetching,
-  } = useQuery(searchListingsPageFromRouteOptions(params, { limit: pageSize }));
-
-  const firstPageKeys = React.useMemo(
-    () => firstPageMarkers?.items.map((item) => item.listingKey) ?? [],
-    [firstPageMarkers],
-  );
-
-  const { data: firstPageCards } = useQuery(
-    hydrateListingCardsByKeysOptions({ listingKeys: firstPageKeys, maxBatchSize: pageSize }),
-  );
+  } = useQuery(searchListingsCardsPageFromRouteOptions(params, { limit: pageSize }));
 
   const [pages, setPages] = React.useState<CursorResult<TPropertyCard>[]>([]);
   const [nextCursor, setNextCursor] = React.useState<string | null>(null);
   const [loadingMore, setLoadingMore] = React.useState(false);
 
   React.useEffect(() => {
-    if (!firstPageMarkers || !firstPageCards) {
+    if (!firstPageCards) {
       setPages([]);
       setNextCursor(null);
       return;
@@ -49,13 +37,13 @@ export function ListingsResults({
 
     setPages([
       {
-        items: firstPageCards,
-        nextCursor: firstPageMarkers.nextCursor,
-        hasMore: firstPageMarkers.hasMore,
+        items: firstPageCards.items,
+        nextCursor: firstPageCards.nextCursor,
+        hasMore: firstPageCards.hasMore,
       },
     ]);
-    setNextCursor(firstPageMarkers.nextCursor);
-  }, [firstPageCards, firstPageMarkers]);
+    setNextCursor(firstPageCards.nextCursor);
+  }, [firstPageCards]);
 
   const properties = React.useMemo(() => pages.flatMap((page) => page.items), [pages]);
   const resultCountRef = React.useRef(resultCount);
@@ -69,29 +57,25 @@ export function ListingsResults({
     setLoadingMore(true);
 
     void (async () => {
-      const markerPage = await queryClient.ensureQueryData(
-        searchListingsPageFromRouteOptions(params, {
+      const cardsPage = await queryClient.ensureQueryData(
+        searchListingsCardsPageFromRouteOptions(params, {
           cursor: nextCursor,
           limit: pageSize,
         }),
       );
 
-      const listingKeys = markerPage.items.map((item) => item.listingKey);
-      const cards = listingKeys.length
-        ? await queryClient.ensureQueryData(
-            hydrateListingCardsByKeysOptions({ listingKeys, maxBatchSize: pageSize }),
-          )
-        : [];
-
       return {
-        items: cards,
-        nextCursor: markerPage.nextCursor,
-        hasMore: markerPage.hasMore,
+        items: cardsPage.items,
+        nextCursor: cardsPage.nextCursor,
+        hasMore: cardsPage.hasMore,
       } as CursorResult<TPropertyCard>;
     })()
       .then((page) => {
         setPages((currentPages) => [...currentPages, page]);
         setNextCursor(page.nextCursor);
+      })
+      .catch(() => {
+        // Keep current page state; allow users to retry load-more.
       })
       .finally(() => {
         setLoadingMore(false);
@@ -107,7 +91,7 @@ export function ListingsResults({
         properties={{ items: properties } as CursorResult<TPropertyCard>}
         title={`Search Results ${resultCount ? `(${resultCount})` : ''}`}
         emptyText={isPending || isFetching ? '' : 'There are currently no results to view.'}
-        pageSize={params.limit ?? 48}
+        pageSize={params.limit ?? 24}
         hasMore={Boolean(nextCursor)}
         loadingMore={loadingMore}
         onLoadMore={handleLoadMore}

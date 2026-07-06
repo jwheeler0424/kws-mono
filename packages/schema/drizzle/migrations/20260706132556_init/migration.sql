@@ -1558,8 +1558,13 @@ CREATE INDEX "idx_lookups_sync" ON "lookups" ("originating_system_name","modific
 CREATE INDEX "idx_lookups_search_vector" ON "lookups" USING gin ("search_vector");--> statement-breakpoint
 CREATE INDEX "idx_resource_record_key" ON "mls_media" ("resource_record_key");--> statement-breakpoint
 CREATE INDEX "idx_media_modification_timestamp" ON "mls_media" ("media_modification_timestamp");--> statement-breakpoint
+CREATE INDEX "idx_mls_media_updated_at" ON "mls_media" ("updated_at");--> statement-breakpoint
+CREATE INDEX "idx_mls_media_deleted_at" ON "mls_media" ("deleted_at");--> statement-breakpoint
+CREATE INDEX "idx_mls_media_media_id" ON "mls_media" ("media_id");--> statement-breakpoint
 CREATE INDEX "idx_permission" ON "mls_media" ("permission");--> statement-breakpoint
 CREATE INDEX "idx_media_listing_primary" ON "mls_media" ("resource_record_key","preferred_photo_yn","order");--> statement-breakpoint
+CREATE INDEX "idx_mls_media_candidate_sort" ON "mls_media" ("updated_at","media_key");--> statement-breakpoint
+CREATE INDEX "idx_mls_media_listing_candidate_sort" ON "mls_media" ("resource_record_key","updated_at","media_key");--> statement-breakpoint
 CREATE INDEX "idx_image_size_description" ON "mls_media" ("image_size_description");--> statement-breakpoint
 CREATE INDEX "idx_media_search_vector" ON "mls_media" USING gin ("search_vector");--> statement-breakpoint
 CREATE INDEX "idx_members_sync" ON "members" ("originating_system_name","modification_timestamp");--> statement-breakpoint

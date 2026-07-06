@@ -146,6 +146,24 @@ export function MapView({
   const zoom = useMapStore((state) => state.zoom);
   const { setPositionUpdated, setBounds, setMapPosition, setZoom } = useMapActions();
 
+  const validProperties = useMemo(
+    () =>
+      properties.filter((property) => {
+        const latitude = Number(property.latitude);
+        const longitude = Number(property.longitude);
+
+        return (
+          Number.isFinite(latitude) &&
+          Number.isFinite(longitude) &&
+          latitude >= -90 &&
+          latitude <= 90 &&
+          longitude >= -180 &&
+          longitude <= 180
+        );
+      }),
+    [properties],
+  );
+
   const initialCenter = useMemo<[number, number]>(() => {
     const timestamp = Date.now() - mapTimestamp;
     const millisecondsInOneDay = 24 * 60 * 60 * 1000;
@@ -231,7 +249,7 @@ export function MapView({
       initialMarkersRenderedRef.current = true;
       onInitialMarkersRendered?.();
     }
-  }, [mapReady, markersLoading, onInitialMarkersRendered, properties.length]);
+  }, [mapReady, markersLoading, onInitialMarkersRendered, validProperties.length]);
 
   return (
     <>
@@ -264,7 +282,9 @@ export function MapView({
 
         <MarkerClusterGroup
           animate={false}
-          chunkedLoading={false}
+          chunkedLoading
+          chunkInterval={120}
+          chunkDelay={20}
           maxClusterRadius={(currentZoom: number) => {
             return currentZoom < ZOOM_BREAKPOINT ? 36 : 16;
           }}
@@ -272,7 +292,7 @@ export function MapView({
           removeOutsideVisibleBounds
           spiderfyOnMaxZoom
           iconCreateFunction={clusterMarkerFactory}>
-          {properties.map((property) => (
+          {validProperties.map((property) => (
             <Marker
               key={property.listingKey}
               position={[Number(property.latitude), Number(property.longitude)]}
@@ -296,7 +316,7 @@ export function MapView({
         </MarkerClusterGroup>
       </MapContainer>
 
-      {mapLoading || markersLoading || !mapReady ? <Loader /> : null}
+      {mapLoading || !mapReady ? <Loader /> : null}
       {openPopup
         ? createPortal(<MapPopupCard listingKey={openPopup.listingKey} />, openPopup.container)
         : null}

@@ -24,6 +24,7 @@ import { Route as ListingsListingKeyRouteImport } from './routes/listings/$listi
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as ListingsListingsRouteRouteImport } from './routes/listings/_listings.route'
 import { Route as ListingsListingsIndexRouteImport } from './routes/listings/_listings.index'
+import { Route as ApiListingsIndexRouteImport } from './routes/api/listings/index'
 import { Route as BlogTagChar123TagChar125Char123SlugChar125RouteImport } from './routes/blog/tag.{-$tag}.{-$slug}'
 import { Route as BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport } from './routes/blog/category.{-$category}.{-$slug}'
 import { Route as BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport } from './routes/blog/archive/{-$year}/{-$month}/{-$day}'
@@ -103,6 +104,11 @@ const ListingsListingsIndexRoute = ListingsListingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ListingsListingsRouteRoute,
 } as any)
+const ApiListingsIndexRoute = ApiListingsIndexRouteImport.update({
+  id: '/api/listings/',
+  path: '/api/listings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogTagChar123TagChar125Char123SlugChar125Route =
   BlogTagChar123TagChar125Char123SlugChar125RouteImport.update({
     id: '/blog/tag/{-$tag}/{-$slug}',
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/robots./txt': typeof RobotsDotTxtRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
+  '/api/listings/': typeof ApiListingsIndexRoute
   '/listings/': typeof ListingsListingsIndexRoute
   '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
   '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/robots./txt': typeof RobotsDotTxtRoute
   '/blog': typeof BlogIndexRoute
   '/properties': typeof PropertiesIndexRoute
+  '/api/listings': typeof ApiListingsIndexRoute
   '/listings': typeof ListingsListingsIndexRoute
   '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
   '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/robots./txt': typeof RobotsDotTxtRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
+  '/api/listings/': typeof ApiListingsIndexRoute
   '/listings/_listings/': typeof ListingsListingsIndexRoute
   '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
   '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/robots./txt'
     | '/blog/'
     | '/properties/'
+    | '/api/listings/'
     | '/listings/'
     | '/blog/category/{-$category}/{-$slug}'
     | '/blog/tag/{-$tag}/{-$slug}'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/robots./txt'
     | '/blog'
     | '/properties'
+    | '/api/listings'
     | '/listings'
     | '/blog/category/{-$category}/{-$slug}'
     | '/blog/tag/{-$tag}/{-$slug}'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/robots./txt'
     | '/blog/'
     | '/properties/'
+    | '/api/listings/'
     | '/listings/_listings/'
     | '/blog/category/{-$category}/{-$slug}'
     | '/blog/tag/{-$tag}/{-$slug}'
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   RobotsDotTxtRoute: typeof RobotsDotTxtRoute
   BlogIndexRoute: typeof BlogIndexRoute
   PropertiesIndexRoute: typeof PropertiesIndexRoute
+  ApiListingsIndexRoute: typeof ApiListingsIndexRoute
   BlogCategoryChar123CategoryChar125Char123SlugChar125Route: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
   BlogTagChar123TagChar125Char123SlugChar125Route: typeof BlogTagChar123TagChar125Char123SlugChar125Route
   BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route: typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
@@ -373,6 +386,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingsListingsIndexRouteImport
       parentRoute: typeof ListingsListingsRouteRoute
     }
+    '/api/listings/': {
+      id: '/api/listings/'
+      path: '/api/listings'
+      fullPath: '/api/listings/'
+      preLoaderRoute: typeof ApiListingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/tag/{-$tag}/{-$slug}': {
       id: '/blog/tag/{-$tag}/{-$slug}'
       path: '/blog/tag/{-$tag}/{-$slug}'
@@ -425,6 +445,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDotTxtRoute: RobotsDotTxtRoute,
   BlogIndexRoute: BlogIndexRoute,
   PropertiesIndexRoute: PropertiesIndexRoute,
+  ApiListingsIndexRoute: ApiListingsIndexRoute,
   BlogCategoryChar123CategoryChar125Char123SlugChar125Route:
     BlogCategoryChar123CategoryChar125Char123SlugChar125Route,
   BlogTagChar123TagChar125Char123SlugChar125Route:

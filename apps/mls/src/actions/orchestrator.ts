@@ -100,14 +100,6 @@ function officeSeedConfig(osn: string) {
   });
 }
 
-async function officeMediaSeedConfig(osn: string): Promise<SyncResult> {
-  const startedAt = new Date();
-  return runInitialMlsMediaSync({
-    filterEntityTypes: ['offices'],
-    includeMissingFilesRepair: true,
-  }).then((summary) => mediaSummaryToSyncResult('Office:Media', osn, summary, startedAt));
-}
-
 function memberSeedConfig(osn: string) {
   return seedResource({
     resource: 'Member',
@@ -118,14 +110,6 @@ function memberSeedConfig(osn: string) {
     getKey: (record) => record.MemberMlsId,
     upsert: async (payload) => processMlsMembersPayload(payload.map(mapMember)),
   });
-}
-
-async function memberMediaSeedConfig(osn: string): Promise<SyncResult> {
-  const startedAt = new Date();
-  return runInitialMlsMediaSync({
-    filterEntityTypes: ['members'],
-    includeMissingFilesRepair: true,
-  }).then((summary) => mediaSummaryToSyncResult('Member:Media', osn, summary, startedAt));
 }
 
 function propertySeedConfig(osn: string) {
@@ -154,44 +138,8 @@ async function propertyMediaSeedConfig(osn: string): Promise<SyncResult> {
     filterEntityTypes: ['properties'],
     primaryOnlyForAllProperties: true,
     associationMode: 'unprocessed-only',
-    includeMissingFilesRepair: true,
-  }).then((summary) => mediaSummaryToSyncResult('Property:Media', osn, summary, startedAt));
-}
-
-async function memberPropertyMediaSeedConfig(osn: string): Promise<SyncResult> {
-  const startedAt = new Date();
-  const memberKeys = env.MLS_MEMBER_ID ?? [];
-
-  if (memberKeys.length === 0) {
-    return Promise.resolve(
-      mediaSummaryToSyncResult(
-        'Property:MemberMedia',
-        osn,
-        {
-          scanned: 0,
-          processed: 0,
-          created: 0,
-          updated: 0,
-          skipped: 0,
-          failed: 0,
-          localSourceUsed: 0,
-          remoteSourceUsed: 0,
-          repairScanned: 0,
-          repairProcessed: 0,
-          repairSkippedHealthy: 0,
-          repairFailed: 0,
-        },
-        startedAt,
-      ),
-    );
-  }
-
-  return runInitialMlsMediaSync({
-    filterEntityTypes: ['properties'],
-    restrictToMemberPropertyKeys: memberKeys,
-    primaryOnlyForAllProperties: true,
-    includeMissingFilesRepair: true,
-  }).then((summary) => mediaSummaryToSyncResult('Property:MemberMedia', osn, summary, startedAt));
+    includeMissingFilesRepair: false,
+  }).then((summary) => mediaSummaryToSyncResult('Property:PrimaryMedia', osn, summary, startedAt));
 }
 
 function openHouseSeedConfig(osn: string) {
@@ -434,18 +382,12 @@ async function runSeedInitialMedia(osn: string, mode: 'initial' | 'delta'): Prom
     return result;
   };
 
-  // Phases run sequentially in priority order:
-  //   1. Full media for properties listed by configured member IDs
-  //   2. Office entity media (logos / photos)
-  //   3. Member entity media (headshots)
-  //   4. Primary image for all remaining active properties
+  // Initial media seed is intentionally single-phase and property-primary-only:
+  //   - Process only Property entity rows
+  //   - Process only primary photos
+  //   - Process only rows without a linked media association
   const results: SyncResult[] = [];
-  results.push(
-    await runMediaPhase('Property:MemberMedia', () => memberPropertyMediaSeedConfig(osn)),
-  );
-  results.push(await runMediaPhase('Office:Media', () => officeMediaSeedConfig(osn)));
-  results.push(await runMediaPhase('Member:Media', () => memberMediaSeedConfig(osn)));
-  results.push(await runMediaPhase('Property:Media', () => propertyMediaSeedConfig(osn)));
+  results.push(await runMediaPhase('Property:PrimaryMedia', () => propertyMediaSeedConfig(osn)));
 
   const completedAt = new Date();
   const summary: SyncSummary = {

@@ -30,6 +30,7 @@ import {
 } from '@kws/design/ui/sheet';
 import { Slider } from '@kws/design/ui/slider';
 import { toast } from '@kws/design/ui/toast';
+import { isValidMapBounds } from '@kws/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { Search, X } from 'lucide-react';
@@ -89,6 +90,27 @@ const areBoundsEqual = (a: TMapBounds | null | undefined, b: TMapBounds | null |
   );
 };
 
+const roundCoordinate = (value: number) => Number(value.toFixed(4));
+
+const normalizeBounds = (bounds: TMapBounds | null | undefined): TMapBounds | null => {
+  if (!bounds || !isValidMapBounds(bounds)) {
+    return null;
+  }
+
+  const normalized: TMapBounds = {
+    northEast: {
+      lat: roundCoordinate(bounds.northEast.lat),
+      lng: roundCoordinate(bounds.northEast.lng),
+    },
+    southWest: {
+      lat: roundCoordinate(bounds.southWest.lat),
+      lng: roundCoordinate(bounds.southWest.lng),
+    },
+  };
+
+  return isValidMapBounds(normalized) ? normalized : null;
+};
+
 export default function ListingsSearch() {
   const search = ListingsRoute.useSearch();
   const navigate = ListingsRoute.useNavigate();
@@ -108,6 +130,7 @@ export default function ListingsSearch() {
   const queryClient = useQueryClient();
 
   const mapBounds = useMapStore((state) => state.bounds);
+  const normalizedMapBounds = React.useMemo(() => normalizeBounds(mapBounds), [mapBounds]);
   const { setBounds: setMapBounds, setZoom: setMapZoom } = useMapActions();
 
   const [searchResults, setSearchResults] = React.useState<TPropertyCard[]>([]);
@@ -132,21 +155,33 @@ export default function ListingsSearch() {
   );
   const [isSearchLoading, setIsSearchLoading] = React.useState(false);
   const latestSearchRequestRef = React.useRef(0);
+  const boundsSyncTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { minPrice, maxPrice, minSqFt, maxSqFt, minBedroom, maxBedroom, minBathroom, maxBathroom } =
     FILTER_LIMITS;
 
   const buildSearchPatchFromLocal = React.useCallback(
-    (queryValue: string | undefined): TListingsSearchPatch => ({
-      query: queryValue && queryValue.length >= 3 ? queryValue : null,
-      price: { min: priceValues[0], max: priceValues[1] },
-      sqFt: { min: sqFtValues[0], max: sqFtValues[1] },
-      bedrooms: { min: bedroomValues[0], max: bedroomValues[1] },
-      bathrooms: { min: bathroomValues[0], max: bathroomValues[1] },
-      useMapBounds: Boolean(useMapBoundsLocal),
-      bounds: Boolean(useMapBoundsLocal) && mapBounds ? mapBounds : null,
-    }),
-    [bathroomValues, bedroomValues, mapBounds, priceValues, sqFtValues, useMapBoundsLocal],
+    (queryValue: string | undefined): TListingsSearchPatch => {
+      const shouldUseMapBounds = Boolean(useMapBoundsLocal && normalizedMapBounds);
+
+      return {
+        query: queryValue && queryValue.length >= 3 ? queryValue : null,
+        price: { min: priceValues[0], max: priceValues[1] },
+        sqFt: { min: sqFtValues[0], max: sqFtValues[1] },
+        bedrooms: { min: bedroomValues[0], max: bedroomValues[1] },
+        bathrooms: { min: bathroomValues[0], max: bathroomValues[1] },
+        useMapBounds: shouldUseMapBounds,
+        bounds: shouldUseMapBounds ? normalizedMapBounds : null,
+      };
+    },
+    [
+      bathroomValues,
+      bedroomValues,
+      normalizedMapBounds,
+      priceValues,
+      sqFtValues,
+      useMapBoundsLocal,
+    ],
   );
 
   const commitSearchPatch = React.useCallback(
@@ -323,22 +358,38 @@ export default function ListingsSearch() {
   ]);
 
   React.useEffect(() => {
-    if (!search.useMapBounds || !mapBounds) {
+    if (!search.useMapBounds || !normalizedMapBounds) {
       return;
     }
 
-    if (areBoundsEqual(search.bounds, mapBounds)) {
+    const normalizedSearchBounds = normalizeBounds(search.bounds);
+
+    if (areBoundsEqual(normalizedSearchBounds, normalizedMapBounds)) {
       return;
     }
 
-    commitSearchPatch(
-      {
-        useMapBounds: true,
-        bounds: mapBounds,
-      },
-      { replace: true },
-    );
-  }, [commitSearchPatch, mapBounds, search.bounds, search.useMapBounds]);
+    if (boundsSyncTimeoutRef.current) {
+      clearTimeout(boundsSyncTimeoutRef.current);
+    }
+
+    boundsSyncTimeoutRef.current = setTimeout(() => {
+      commitSearchPatch(
+        {
+          useMapBounds: true,
+          bounds: normalizedMapBounds,
+        },
+        { replace: true },
+      );
+      boundsSyncTimeoutRef.current = null;
+    }, 250);
+
+    return () => {
+      if (boundsSyncTimeoutRef.current) {
+        clearTimeout(boundsSyncTimeoutRef.current);
+        boundsSyncTimeoutRef.current = null;
+      }
+    };
+  }, [commitSearchPatch, normalizedMapBounds, search.bounds, search.useMapBounds]);
 
   const trimmedSearchQuery = searchQueryLocal?.trim() ?? '';
   const hasSearchKeyword = trimmedSearchQuery.length >= 3;

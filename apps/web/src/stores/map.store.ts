@@ -32,16 +32,7 @@ type MapStore = MapStoreState & {
 const initialState: MapStoreState = {
   timestamp: 0,
   positionUpdated: false,
-  bounds: {
-    northEast: {
-      lat: -90,
-      lng: -180,
-    },
-    southWest: {
-      lat: 90,
-      lng: 180,
-    },
-  },
+  bounds: null,
   zoom: 12,
   mapPosition: {
     lat: 47.6062,

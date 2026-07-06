@@ -50,8 +50,13 @@ export const mlsMedia = pgTable(
   (t) => [
     index('idx_resource_record_key').on(t.resourceRecordKey),
     index('idx_media_modification_timestamp').on(t.mediaModificationTimestamp),
+    index('idx_mls_media_updated_at').on(t.updatedAt),
+    index('idx_mls_media_deleted_at').on(t.deletedAt),
+    index('idx_mls_media_media_id').on(t.mediaId),
     index('idx_permission').on(t.permission),
     index('idx_media_listing_primary').on(t.resourceRecordKey, t.preferredPhotoYN, t.order),
+    index('idx_mls_media_candidate_sort').on(t.updatedAt, t.mediaKey),
+    index('idx_mls_media_listing_candidate_sort').on(t.resourceRecordKey, t.updatedAt, t.mediaKey),
     index('idx_image_size_description').on(t.imageSizeDescription),
     index('idx_media_search_vector').using('gin', t.searchVector),
   ],

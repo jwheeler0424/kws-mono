@@ -8,6 +8,7 @@ import {
   hydrateListingCardsByKeys,
   searchListingsAllMarkers,
   searchListingsCount,
+  searchListingsPageCards,
   searchListingsPageMarkers,
 } from '../queries/search';
 
@@ -68,6 +69,17 @@ export const searchListingMarkersPageServerFn = createServerFn({ method: 'GET' }
   .validator(searchPageMarkersInputSchema)
   .handler(({ data }) =>
     searchListingsPageMarkers({
+      search: data.search,
+      limit: data.limit,
+      cursor: data.cursor,
+      statuses: toStatuses(data.statuses),
+    }),
+  );
+
+export const searchListingsPageCardsServerFn = createServerFn({ method: 'GET' })
+  .validator(searchPageMarkersInputSchema)
+  .handler(({ data }) =>
+    searchListingsPageCards({
       search: data.search,
       limit: data.limit,
       cursor: data.cursor,

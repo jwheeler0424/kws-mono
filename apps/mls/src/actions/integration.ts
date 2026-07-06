@@ -22,10 +22,12 @@ export const MLS_OPENHOUSE_RECONCILE_JOB_TYPE = 'mls.sync.openhouse.reconcile';
 export const MLS_OPENHOUSE_RECONCILE_HOURLY_SCHEDULE_ID = 'mls.openhouse.reconcile.hourly';
 export const MLS_MEDIA_SYNC_JOB_TYPE = 'mls.sync.media';
 export const MLS_MEDIA_SYNC_SCHEDULE_ID = 'mls.media.sync';
+export const MLS_MEDIA_RECONCILE_SCHEDULE_ID = 'mls.media.reconcile';
 
 const DEFAULT_SCHEDULED_MEDIA_SYNC_BATCH_SIZE = 50;
 const DEFAULT_SCHEDULED_MEDIA_SYNC_MAX_BATCHES = 5;
 const DEFAULT_SCHEDULED_MEDIA_SYNC_PROCESS_CONCURRENCY = 3;
+const DEFAULT_MAX_CONCURRENT_SCHEDULED_JOBS = 1;
 
 const DEFAULT_RESOURCE_CRON: Record<MlsResource, string> = {
   Lookup: '0 6 * * *',
@@ -37,6 +39,14 @@ const DEFAULT_RESOURCE_CRON: Record<MlsResource, string> = {
 
 const syncMlsLogger = mlsLogger.child('mls-sync');
 const registeredMlsCronJobs: Array<{ stop: () => unknown }> = [];
+const inFlightScheduledJobs = new Set<string>();
+
+function resolveMaxConcurrentScheduledJobs() {
+  return Math.max(
+    1,
+    env.MLS_QUEUE_MAX_CONCURRENT_SCHEDULED_JOBS ?? DEFAULT_MAX_CONCURRENT_SCHEDULED_JOBS,
+  );
+}
 
 function defaultResourceScheduleId(resource: MlsResource) {
   return `mls.delta.hourly.${resource.toLowerCase()}`;
@@ -83,6 +93,26 @@ function isFatalScheduledError(error: unknown): boolean {
 }
 
 async function runScheduledJob(scheduleId: string, run: () => Promise<void>) {
+  const maxConcurrentScheduledJobs = resolveMaxConcurrentScheduledJobs();
+
+  if (inFlightScheduledJobs.size >= maxConcurrentScheduledJobs) {
+    syncMlsLogger.warn('skipping scheduled MLS job because max concurrency was reached', {
+      scheduleId,
+      activeJobs: inFlightScheduledJobs.size,
+      maxConcurrentScheduledJobs,
+    });
+    return;
+  }
+
+  if (inFlightScheduledJobs.has(scheduleId)) {
+    syncMlsLogger.warn('skipping scheduled MLS job because previous run is still active', {
+      scheduleId,
+    });
+    return;
+  }
+
+  inFlightScheduledJobs.add(scheduleId);
+
   try {
     await run();
   } catch (error) {
@@ -99,7 +129,78 @@ async function runScheduledJob(scheduleId: string, run: () => Promise<void>) {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
+  } finally {
+    inFlightScheduledJobs.delete(scheduleId);
   }
+}
+
+async function runScheduledMediaSyncAndCleanup(
+  scheduleId: string,
+  input: {
+    mediaSyncBatchSize: number;
+    mediaSyncMaxBatches: number;
+    mediaSyncProcessConcurrency: number;
+    mediaSyncIncludeMissingFilesRepair: boolean;
+    mediaSyncRepairMaxBatches: number;
+  },
+) {
+  const syncSummary = await runMlsMediaSync({
+    batchSize: input.mediaSyncBatchSize,
+    maxBatches: input.mediaSyncMaxBatches,
+    processConcurrency: input.mediaSyncProcessConcurrency,
+    prioritizeMemberKeys: env.MLS_MEMBER_ID ?? [],
+    prioritizeOfficeKeys: env.MLS_OFFICE_ID ?? [],
+    primaryOnlyForAllProperties: true,
+    filterEntityTypes: ['properties'],
+    associationMode: 'unprocessed-only',
+    includeMissingFilesRepair: false,
+    repairMaxBatches: 1,
+  });
+
+  const deadPropertyMediaPurgeSummary = await purgeDeadMlsPropertyMedia();
+
+  syncMlsLogger.info('scheduled MLS media sync + dead property media purge completed', {
+    scheduleId,
+    scanned: syncSummary.scanned,
+    processed: syncSummary.processed,
+    failed: syncSummary.failed,
+    deadPropertyMediaDeleted: deadPropertyMediaPurgeSummary.mediaDeleted,
+    deadPropertyVariantFilesDeleted: deadPropertyMediaPurgeSummary.variantFilesDeleted,
+  });
+}
+
+async function runScheduledMediaReconcile(
+  scheduleId: string,
+  input: {
+    mediaSyncBatchSize: number;
+    mediaSyncMaxBatches: number;
+    mediaSyncProcessConcurrency: number;
+    mediaSyncIncludeMissingFilesRepair: boolean;
+    mediaSyncRepairMaxBatches: number;
+  },
+) {
+  const reconcileSummary = await runMlsMediaSync({
+    batchSize: input.mediaSyncBatchSize,
+    maxBatches: input.mediaSyncMaxBatches,
+    processConcurrency: input.mediaSyncProcessConcurrency,
+    prioritizeMemberKeys: env.MLS_MEMBER_ID ?? [],
+    prioritizeOfficeKeys: env.MLS_OFFICE_ID ?? [],
+    primaryOnlyForAllProperties: true,
+    filterEntityTypes: ['properties'],
+    associationMode: 'stale-only',
+    includeMissingFilesRepair: input.mediaSyncIncludeMissingFilesRepair,
+    repairMaxBatches: input.mediaSyncRepairMaxBatches,
+  });
+
+  syncMlsLogger.info('scheduled MLS media reconcile completed', {
+    scheduleId,
+    scanned: reconcileSummary.scanned,
+    processed: reconcileSummary.processed,
+    failed: reconcileSummary.failed,
+    repairScanned: reconcileSummary.repairScanned,
+    repairProcessed: reconcileSummary.repairProcessed,
+    repairFailed: reconcileSummary.repairFailed,
+  });
 }
 
 function resolveMlsCleanupSchedule() {
@@ -120,6 +221,17 @@ function resolveMlsMediaSyncSchedule() {
 
   return {
     scheduleId: MLS_MEDIA_SYNC_SCHEDULE_ID,
+    cronExpression,
+    enabled,
+  };
+}
+
+function resolveMlsMediaReconcileSchedule() {
+  const enabled = true;
+  const cronExpression = env.MLS_QUEUE_MEDIA_RECONCILE_CRON || '0 */6 * * *';
+
+  return {
+    scheduleId: MLS_MEDIA_RECONCILE_SCHEDULE_ID,
     cronExpression,
     enabled,
   };
@@ -168,6 +280,7 @@ export function listMlsManagedScheduleIds() {
     ...listMlsDeltaScheduleIds(),
     resolveMlsCleanupSchedule().scheduleId,
     resolveMlsMediaSyncSchedule().scheduleId,
+    resolveMlsMediaReconcileSchedule().scheduleId,
   ];
 }
 
@@ -180,6 +293,7 @@ export function registerMlsSyncJobTypes() {
   const scheduleEntries = resolveMlsDeltaResourceSchedules();
   const cleanupSchedule = resolveMlsCleanupSchedule();
   const mediaSyncSchedule = resolveMlsMediaSyncSchedule();
+  const mediaReconcileSchedule = resolveMlsMediaReconcileSchedule();
   const mediaSyncBatchSize = resolveScheduledMediaSyncBatchSize();
   const mediaSyncMaxBatches = resolveScheduledMediaSyncMaxBatches();
   const mediaSyncProcessConcurrency = resolveScheduledMediaSyncProcessConcurrency();
@@ -226,30 +340,48 @@ export function registerMlsSyncJobTypes() {
     }
 
     await runScheduledJob(mediaSyncSchedule.scheduleId, async () => {
-      const syncSummary = await runMlsMediaSync({
-        batchSize: mediaSyncBatchSize,
-        maxBatches: mediaSyncMaxBatches,
-        processConcurrency: mediaSyncProcessConcurrency,
-        prioritizeMemberKeys: env.MLS_MEMBER_ID ?? [],
-        prioritizeOfficeKeys: env.MLS_OFFICE_ID ?? [],
-        primaryOnlyForAllProperties: true,
-        includeMissingFilesRepair: mediaSyncIncludeMissingFilesRepair,
-        repairMaxBatches: mediaSyncRepairMaxBatches,
-      });
-
-      const deadPropertyMediaPurgeSummary = await purgeDeadMlsPropertyMedia();
-
-      syncMlsLogger.info('scheduled MLS media sync + dead property media purge completed', {
-        scheduleId: mediaSyncSchedule.scheduleId,
-        scanned: syncSummary.scanned,
-        processed: syncSummary.processed,
-        failed: syncSummary.failed,
-        deadPropertyMediaDeleted: deadPropertyMediaPurgeSummary.mediaDeleted,
-        deadPropertyVariantFilesDeleted: deadPropertyMediaPurgeSummary.variantFilesDeleted,
+      await runScheduledMediaSyncAndCleanup(mediaSyncSchedule.scheduleId, {
+        mediaSyncBatchSize,
+        mediaSyncMaxBatches,
+        mediaSyncProcessConcurrency,
+        mediaSyncIncludeMissingFilesRepair,
+        mediaSyncRepairMaxBatches,
       });
     });
   });
   registeredMlsCronJobs.push(mediaSyncJob);
+
+  const mediaReconcileJob = Bun.cron(mediaReconcileSchedule.cronExpression, async () => {
+    if (!mediaReconcileSchedule.enabled) {
+      syncMlsLogger.debug('skipping disabled media reconcile schedule', {
+        scheduleId: mediaReconcileSchedule.scheduleId,
+      });
+      return;
+    }
+
+    await runScheduledJob(mediaReconcileSchedule.scheduleId, async () => {
+      await runScheduledMediaReconcile(mediaReconcileSchedule.scheduleId, {
+        mediaSyncBatchSize,
+        mediaSyncMaxBatches,
+        mediaSyncProcessConcurrency,
+        mediaSyncIncludeMissingFilesRepair,
+        mediaSyncRepairMaxBatches,
+      });
+    });
+  });
+  registeredMlsCronJobs.push(mediaReconcileJob);
+
+  if (mediaSyncSchedule.enabled) {
+    void runScheduledJob(mediaSyncSchedule.scheduleId, async () => {
+      await runScheduledMediaSyncAndCleanup(mediaSyncSchedule.scheduleId, {
+        mediaSyncBatchSize,
+        mediaSyncMaxBatches,
+        mediaSyncProcessConcurrency,
+        mediaSyncIncludeMissingFilesRepair,
+        mediaSyncRepairMaxBatches,
+      });
+    });
+  }
 
   syncMlsLogger.info('MLS sync schedule job types registered', {
     deltaSchedules: scheduleEntries.map((entry) => ({
@@ -267,6 +399,7 @@ export function registerMlsSyncJobTypes() {
       scheduleId: mediaSyncSchedule.scheduleId,
       cronExpression: mediaSyncSchedule.cronExpression,
       enabled: mediaSyncSchedule.enabled,
+      maxConcurrentScheduledJobs: resolveMaxConcurrentScheduledJobs(),
       batchSize: mediaSyncBatchSize,
       maxBatches: mediaSyncMaxBatches,
       processConcurrency: mediaSyncProcessConcurrency,
@@ -274,6 +407,16 @@ export function registerMlsSyncJobTypes() {
       repairMaxBatches: mediaSyncRepairMaxBatches,
       prioritizedMemberKeysCount: (env.MLS_MEMBER_ID ?? []).length,
       prioritizedOfficeKeysCount: (env.MLS_OFFICE_ID ?? []).length,
+    },
+    mediaReconcileSchedule: {
+      scheduleId: mediaReconcileSchedule.scheduleId,
+      cronExpression: mediaReconcileSchedule.cronExpression,
+      enabled: mediaReconcileSchedule.enabled,
+      batchSize: mediaSyncBatchSize,
+      maxBatches: mediaSyncMaxBatches,
+      processConcurrency: mediaSyncProcessConcurrency,
+      includeMissingFilesRepair: mediaSyncIncludeMissingFilesRepair,
+      repairMaxBatches: mediaSyncRepairMaxBatches,
     },
   });
 }

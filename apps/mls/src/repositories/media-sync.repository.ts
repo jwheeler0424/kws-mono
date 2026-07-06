@@ -8,6 +8,7 @@ import { db } from '@/lib/database';
 export type MlsMediaEntityType = 'properties' | 'members' | 'offices';
 export type MlsMediaAssociationMode =
   | 'stale-or-unprocessed'
+  | 'stale-only'
   | 'unprocessed-only'
   | 'repair-missing-files';
 
@@ -61,6 +62,8 @@ export interface ListMlsMediaSyncCandidatesOptions {
   /**
    * Candidate eligibility mode:
    * - `stale-or-unprocessed` includes unprocessed rows and stale linked rows.
+    * - `stale-only` includes only rows with existing media associations that
+    *   are stale or otherwise require relinking/refresh.
    * - `unprocessed-only` includes only rows without a media association.
    * - `repair-missing-files` includes only linked active rows so callers can
    *   decide whether on-disk media variants need repair.
@@ -175,6 +178,20 @@ export async function listMlsMediaSyncCandidates(
     ),
   );
 
+  const staleOnlyAssociationClause = and(
+    baseMediaRowEligibilityClause,
+    isNotNull(mlsMedia.mediaId),
+    or(
+      isNull(media.id),
+      isNotNull(media.deletedAt),
+      isNull(media.updatedAt),
+      and(
+        isNotNull(mlsMedia.mediaModificationTimestamp),
+        gt(mlsMedia.mediaModificationTimestamp, media.updatedAt),
+      ),
+    ),
+  );
+
   const repairMissingFilesClause = and(
     baseMediaRowEligibilityClause,
     isNotNull(mlsMedia.mediaId),
@@ -185,9 +202,11 @@ export async function listMlsMediaSyncCandidates(
   const baseEligibilityClause =
     associationMode === 'unprocessed-only'
       ? unprocessedAssociationClause
-      : associationMode === 'repair-missing-files'
-        ? repairMissingFilesClause
-        : stalenessWhereClause;
+      : associationMode === 'stale-only'
+        ? staleOnlyAssociationClause
+        : associationMode === 'repair-missing-files'
+          ? repairMissingFilesClause
+          : stalenessWhereClause;
 
   const prioritizedMemberPropertyMatchClause =
     prioritizedMemberKeys.length > 0

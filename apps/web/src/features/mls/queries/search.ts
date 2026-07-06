@@ -136,6 +136,8 @@ const buildSharedFilters = (
     eq(properties.mlgCanView, true),
     isNull(properties.deletedAt),
     inArray(properties.standardStatus, statuses),
+    isNotNull(properties.latitude),
+    isNotNull(properties.longitude),
   ];
 
   if (input.query) {
@@ -348,6 +350,27 @@ export async function searchListingsPageMarkers(
     items: pageRows.map(mapMarkerItem),
     nextCursor,
     hasMore,
+  };
+}
+
+export async function searchListingsPageCards(
+  input: TMarkerQueryInput,
+): Promise<CursorResult<TPropertyCard>> {
+  const markerPage = await searchListingsPageMarkers(input);
+  const listingKeys = markerPage.items.map((item) => item.listingKey);
+
+  const cards = listingKeys.length
+    ? await hydrateListingCardsByKeys({
+      listingKeys,
+      statuses: input.statuses,
+      maxBatchSize: typeof input.limit === 'number' ? input.limit : undefined,
+    })
+    : [];
+
+  return {
+    items: cards,
+    nextCursor: markerPage.nextCursor,
+    hasMore: markerPage.hasMore,
   };
 }
 

@@ -2,14 +2,15 @@ import type { TListingMarker } from '@kws/types';
 
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
+import React from 'react';
 
 import ListingsMap from '@/components/global/listings-map';
 import ListingsResults from '@/components/global/listings-results';
 import ListingsSearch from '@/components/global/listings-search';
 import {
-  hydrateListingCardsByKeysOptions,
   searchAllListingMarkersOptions,
-  searchListingsPageFromRouteOptions,
+  searchListingsCardsPageFromRouteOptions,
+  searchListingsCountFromRouteOptions,
 } from '@/features/mls/options/search';
 import { useSeo } from '@/lib/tools';
 
@@ -45,23 +46,13 @@ export const Route = createFileRoute('/listings/_listings/')({
   // Keep the listings route non-blocking for the map. Marker pages load on the client so the
   // Leaflet shell can render first and then fetch prioritized sectors in the background.
   loader: async ({ context, deps }) => {
-    const pageSize = deps.limit ?? 48;
+    const pageSize = deps.limit ?? 24;
 
     void Promise.all([
-      context.queryClient.ensureQueryData(searchAllListingMarkersOptions({ search: deps })),
-      context.queryClient
-        .ensureQueryData(searchListingsPageFromRouteOptions(deps, { limit: pageSize }))
-        .then((page) => {
-          const listingKeys = page.items.map((item) => item.listingKey);
-
-          if (listingKeys.length === 0) {
-            return;
-          }
-
-          return context.queryClient.ensureQueryData(
-            hydrateListingCardsByKeysOptions({ listingKeys, maxBatchSize: pageSize }),
-          );
-        }),
+      context.queryClient.ensureQueryData(searchListingsCountFromRouteOptions(deps)),
+      context.queryClient.ensureQueryData(
+        searchListingsCardsPageFromRouteOptions(deps, { limit: pageSize }),
+      ),
     ]).catch((error) => {
       if (isQueryCancellationError(error)) {
         return;
@@ -105,9 +96,27 @@ function RouteComponent() {
   // useLoaderDeps returns the same canonical object passed to loader,
   // guaranteeing query key parity between loader prefetch and component queries.
   const search = Route.useLoaderDeps();
-  const { data: allMarkers, isPending: isMarkersPending } = useQuery(
-    searchAllListingMarkersOptions({ search }),
-  );
+
+  const [markersEnabled, setMarkersEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setMarkersEnabled(true);
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  const { data: resultCount = 0 } = useQuery(searchListingsCountFromRouteOptions(search));
+
+  const { data: allMarkers, isPending: isMarkersPending } = useQuery({
+    ...searchAllListingMarkersOptions({ search }),
+    enabled: markersEnabled,
+    placeholderData: (previousData) => previousData,
+  });
+
   const markers = (allMarkers ?? []) as TListingMarker[];
 
   return (
@@ -117,7 +126,7 @@ function RouteComponent() {
         <ListingsMap markers={markers} markersLoading={isMarkersPending} />
       </section>
       <section className='content relative'>
-        <ListingsResults params={search} resultCount={markers.length} />
+        <ListingsResults params={search} resultCount={resultCount} />
       </section>
     </main>
   );

@@ -7,6 +7,7 @@ import {
   searchAllListingMarkersServerFn,
   searchListingMarkersPageServerFn,
   searchListingsCountServerFn,
+  searchListingsPageCardsServerFn,
 } from '../functions';
 
 type TSearchScope = {
@@ -84,6 +85,8 @@ export const searchKeys = {
     [...searchKeys.all, 'markers', normalizeSearchScopeForKey(input)] as const,
   markersPage: (input: TSearchPageInput) =>
     [...searchKeys.all, 'markers-page', normalizeSearchPageInput(input)] as const,
+  cardsPage: (input: TSearchPageInput) =>
+    [...searchKeys.all, 'cards-page', normalizeSearchPageInput(input)] as const,
   hydrateCards: (input: THydrateCardsInput) =>
     [...searchKeys.all, 'hydrate-cards', normalizeHydrateCardsInput(input)] as const,
   markerCard: (listingKey: string, statuses?: StandardStatus[]) =>
@@ -157,6 +160,27 @@ export function searchListingMarkersPageOptions(input: TSearchPageInput) {
   });
 }
 
+export function searchListingsPageCardsOptions(input: TSearchPageInput) {
+  const normalized = normalizeSearchPageInput(input);
+
+  return queryOptions({
+    queryKey: searchKeys.cardsPage(input),
+    queryFn: ({ signal }) =>
+      searchListingsPageCardsServerFn({
+        signal,
+        data: {
+          search: normalized.search,
+          statuses: normalized.statuses,
+          limit: normalized.limit,
+          cursor: normalized.cursor,
+        },
+      }),
+    staleTime: 15 * 1000,
+    gcTime: 60 * 1000 * 5,
+    retry: 1,
+  });
+}
+
 export function hydrateListingCardsByKeysOptions(input: THydrateCardsInput) {
   const normalized = normalizeHydrateCardsInput(input);
 
@@ -211,6 +235,17 @@ export const searchListingsPageFromRouteOptions = (
   input: Partial<Pick<TSearchPageInput, 'limit' | 'cursor' | 'statuses'>> = {},
 ) =>
   searchListingMarkersPageOptions({
+    search,
+    statuses: input.statuses,
+    limit: input.limit,
+    cursor: input.cursor,
+  });
+
+export const searchListingsCardsPageFromRouteOptions = (
+  search: Partial<TListingsSearch>,
+  input: Partial<Pick<TSearchPageInput, 'limit' | 'cursor' | 'statuses'>> = {},
+) =>
+  searchListingsPageCardsOptions({
     search,
     statuses: input.statuses,
     limit: input.limit,
