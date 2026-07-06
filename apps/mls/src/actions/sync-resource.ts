@@ -8,10 +8,10 @@
 //   4. Return aggregate run metrics
 // ---------------------------------------------------------------------------
 
-import { env } from '@kws/config';
 
 import type { MlsResource } from '@/types';
 
+import { MLS_SYNC_DEFAULTS } from '@/lib/constants';
 import { persistHistoryPage, quarantineInvalidTimestampRecords } from '@/lib/history-store';
 import { logger } from '@/lib/logger';
 
@@ -75,8 +75,11 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
   const dbWatermark = normalizeTimestamp(await config.getLatestTimestamp());
   let activeAfterTimestamp = dbWatermark;
 
-  const overlapMs = Math.max(env.MLS_DELTA_OVERLAP_MS, env.MLS_MIN_DELTA_OVERLAP_MS ?? 0);
-  const precisionSafetyMs = env.MLS_TIMESTAMP_PRECISION_SAFETY_MS ?? 0;
+  const overlapMs = Math.max(
+    MLS_SYNC_DEFAULTS.deltaOverlapMs,
+    MLS_SYNC_DEFAULTS.minDeltaOverlapMs,
+  );
+  const precisionSafetyMs = MLS_SYNC_DEFAULTS.timestampPrecisionSafetyMs;
 
   if (activeAfterTimestamp && overlapMs + precisionSafetyMs > 0) {
     activeAfterTimestamp = new Date(activeAfterTimestamp.getTime() - overlapMs - precisionSafetyMs);

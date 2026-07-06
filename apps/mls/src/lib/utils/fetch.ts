@@ -11,12 +11,16 @@ import type {
   ODataPageBatch,
 } from '@/types';
 
-import { DEFAULT_RESOURCE_EXPANDS, MAX_RETRIES, REQUEST_TIMEOUT_MS } from '../constants';
+import {
+  DEFAULT_RESOURCE_EXPANDS,
+  MAX_RETRIES,
+  MLS_SYNC_DEFAULTS,
+  REQUEST_TIMEOUT_MS,
+} from '../constants';
 import { logger } from '../logger';
 import { MlsApiError } from './errors';
 import {
   baseUrl,
-  chunkArray,
   escapeODataString,
   getBodyPreview,
   getResponseBytes,
@@ -291,13 +295,13 @@ export function fetchLookups(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsLookupPayload>(
     startUrl ??
-      buildResourceUrl({
-        resource: 'Lookup',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(env.MLS_PAGE_SIZE, 5000),
-      }),
+    buildResourceUrl({
+      resource: 'Lookup',
+      osn,
+      afterTimestamp,
+      beforeTimestamp,
+      top: Math.min(MLS_SYNC_DEFAULTS.pageSize, 5000),
+    }),
   );
 }
 
@@ -309,13 +313,13 @@ export function fetchMembers(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsMemberPayload>(
     startUrl ??
-      buildResourceUrl({
-        resource: 'Member',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
-      }),
+    buildResourceUrl({
+      resource: 'Member',
+      osn,
+      afterTimestamp,
+      beforeTimestamp,
+      top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
+    }),
   );
 }
 
@@ -327,32 +331,13 @@ export function fetchOffices(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsOfficePayload>(
     startUrl ??
-      buildResourceUrl({
-        resource: 'Office',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
-      }),
-  );
-}
-
-/** Fetch Property records with expanded Media, Rooms, and UnitTypes.
- *  Page size is capped at maxPageSizeWithExpand (1000) per API limits. */
-export function fetchProperties(
-  osn: string,
-  options?: FetchResourceOptions,
-): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
-  const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
-  return paginate<MlsPropertyPayload>(
-    startUrl ??
-      buildResourceUrl({
-        resource: 'Property',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
-      }),
+    buildResourceUrl({
+      resource: 'Office',
+      osn,
+      afterTimestamp,
+      beforeTimestamp,
+      top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
+    }),
   );
 }
 
@@ -363,13 +348,13 @@ export function fetchOpenHouses(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsOpenHousePayload>(
     startUrl ??
-      buildResourceUrl({
-        resource: 'OpenHouse',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000),
-      }),
+    buildResourceUrl({
+      resource: 'OpenHouse',
+      osn,
+      afterTimestamp,
+      beforeTimestamp,
+      top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
+    }),
   );
 }
 
@@ -456,80 +441,10 @@ export function fetchPropertiesByOffice(
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
   return paginate<MlsPropertyPayload>(
     options?.startUrl ??
-      buildPropertySeedUrl(osn, getPropertySeedTop(), {
-        officeMlsId,
-      }),
+    buildPropertySeedUrl(osn, getPropertySeedTop(), {
+      officeMlsId,
+    }),
   );
-}
-
-/** Fetch Property records scoped to StandardStatus and PropertyType for initial seed passes. */
-export function fetchPropertiesByType(
-  osn: string,
-  propertyType: string,
-  options?: FetchResourceOptions,
-): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
-  return paginate<MlsPropertyPayload>(
-    options?.startUrl ??
-      buildPropertySeedUrl(osn, getPropertySeedTop(), {
-        propertyTypes: [propertyType],
-      }),
-  );
-}
-
-export async function fetchPropertyByListingId(
-  osn: string,
-  listingId: string,
-): Promise<MlsPropertyPayload | null> {
-  const params = new URLSearchParams({
-    $filter: `OriginatingSystemName eq '${escapeODataString(osn)}' and ListingId eq '${escapeODataString(listingId)}'`,
-    $top: '1',
-  });
-
-  const expand = getExpandParam('Property');
-  if (expand) {
-    params.set('$expand', expand);
-  }
-
-  const page = await fetchPage<MlsPropertyPayload>(`${baseUrl('Property')}?${params.toString()}`);
-  return page.value[0] ?? null;
-}
-
-/**
- * Fetch Property records for a targeted set of listing keys.
- * Keys are chunked to keep OData filter query length bounded.
- * @yields ODataPageBatch<MlsPropertyPayload> for each chunk of listing keys.
- */
-export async function* fetchPropertiesByListingKeys(
-  osn: string,
-  listingKeys: readonly string[],
-): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
-  const uniqueKeys = [...new Set(listingKeys.filter((key) => key.length > 0))];
-  if (uniqueKeys.length === 0) {
-    return;
-  }
-
-  const keyChunks = chunkArray(uniqueKeys, 75);
-  const top = Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000);
-  const expand = getExpandParam('Property');
-
-  for (const keyChunk of keyChunks) {
-    const listingKeyClause = keyChunk
-      .map((listingKey) => `ListingKey eq '${escapeODataString(listingKey)}'`)
-      .join(' or ');
-    const filter = `OriginatingSystemName eq '${escapeODataString(osn)}' and (${listingKeyClause})`;
-
-    const params = new URLSearchParams({
-      $filter: filter,
-      $top: String(top),
-    });
-
-    if (expand) {
-      params.set('$expand', expand);
-    }
-
-    const url = `${baseUrl('Property')}?${params.toString()}`;
-    yield* paginate<MlsPropertyPayload>(url);
-  }
 }
 
 const RESIDENTIAL_PROPERTY_TYPES = [
@@ -540,7 +455,7 @@ const RESIDENTIAL_PROPERTY_TYPES = [
 
 function getPropertySeedTop(): number {
   // Expanded Property pages are heavy; a conservative cap keeps memory and write bursts stable.
-  return Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, env.MLS_PAGE_SIZE, 500);
+  return Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, MLS_SYNC_DEFAULTS.pageSize, 500);
 }
 
 /**
@@ -575,7 +490,7 @@ export async function* fetchResidentialProperties(
 
   const params = new URLSearchParams({
     $filter: parts.join(' and '),
-    $top: String(Math.min(env.MLS_MAX_PAGE_SIZE_WITH_EXPAND, 1000)),
+    $top: String(Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000)),
   });
 
   const expand = getExpandParam('Property');
@@ -599,33 +514,12 @@ export async function* fetchViewablePropertiesByTypesAndStatuses(
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
   yield* paginate<MlsPropertyPayload>(
     options?.startUrl ??
-      buildPropertySeedUrl(osn, getPropertySeedTop(), {
-        propertyTypes: propertyTypes ? [...propertyTypes] : undefined,
-        standardStatuses: standardStatuses ? [...standardStatuses] : undefined,
-        afterTimestamp: options?.afterTimestamp,
-        beforeTimestamp: options?.beforeTimestamp,
-      }),
-  );
-}
-
-/** Fetch Property records without $expand for lightweight existence scans.
- * @yields ODataPageBatch<MlsPropertyPayload> for each page of properties.
- */
-export async function* fetchPropertiesUnexpanded(
-  osn: string,
-  options?: FetchResourceOptions,
-): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
-  const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
-  yield* paginate<MlsPropertyPayload>(
-    startUrl ??
-      buildResourceUrl({
-        resource: 'Property',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(env.MLS_PAGE_SIZE, 5000),
-        options: { includeExpand: false },
-      }),
+    buildPropertySeedUrl(osn, getPropertySeedTop(), {
+      propertyTypes: propertyTypes ? [...propertyTypes] : undefined,
+      standardStatuses: standardStatuses ? [...standardStatuses] : undefined,
+      afterTimestamp: options?.afterTimestamp,
+      beforeTimestamp: options?.beforeTimestamp,
+    }),
   );
 }
 

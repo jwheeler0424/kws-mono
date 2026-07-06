@@ -60,6 +60,14 @@ export interface ListMlsMediaSyncCandidatesOptions {
    */
   restrictToMemberPropertyKeys?: string[];
   /**
+   * When set, member entity media rows are restricted to matching MemberMlsId.
+   */
+  restrictToMemberEntityKeys?: string[];
+  /**
+   * When set, office entity media rows are restricted to matching OfficeMlsId.
+   */
+  restrictToOfficeEntityKeys?: string[];
+  /**
    * Candidate eligibility mode:
    * - `stale-or-unprocessed` includes unprocessed rows and stale linked rows.
     * - `stale-only` includes only rows with existing media associations that
@@ -154,6 +162,12 @@ export async function listMlsMediaSyncCandidates(
   const associationMode = options.associationMode ?? 'stale-or-unprocessed';
   const restrictToMemberPropertyKeys = [
     ...new Set((options.restrictToMemberPropertyKeys ?? []).filter(Boolean)),
+  ];
+  const restrictToMemberEntityKeys = [
+    ...new Set((options.restrictToMemberEntityKeys ?? []).filter(Boolean)),
+  ];
+  const restrictToOfficeEntityKeys = [
+    ...new Set((options.restrictToOfficeEntityKeys ?? []).filter(Boolean)),
   ];
 
   const baseMediaRowEligibilityClause = and(
@@ -285,10 +299,32 @@ export async function listMlsMediaSyncCandidates(
       )
       : undefined;
 
+  const memberEntityRestrictionClause =
+    restrictToMemberEntityKeys.length > 0
+      ? and(
+        isNotNull(members.memberMlsId),
+        inArray(members.memberMlsId, restrictToMemberEntityKeys),
+      )
+      : undefined;
+
+  const officeEntityRestrictionClause =
+    restrictToOfficeEntityKeys.length > 0
+      ? and(
+        isNotNull(offices.officeMlsId),
+        inArray(offices.officeMlsId, restrictToOfficeEntityKeys),
+      )
+      : undefined;
+
+  const entityRecordRestrictionClause =
+    memberEntityRestrictionClause && officeEntityRestrictionClause
+      ? or(memberEntityRestrictionClause, officeEntityRestrictionClause)
+      : (memberEntityRestrictionClause ?? officeEntityRestrictionClause);
+
   const finalWhereClause = and(
     candidateWhereClause,
     entityTypeFilterClause,
     memberPropertyRestrictionClause,
+    entityRecordRestrictionClause,
   );
 
   const priorityBucket = prioritizedPropertyMatchClause

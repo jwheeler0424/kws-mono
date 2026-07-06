@@ -1,6 +1,4 @@
-import { env } from '@kws/config';
-
-import { HOUR_MS } from '@/lib/constants';
+import { HOUR_MS, MLS_QUOTA_DEFAULTS, MLS_RATE_LIMIT_DEFAULTS } from '@/lib/constants';
 
 import { sleep } from './helpers';
 import { mlsQuotaTracker, type QuotaSnapshot } from './quota';
@@ -49,12 +47,18 @@ function computeEffectivePerSecondLimit(
   nowMs: number = Date.now(),
   overrides?: PerSecondHeadroomOverrides,
 ) {
-  const basePerSecond = Math.max(1, overrides?.requestsPerSecond ?? env.MLS_REQUESTS_PER_SECOND);
+  const basePerSecond = Math.max(
+    1,
+    overrides?.requestsPerSecond ?? MLS_RATE_LIMIT_DEFAULTS.requestsPerSecond,
+  );
   const hourlyLimit = Math.max(
     1,
-    overrides?.requestsPerHourLimit ?? env.MLS_REQUESTS_PER_HOUR_LIMIT,
+    overrides?.requestsPerHourLimit ?? MLS_QUOTA_DEFAULTS.requestsPerHourLimit,
   );
-  const dailyLimit = Math.max(1, overrides?.requestsPerDayLimit ?? env.MLS_REQUESTS_PER_DAY_LIMIT);
+  const dailyLimit = Math.max(
+    1,
+    overrides?.requestsPerDayLimit ?? MLS_QUOTA_DEFAULTS.requestsPerDayLimit,
+  );
 
   const usedHour = Math.max(0, snapshot.hour.requests);
   const usedDay = Math.max(0, snapshot.day.requests);
@@ -90,19 +94,22 @@ export function computeAdaptiveThrottleDelayMs(
   nowMs: number = Date.now(),
   overrides?: AdaptiveDelayOverrides,
 ) {
-  const minimumDelayMs = Math.max(0, overrides?.requestDelayMs ?? env.MLS_REQUEST_DELAY_MS);
+  const minimumDelayMs = Math.max(
+    0,
+    overrides?.requestDelayMs ?? MLS_RATE_LIMIT_DEFAULTS.requestDelayMs,
+  );
   const hourlyRequestLimit = Math.max(
     1,
-    overrides?.requestsPerHourLimit ?? env.MLS_REQUESTS_PER_HOUR_LIMIT,
+    overrides?.requestsPerHourLimit ?? MLS_QUOTA_DEFAULTS.requestsPerHourLimit,
   );
   const hourlyAverageDelayMs = Math.ceil(HOUR_MS / hourlyRequestLimit);
   const curvePower = Math.max(
     1,
-    overrides?.requestThrottleCurvePower ?? env.MLS_REQUEST_THROTTLE_CURVE_POWER,
+    overrides?.requestThrottleCurvePower ?? MLS_RATE_LIMIT_DEFAULTS.requestThrottleCurvePower,
   );
   const maxDelayMs = Math.max(
     minimumDelayMs,
-    overrides?.requestThrottleMaxDelayMs ?? env.MLS_REQUEST_THROTTLE_MAX_DELAY_MS,
+    overrides?.requestThrottleMaxDelayMs ?? MLS_RATE_LIMIT_DEFAULTS.requestThrottleMaxDelayMs,
   );
 
   const usedThisHour = Math.max(0, snapshot.hour.requests);

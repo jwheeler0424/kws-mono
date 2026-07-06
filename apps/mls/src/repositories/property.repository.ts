@@ -1,7 +1,7 @@
-import { env } from '@kws/config';
 import { mlsMedia, properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
 import { eq, getColumns, sql } from 'drizzle-orm';
 
+import { MLS_PROPERTY_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
 import { logger } from '@/lib/logger';
 import { dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
@@ -15,10 +15,10 @@ import type {
 
 import { upsertMlsMedia } from './media.repository';
 
-const PROPERTY_BATCH_SIZE = env.MLS_PROPERTY_BATCH_SIZE ?? 100;
-const PROPERTY_UPSERT_BATCH_SIZE = env.MLS_PROPERTY_UPSERT_BATCH_SIZE ?? 150;
-const CHILD_UPSERT_BATCH_SIZE = env.MLS_PROPERTY_CHILD_UPSERT_BATCH_SIZE ?? 750;
-const CHILD_UPSERT_CONCURRENCY = env.MLS_PROPERTY_CHILD_UPSERT_CONCURRENCY ?? 2;
+const PROPERTY_BATCH_SIZE = 100;
+const PROPERTY_UPSERT_BATCH_SIZE = MLS_PROPERTY_DEFAULTS.upsertBatchSize;
+const CHILD_UPSERT_BATCH_SIZE = MLS_PROPERTY_DEFAULTS.childUpsertBatchSize;
+const CHILD_UPSERT_CONCURRENCY = MLS_PROPERTY_DEFAULTS.childUpsertConcurrency;
 
 const STAGING_TABLE_NAME = 'mls_property_stage';
 
@@ -28,21 +28,21 @@ const PROPERTY_NON_INSERTABLE_COLUMNS = new Set(['searchVector']);
 async function applySeedStagingSettings(
   execute: (query: string) => Promise<unknown>,
 ): Promise<void> {
-  if (env.MLS_PROPERTY_SEED_STAGING_SYNC_COMMIT_OFF ?? false) {
+  if (MLS_PROPERTY_DEFAULTS.seedStagingSyncCommitOff) {
     await execute('SET LOCAL synchronous_commit TO OFF');
   }
-  if (env.MLS_PROPERTY_SEED_STAGING_STATEMENT_TIMEOUT_MS) {
+  if (MLS_PROPERTY_DEFAULTS.seedStagingStatementTimeoutMs) {
     await execute(
-      `SET LOCAL statement_timeout TO '${env.MLS_PROPERTY_SEED_STAGING_STATEMENT_TIMEOUT_MS}ms'`,
+      `SET LOCAL statement_timeout TO '${MLS_PROPERTY_DEFAULTS.seedStagingStatementTimeoutMs}ms'`,
     );
   }
-  if (env.MLS_PROPERTY_SEED_STAGING_LOCK_TIMEOUT_MS) {
-    await execute(`SET LOCAL lock_timeout TO '${env.MLS_PROPERTY_SEED_STAGING_LOCK_TIMEOUT_MS}ms'`);
+  if (MLS_PROPERTY_DEFAULTS.seedStagingLockTimeoutMs) {
+    await execute(`SET LOCAL lock_timeout TO '${MLS_PROPERTY_DEFAULTS.seedStagingLockTimeoutMs}ms'`);
   }
-  if (env.MLS_PROPERTY_SEED_STAGING_WORK_MEM_MB) {
-    await execute(`SET LOCAL work_mem TO '${env.MLS_PROPERTY_SEED_STAGING_WORK_MEM_MB}MB'`);
+  if (MLS_PROPERTY_DEFAULTS.seedStagingWorkMemMb) {
+    await execute(`SET LOCAL work_mem TO '${MLS_PROPERTY_DEFAULTS.seedStagingWorkMemMb}MB'`);
   }
-  if (env.MLS_PROPERTY_SEED_STAGING_JIT_OFF ?? false) {
+  if (MLS_PROPERTY_DEFAULTS.seedStagingJitOff) {
     await execute('SET LOCAL jit TO OFF');
   }
 }

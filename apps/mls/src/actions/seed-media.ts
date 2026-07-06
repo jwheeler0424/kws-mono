@@ -12,7 +12,6 @@ import { mlsLogger } from '@/lib/logger';
 
 import {
   listMlsMediaSyncCandidates,
-  listUnsyncedMediaForListing,
   type MlsMediaAssociationMode,
   type MlsMediaEntityType,
   type MlsMediaSyncCandidate,
@@ -56,6 +55,16 @@ export interface MlsMediaSyncOptions {
    * or co-list agent matches one of the provided member keys / MLS IDs.
    */
   restrictToMemberPropertyKeys?: string[];
+  /**
+   * When set, member media is restricted to rows whose resourceRecordKey /
+   * member MLS ID matches one of these values.
+   */
+  restrictToMemberEntityKeys?: string[];
+  /**
+   * When set, office media is restricted to rows whose resourceRecordKey /
+   * office MLS ID matches one of these values.
+   */
+  restrictToOfficeEntityKeys?: string[];
   /**
    * Candidate eligibility mode for media association checks.
    */
@@ -395,48 +404,6 @@ async function upsertProcessedMedia(
   });
 }
 
-export async function syncListingMedia(listingKey: string): Promise<void> {
-  const candidates = await listUnsyncedMediaForListing(listingKey);
-
-  if (candidates.length === 0) {
-    return;
-  }
-
-  for (const candidate of candidates) {
-    if (!candidate.mediaURL || !candidate.resourceRecordKey) {
-      continue;
-    }
-
-    try {
-      await upsertProcessedMedia(candidate);
-    } catch (error) {
-      const permanent = isPermanentImageProcessingError(error);
-      const message = toErrorMessage(error);
-
-      if (permanent) {
-        const marked = await markMlsMediaRowAsUnprocessable(candidate).catch(() => false);
-        syncLogger.warn('dropping unprocessable listing media row from future retries', {
-          listingKey,
-          mediaKey: candidate.mediaKey,
-          resourceRecordKey: candidate.resourceRecordKey,
-          mediaURL: candidate.mediaURL,
-          markedDeleted: marked,
-          error: message,
-        });
-        continue;
-      }
-
-      syncLogger.warn('failed to process listing media row during prefetch sync', {
-        listingKey,
-        mediaKey: candidate.mediaKey,
-        resourceRecordKey: candidate.resourceRecordKey,
-        mediaURL: candidate.mediaURL,
-        error: message,
-      });
-    }
-  }
-}
-
 export async function runMlsMediaSync(
   options: MlsMediaSyncOptions = {},
 ): Promise<MlsMediaSyncSummary> {
@@ -452,6 +419,8 @@ export async function runMlsMediaSync(
   const associationMode = options.associationMode ?? 'stale-or-unprocessed';
   const filterEntityTypes = options.filterEntityTypes;
   const restrictToMemberPropertyKeys = options.restrictToMemberPropertyKeys;
+  const restrictToMemberEntityKeys = options.restrictToMemberEntityKeys;
+  const restrictToOfficeEntityKeys = options.restrictToOfficeEntityKeys;
   const includeMissingFilesRepair = options.includeMissingFilesRepair ?? false;
   const repairMaxBatches = Math.max(1, options.repairMaxBatches ?? maxBatches);
 
@@ -570,6 +539,8 @@ export async function runMlsMediaSync(
       associationMode,
       filterEntityTypes,
       restrictToMemberPropertyKeys,
+      restrictToMemberEntityKeys,
+      restrictToOfficeEntityKeys,
     });
     const elapsedMsSelection = Date.now() - selectionStartedAt;
 
@@ -649,6 +620,8 @@ export async function runMlsMediaSync(
         associationMode: 'repair-missing-files',
         filterEntityTypes,
         restrictToMemberPropertyKeys,
+        restrictToMemberEntityKeys,
+        restrictToOfficeEntityKeys,
       });
       const elapsedMsRepairSelection = Date.now() - repairSelectionStartedAt;
 

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { sql } from 'drizzle-orm';
 
 import { tsquery, tsvector } from './tsvector';
 
@@ -45,5 +46,12 @@ describe('tsquery', () => {
     expect(() => tsquery('waterfront').mode('plain').tsq).not.toThrow();
     expect(() => tsquery('waterfront').mode('phrase').tsq).not.toThrow();
     expect(() => tsquery('waterfront').mode('raw').tsq).not.toThrow();
+  });
+
+  test('supports SQL placeholder keywords for prepared statements', () => {
+    const q = tsquery(sql.placeholder('query'));
+
+    expect(q.isEmpty).toBe(false);
+    expect(() => q.tsq).not.toThrow();
   });
 });

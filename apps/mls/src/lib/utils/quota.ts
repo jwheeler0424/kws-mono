@@ -1,10 +1,9 @@
-import { env } from '@kws/config';
 import { Debouncer } from '@tanstack/pacer';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-import { DAY_MS, HOUR_MS } from '@/lib/constants';
+import { DAY_MS, HOUR_MS, MLS_QUOTA_DEFAULTS } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 
 import { startOfUtcDay, startOfUtcHour } from './helpers';
@@ -59,12 +58,12 @@ export class MlsQuotaTracker {
   constructor(
     private readonly now: () => number = () => Date.now(),
     private readonly config: QuotaTrackerConfig = {
-      requestsPerHourLimit: env.MLS_REQUESTS_PER_HOUR_LIMIT,
-      requestsPerDayLimit: env.MLS_REQUESTS_PER_DAY_LIMIT,
-      bytesPerHourLimit: env.MLS_BYTES_PER_HOUR_LIMIT,
-      bytesPerDayLimit: env.MLS_BYTES_PER_DAY_LIMIT,
-      quotaWarnThresholdRatio: env.MLS_QUOTA_WARN_THRESHOLD_RATIO,
-      quotaStateFile: env.MLS_QUOTA_STATE_FILE,
+      requestsPerHourLimit: MLS_QUOTA_DEFAULTS.requestsPerHourLimit,
+      requestsPerDayLimit: MLS_QUOTA_DEFAULTS.requestsPerDayLimit,
+      bytesPerHourLimit: MLS_QUOTA_DEFAULTS.bytesPerHourLimit,
+      bytesPerDayLimit: MLS_QUOTA_DEFAULTS.bytesPerDayLimit,
+      quotaWarnThresholdRatio: MLS_QUOTA_DEFAULTS.quotaWarnThresholdRatio,
+      quotaStateFile: MLS_QUOTA_DEFAULTS.quotaStateFile,
     },
   ) {
     const nowMs = this.now();

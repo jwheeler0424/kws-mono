@@ -1,9 +1,12 @@
 import type { PropertyListing, TPropertyNwmFlags } from '@kws/types';
 
 import { type TMlsMedia } from '@kws/schema';
+import { tsquery } from '@kws/schema/plugins';
 import { sql } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
+import type { PropertySearchMarker } from '../data/columns';
+import { DEFAULT_ACTIVE_STATUSES } from './constants';
 
 export type TPropertyWithMedia = Omit<PropertyListing, 'NWM'> & {
   NWM: TPropertyNwmFlags | null;
@@ -74,4 +77,69 @@ export async function getListingMarkers() {
   });
 
   return markers;
+}
+
+const listingsForSearchAndFilterColumns = {
+  listingKey: true,
+  listPrice: true,
+  bedroomsTotal: true,
+  bathroomsTotalInteger: true,
+  livingArea: true,
+  latitude: true,
+  longitude: true,
+} as const;
+
+const listingsForSearchAndFilterBaseWhere = {
+  mlgCanView: true,
+  deletedAt: {
+    isNull: true,
+  },
+  standardStatus: {
+    in: DEFAULT_ACTIVE_STATUSES,
+  },
+  latitude: {
+    isNotNull: true,
+  },
+  longitude: {
+    isNotNull: true,
+  },
+} as const;
+
+const listingsSearchQuery = tsquery(sql`${sql.placeholder('query')}`, {
+  mode: 'websearch',
+  language: 'english',
+});
+
+const preparedListingsForFilter = db.query.properties
+  .findMany({
+    columns: listingsForSearchAndFilterColumns,
+    where: listingsForSearchAndFilterBaseWhere,
+  })
+  .prepare('get_listings_for_filter');
+
+const preparedListingsForSearchAndFilter = db.query.properties
+  .findMany({
+    columns: listingsForSearchAndFilterColumns,
+    extras: {
+      rank: (table) => listingsSearchQuery.rankSimple(table.searchVector),
+    },
+    where: {
+      ...listingsForSearchAndFilterBaseWhere,
+      RAW: (table) => listingsSearchQuery.match(table.searchVector),
+    },
+    orderBy: (table) => [
+      sql`${listingsSearchQuery.rankSimple(table.searchVector)} DESC`,
+      table.listingKey,
+    ],
+  })
+  .prepare('get_listings_for_search_and_filter');
+
+export async function getListingsForSearchAndFilter(query?: string): Promise<PropertySearchMarker[]> {
+  const normalizedQuery = query?.trim();
+
+  const listings = normalizedQuery
+    ? await preparedListingsForSearchAndFilter.execute({ query: normalizedQuery })
+    : await preparedListingsForFilter.execute();
+
+  return listings;
 }

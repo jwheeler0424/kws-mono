@@ -15,7 +15,7 @@ const config = defineConfig({
   server: {
     watch: {
       // Avoid crawling large generated media trees during dev server startup.
-      ignored: ['**/public/media/**'],
+      ignored: ['**/public/media/mls/**'],
     },
   },
   plugins: [

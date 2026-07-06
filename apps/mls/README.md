@@ -45,31 +45,21 @@ Seed behavior is local-first:
 
 ## Environment Variables
 
-- `MLS_HISTORY_STORE_ENABLED` (default `true`)
-- `MLS_HISTORY_STORE_PATH` (default `data`)
-- `MLS_HISTORY_REPLAY_BATCH_SIZE` (default `500`)
-- `MLS_HISTORY_LOCK_TIMEOUT_MS` (default `30000`)
-- `MLS_HISTORY_LOCK_STALE_MS` (default `300000`)
-- `MLS_HISTORY_COMPACT_MAX_BYTES` (default `268435456`)
-- `MLS_HISTORY_VERIFY_CHECKSUM_ENABLED` (default `true`)
-- `MLS_HISTORY_QUARANTINE_ENABLED` (default `true`)
-- `MLS_TIMESTAMP_QUARANTINE_ALERT_THRESHOLD` (default `1`)
-- `MLS_MIN_DELTA_OVERLAP_MS` (default `1000`)
-- `MLS_TIMESTAMP_PRECISION_SAFETY_MS` (default `1000`)
-- `MLS_PROPERTY_BATCH_SIZE` (default `100`)
-- `MLS_PROPERTY_UPSERT_BATCH_SIZE` (default `150`)
-- `MLS_PROPERTY_CHILD_UPSERT_BATCH_SIZE` (default `750`)
-- `MLS_PROPERTY_CHILD_UPSERT_CONCURRENCY` (default `2`)
-- `MLS_PROPERTY_SEED_STAGING_STATEMENT_TIMEOUT_MS` (default `120000`)
-- `MLS_PROPERTY_SEED_STAGING_LOCK_TIMEOUT_MS` (default `5000`)
-- `MLS_PROPERTY_SEED_STAGING_WORK_MEM_MB` (default `128`)
-- `MLS_PROPERTY_SEED_STAGING_JIT_OFF` (default `true`)
-- `MLS_SEED_FETCH_INGEST_OVERLAP_ENABLED` (default `true`)
-- `MLS_SEED_FETCH_INGEST_QUEUE_DEPTH` (default `2`)
-- `MLS_SEED_PREFETCH_ENABLED` (default `true`)
-- `MLS_ROLLOUT_ENABLE_INITIAL_DATA_SEED` (default `true`)
-- `MLS_ROLLOUT_ENABLE_INITIAL_MEDIA_SEED` (default `true`)
-- `MLS_ROLLOUT_ENABLE_SYNC_JOB_REGISTRATION` (default `true`)
+- `MLS_ACCESS_KEY` (required)
+- `MLS_API_URL` (required)
+- `MLS_ORIGINATING_SYSTEM_NAME` (required)
+- `MLS_MEMBER_ID` (optional list)
+- `MLS_OFFICE_ID` (optional list)
+- `MLS_RESOURCE_EXPAND` (optional)
+- `MLS_START_DATE` (optional)
+- `MLS_MEDIA_STORE_PATH` (optional, default `store/media`)
+- `MLS_QUEUE_RESOURCE_CRON_SCHEDULES` (required)
+- `MLS_QUEUE_CLEANUP_CRON` (required)
+- `MLS_QUEUE_MEDIA_SYNC_CRON` (required)
+- `MLS_QUEUE_MEDIA_RECONCILE_CRON` (optional, default `0 */6 * * *`)
+
+Most MLS sync and scheduler tuning values are now fixed in app constants so they do not need
+to be set via environment variables.
 
 ## Maintenance APIs
 

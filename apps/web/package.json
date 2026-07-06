@@ -8,7 +8,7 @@
     "dev:watch": "tsr watch",
     "dev": "bun --bun vite dev --port 3443",
     "build": "bun --bun vite build",
-    "start": "bun --bun .output/server/index.mjs",
+    "start": "bun --bun run server.ts",
     "preview": "bun --bun vite preview",
     "test": "vitest run",
     "check-types": "tsc --noEmit"
@@ -32,6 +32,7 @@
     "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-router-ssr-query": "^1.167.1",
     "@tanstack/react-start": "^1.168.26",
+    "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.4",
     "@tanstack/router-plugin": "^1.168.18",
     "better-auth": "^1.6.23",

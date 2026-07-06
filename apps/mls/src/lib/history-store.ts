@@ -6,9 +6,10 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 
 import type { MlsResource } from '@/types';
 
+import { MLS_HISTORY_DEFAULTS } from './constants';
 import { logger } from './logger';
 
-const HISTORY_ROOT = path.resolve(process.cwd(), env.MLS_HISTORY_STORE_PATH ?? 'data');
+const HISTORY_ROOT = path.resolve(process.cwd(), MLS_HISTORY_DEFAULTS.storePath);
 const HISTORY_LOCK_FILE = path.join(HISTORY_ROOT, '.history-writer.lock');
 const HISTORY_QUARANTINE_ROOT = path.join(HISTORY_ROOT, '.quarantine');
 const HISTORY_QUARANTINE_RECORDS_ROOT = path.join(HISTORY_QUARANTINE_ROOT, 'records');
@@ -34,31 +35,31 @@ interface HistoryPartitionManifest {
 }
 
 function lockTimeoutMs(): number {
-  return env.MLS_HISTORY_LOCK_TIMEOUT_MS ?? 30_000;
+  return MLS_HISTORY_DEFAULTS.lockTimeoutMs;
 }
 
 function lockStaleMs(): number {
-  return env.MLS_HISTORY_LOCK_STALE_MS ?? 300_000;
+  return MLS_HISTORY_DEFAULTS.lockStaleMs;
 }
 
 function compactMaxBytes(): number {
-  return env.MLS_HISTORY_COMPACT_MAX_BYTES ?? 256 * 1024 * 1024;
+  return MLS_HISTORY_DEFAULTS.compactMaxBytes;
 }
 
 function quarantineAlertThreshold(): number {
-  return env.MLS_TIMESTAMP_QUARANTINE_ALERT_THRESHOLD ?? 1;
+  return MLS_HISTORY_DEFAULTS.quarantineAlertThreshold;
 }
 
 function isChecksumVerificationEnabled(): boolean {
-  return env.MLS_HISTORY_VERIFY_CHECKSUM_ENABLED ?? true;
+  return MLS_HISTORY_DEFAULTS.verifyChecksumEnabled;
 }
 
 function isQuarantineEnabled(): boolean {
-  return env.MLS_HISTORY_QUARANTINE_ENABLED ?? true;
+  return MLS_HISTORY_DEFAULTS.quarantineEnabled;
 }
 
 function isHistoryEnabled(): boolean {
-  return env.MLS_HISTORY_STORE_ENABLED ?? true;
+  return MLS_HISTORY_DEFAULTS.storeEnabled;
 }
 
 function normalizeTimestamp(input: Date | string | undefined | null): Date | undefined {
@@ -230,10 +231,10 @@ function toIsoMaybe(date: Date | undefined): string | undefined {
 
 function parsePartitionFromDirectory(partitionDir: string):
   | {
-      resource: MlsResource;
-      year: string;
-      month: string;
-    }
+    resource: MlsResource;
+    year: string;
+    month: string;
+  }
   | undefined {
   const relative = path.relative(HISTORY_ROOT, partitionDir);
   if (!relative || relative.startsWith('..')) {
@@ -780,7 +781,7 @@ export async function* replayHistoryResource<T extends Record<string, unknown>>(
   }
 
   const { resource } = params;
-  const batchSize = params.batchSize ?? env.MLS_HISTORY_REPLAY_BATCH_SIZE ?? 500;
+  const batchSize = params.batchSize ?? MLS_HISTORY_DEFAULTS.replayBatchSize;
   const resourceDir = path.join(HISTORY_ROOT, resource);
 
   const partitionDirs = await listPartitionDirectories(resourceDir);

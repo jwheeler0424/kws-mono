@@ -1,7 +1,7 @@
-import mlsEnv from '@kws/config/env/mls';
 import { lookups, members, offices, openHouses, properties } from '@kws/schema';
 import { and, eq, isNotNull, lte } from 'drizzle-orm';
 
+import { MLS_SYNC_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
 
 import {
@@ -36,7 +36,7 @@ function getCutoffDate(retentionDays: number) {
 }
 
 export async function runMlsCleanup(
-  retentionDays = mlsEnv.MLS_CLEANUP_RETENTION_DAYS,
+  retentionDays = MLS_SYNC_DEFAULTS.cleanupRetentionDays,
 ): Promise<MlsCleanupSummary> {
   const cutoff = getCutoffDate(retentionDays);
 

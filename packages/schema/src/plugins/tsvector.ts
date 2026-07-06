@@ -10,7 +10,7 @@
  *   automatically into generated migrations by generate.ts
  */
 
-import type { AnyColumn, SQL } from 'drizzle-orm';
+import type { AnyColumn, SQL, SQLWrapper } from 'drizzle-orm';
 
 import { sql } from 'drizzle-orm';
 import { customType } from 'drizzle-orm/pg-core';
@@ -432,15 +432,18 @@ function buildHeadlineOptsString(opts: FtsHeadlineOptions): string {
  * A compiled tsquery with methods for WHERE, SELECT, and ORDER BY.
  */
 export class TsQuery {
-  /** The trimmed keyword string. */
+  /** The trimmed keyword string when a string input is provided. */
   readonly keywords: string;
+
+  private readonly _keywordsInput: string | SQLWrapper;
 
   private _mode: FtsSearchMode;
   private _language: string;
   private _compiled: SQL | null = null;
 
-  constructor(keywords: string, opts: TsQueryOptions = {}) {
-    this.keywords = keywords.trim();
+  constructor(keywords: string | SQLWrapper, opts: TsQueryOptions = {}) {
+    this._keywordsInput = keywords;
+    this.keywords = typeof keywords === 'string' ? keywords.trim() : '';
     this._mode = opts.mode ?? 'websearch';
     this._language = opts.language ?? 'english';
   }
@@ -467,7 +470,7 @@ export class TsQuery {
 
     // regconfig must be embedded as a literal; keywords remain parameterized
     const lang = sql.raw(`'${this._language.replace(/'/g, "''")}'`);
-    const kw = this.keywords;
+    const kw = typeof this._keywordsInput === 'string' ? this.keywords : this._keywordsInput;
 
     switch (this._mode) {
       case 'plain':
@@ -483,7 +486,7 @@ export class TsQuery {
 
   /** True when the keyword string was empty or whitespace-only. */
   get isEmpty(): boolean {
-    return this.keywords.length === 0;
+    return typeof this._keywordsInput === 'string' && this.keywords.length === 0;
   }
 
   match(vectorCol: SQL | AnyColumn): SQL<boolean> {
@@ -539,6 +542,6 @@ export class TsQuery {
 /**
  * Build a compiled tsquery from a keyword string.
  */
-export function tsquery(keywords: string, opts?: TsQueryOptions): TsQuery {
+export function tsquery(keywords: string | SQLWrapper, opts?: TsQueryOptions): TsQuery {
   return new TsQuery(keywords, opts);
 }

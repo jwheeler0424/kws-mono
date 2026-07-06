@@ -7,7 +7,7 @@ import { startOfYear } from 'date-fns';
 // Runs resources in dependency order: Lookup → Office → Member → Property → OpenHouse
 // Exposes runFullSync (initial-capable) and runDeltaSync (delta-only).
 // ---------------------------------------------------------------------------
-import { MLS_RESOURCE_NAMES } from '@/lib/constants';
+import { MLS_PROPERTY_DEFAULTS, MLS_RESOURCE_NAMES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import { createRunId } from '@/lib/run-id';
 import {
@@ -127,7 +127,7 @@ function propertySeedConfig(osn: string) {
     getKey: (record) => record.ListingKey,
     upsert: async (payload) =>
       processMlsPropertiesPayload(payload.map(mapProperty), {
-        useSeedStaging: env.MLS_PROPERTY_SEED_USE_STAGING ?? false,
+        useSeedStaging: MLS_PROPERTY_DEFAULTS.seedUseStaging,
       }),
   });
 }
@@ -140,6 +140,32 @@ async function propertyMediaSeedConfig(osn: string): Promise<SyncResult> {
     associationMode: 'unprocessed-only',
     includeMissingFilesRepair: false,
   }).then((summary) => mediaSummaryToSyncResult('Property:PrimaryMedia', osn, summary, startedAt));
+}
+
+async function memberMediaSeedConfig(
+  osn: string,
+  memberKeys: readonly string[],
+): Promise<SyncResult> {
+  const startedAt = new Date();
+  return runInitialMlsMediaSync({
+    filterEntityTypes: ['members'],
+    associationMode: 'unprocessed-only',
+    includeMissingFilesRepair: false,
+    restrictToMemberEntityKeys: [...memberKeys],
+  }).then((summary) => mediaSummaryToSyncResult('Member:Media', osn, summary, startedAt));
+}
+
+async function officeMediaSeedConfig(
+  osn: string,
+  officeKeys: readonly string[],
+): Promise<SyncResult> {
+  const startedAt = new Date();
+  return runInitialMlsMediaSync({
+    filterEntityTypes: ['offices'],
+    associationMode: 'unprocessed-only',
+    includeMissingFilesRepair: false,
+    restrictToOfficeEntityKeys: [...officeKeys],
+  }).then((summary) => mediaSummaryToSyncResult('Office:Media', osn, summary, startedAt));
 }
 
 function openHouseSeedConfig(osn: string) {
@@ -239,19 +265,21 @@ function timed<T>(
   });
 }
 
-async function runSeedAllResources(osn: string, mode: 'initial' | 'delta'): Promise<SyncSummary> {
+async function runResourceSequence(
+  osn: string,
+  mode: 'initial' | 'delta',
+  runIdPrefix: string,
+  stages: ReadonlyArray<readonly [string, () => Promise<SyncResult>]>,
+): Promise<SyncSummary> {
   const startedAt = new Date();
-  const runId = createRunId(`${mode}-seed`);
+  const runId = createRunId(runIdPrefix);
   logger.info(`${mode} sync started`, { osn, runId });
 
-  // Resources run sequentially in dependency order
   const stageTimingsMs: Record<string, number> = {};
   const results: SyncResult[] = [];
-  results.push(await timed(stageTimingsMs, 'Lookup', () => lookupSeedConfig(osn)));
-  results.push(await timed(stageTimingsMs, 'Office', () => officeSeedConfig(osn)));
-  results.push(await timed(stageTimingsMs, 'Member', () => memberSeedConfig(osn)));
-  results.push(await timed(stageTimingsMs, 'Property', () => propertySeedConfig(osn)));
-  results.push(await timed(stageTimingsMs, 'OpenHouse', () => openHouseSeedConfig(osn)));
+  for (const [stage, runStage] of stages) {
+    results.push(await timed(stageTimingsMs, stage, runStage));
+  }
 
   const completedAt = new Date();
   const summary: SyncSummary = {
@@ -271,6 +299,26 @@ async function runSeedAllResources(osn: string, mode: 'initial' | 'delta'): Prom
   });
 
   return summary;
+}
+
+function getSeedStages(osn: string): ReadonlyArray<readonly [string, () => Promise<SyncResult>]> {
+  return [
+    ['Lookup', () => lookupSeedConfig(osn)],
+    ['Office', () => officeSeedConfig(osn)],
+    ['Member', () => memberSeedConfig(osn)],
+    ['Property', () => propertySeedConfig(osn)],
+    ['OpenHouse', () => openHouseSeedConfig(osn)],
+  ];
+}
+
+function getDeltaStages(osn: string): ReadonlyArray<readonly [string, () => Promise<SyncResult>]> {
+  return [
+    ['Lookup', () => lookupConfig(osn)],
+    ['Office', () => officeConfig(osn)],
+    ['Member', () => memberConfig(osn)],
+    ['Property', () => propertyConfig(osn, fetchResidentialProperties)],
+    ['OpenHouse', () => openHouseConfig(osn)],
+  ];
 }
 
 export async function runDeltaSyncResource(
@@ -308,68 +356,28 @@ export async function runDeltaSyncResource(
   return summary;
 }
 
-async function runAllResources(osn: string, mode: 'initial' | 'delta'): Promise<SyncSummary> {
-  const startedAt = new Date();
-  const runId = createRunId(`${mode}-sync`);
-  logger.info(`${mode} sync started`, { osn, runId });
-
-  // Resources run sequentially in dependency order
-  const stageTimingsMs: Record<string, number> = {};
-  const results: SyncResult[] = [];
-  if (mode === 'initial') {
-    results.push(await timed(stageTimingsMs, 'Lookup', () => lookupSeedConfig(osn)));
-    results.push(await timed(stageTimingsMs, 'Office', () => officeSeedConfig(osn)));
-    results.push(await timed(stageTimingsMs, 'Member', () => memberSeedConfig(osn)));
-    results.push(await timed(stageTimingsMs, 'Property', () => propertySeedConfig(osn)));
-    results.push(await timed(stageTimingsMs, 'OpenHouse', () => openHouseSeedConfig(osn)));
-  } else {
-    results.push(await timed(stageTimingsMs, 'Lookup', () => lookupConfig(osn)));
-    results.push(await timed(stageTimingsMs, 'Office', () => officeConfig(osn)));
-    results.push(await timed(stageTimingsMs, 'Member', () => memberConfig(osn)));
-    results.push(
-      await timed(stageTimingsMs, 'Property', () =>
-        propertyConfig(osn, fetchResidentialProperties),
-      ),
-    );
-    results.push(await timed(stageTimingsMs, 'OpenHouse', () => openHouseConfig(osn)));
-  }
-
-  const completedAt = new Date();
-  const summary: SyncSummary = {
-    runId,
-    osn,
-    mode,
-    results,
-    stageTimingsMs,
-    totalDurationMs: completedAt.getTime() - startedAt.getTime(),
-    startedAt,
-    completedAt,
-  };
-
-  logger.info(`${mode} sync finished`, {
-    osn,
-    totalDurationMs: summary.totalDurationMs,
-  });
-
-  return summary;
-}
-
-async function runSeedInitialMedia(osn: string, mode: 'initial' | 'delta'): Promise<SyncSummary> {
+async function runSeedInitialMedia(osn: string): Promise<SyncSummary> {
   const startedAt = new Date();
   logger.info(`initial media sync started`, { osn });
 
-  const runMediaPhase = async (
-    phase: 'Property:MemberMedia' | 'Office:Media' | 'Member:Media' | 'Property:Media',
-    fn: () => Promise<SyncResult>,
-  ): Promise<SyncResult> => {
+  const configuredMemberKeys = (env.MLS_MEMBER_ID ?? []).filter((key) => key.length > 0);
+  const configuredOfficeKeys = (env.MLS_OFFICE_ID ?? []).filter((key) => key.length > 0);
+
+  const phases: Array<readonly [string, () => Promise<SyncResult>]> = [
+    ['Property:PrimaryMedia', () => propertyMediaSeedConfig(osn)],
+  ];
+  if (configuredMemberKeys.length > 0) {
+    phases.push(['Member:Media', () => memberMediaSeedConfig(osn, configuredMemberKeys)]);
+  }
+  if (configuredOfficeKeys.length > 0) {
+    phases.push(['Office:Media', () => officeMediaSeedConfig(osn, configuredOfficeKeys)]);
+  }
+
+  const results: SyncResult[] = [];
+  for (const [phase, runPhase] of phases) {
     const phaseStartedAt = Date.now();
-    logger.info('initial media phase started', {
-      osn,
-      phase,
-    });
-
-    const result = await fn();
-
+    const result = await runPhase();
+    results.push(result);
     logger.info('initial media phase completed', {
       osn,
       phase,
@@ -378,28 +386,19 @@ async function runSeedInitialMedia(osn: string, mode: 'initial' | 'delta'): Prom
       errors: result.errors,
       resource: result.resource,
     });
-
-    return result;
-  };
-
-  // Initial media seed is intentionally single-phase and property-primary-only:
-  //   - Process only Property entity rows
-  //   - Process only primary photos
-  //   - Process only rows without a linked media association
-  const results: SyncResult[] = [];
-  results.push(await runMediaPhase('Property:PrimaryMedia', () => propertyMediaSeedConfig(osn)));
+  }
 
   const completedAt = new Date();
   const summary: SyncSummary = {
     osn,
-    mode,
+    mode: 'initial',
     results,
     totalDurationMs: completedAt.getTime() - startedAt.getTime(),
     startedAt,
     completedAt,
   };
 
-  logger.info(`${mode} sync finished`, {
+  logger.info(`initial sync finished`, {
     osn,
     totalDurationMs: summary.totalDurationMs,
   });
@@ -414,19 +413,19 @@ async function runSeedInitialMedia(osn: string, mode: 'initial' | 'delta'): Prom
 export async function runInitialDataSeed(
   osn: string = env.MLS_ORIGINATING_SYSTEM_NAME,
 ): Promise<SyncSummary> {
-  return runSeedAllResources(osn, 'initial');
+  return runResourceSequence(osn, 'initial', 'initial-seed', getSeedStages(osn));
 }
 
 export async function runDeltaSync(
   osn: string = env.MLS_ORIGINATING_SYSTEM_NAME,
 ): Promise<SyncSummary> {
-  return runAllResources(osn, 'delta');
+  return runResourceSequence(osn, 'delta', 'delta-sync', getDeltaStages(osn));
 }
 
 export async function runInitialMediaSeed(
   osn: string = env.MLS_ORIGINATING_SYSTEM_NAME,
 ): Promise<SyncSummary> {
-  return runSeedInitialMedia(osn, 'initial');
+  return runSeedInitialMedia(osn);
 }
 
 const RESOURCE_LABELS = new Set<string>(MLS_RESOURCE_NAMES);

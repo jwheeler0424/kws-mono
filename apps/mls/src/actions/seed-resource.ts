@@ -1,8 +1,8 @@
 import { env } from '@kws/config';
 
-import type { ErrorDetail, ODataPageBatch, SyncResult } from '@/types';
-import type { MlsResource } from '@/types';
+import type { ErrorDetail, MlsResource, ODataPageBatch, SyncResult } from '@/types';
 
+import { MLS_SYNC_DEFAULTS } from '@/lib/constants';
 import {
   persistHistoryPage,
   quarantineInvalidTimestampRecords,
@@ -154,9 +154,8 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
   try {
     let page = 0;
 
-    const pipelinePrefetchEnabled =
-      env.MLS_SEED_FETCH_INGEST_OVERLAP_ENABLED ?? env.MLS_SEED_PREFETCH_ENABLED ?? true;
-    const pipelineQueueDepth = Math.max(1, env.MLS_SEED_FETCH_INGEST_QUEUE_DEPTH ?? 2);
+    const pipelinePrefetchEnabled = MLS_SYNC_DEFAULTS.seedFetchIngestOverlapEnabled;
+    const pipelineQueueDepth = Math.max(1, MLS_SYNC_DEFAULTS.seedFetchIngestQueueDepth);
 
     // Local-first replay: exhaust on-disk history before API calls.
     for await (const replayBatch of replayHistoryResource<TPayload>({ resource })) {
