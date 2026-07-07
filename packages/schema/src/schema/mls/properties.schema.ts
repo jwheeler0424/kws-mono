@@ -1,51 +1,51 @@
 import { sql } from 'drizzle-orm';
 import {
-  boolean,
-  index,
-  integer,
-  jsonb,
-  numeric,
-  pgEnum,
-  pgTable,
-  real,
-  text,
-  timestamp,
-  varchar,
+    boolean,
+    index,
+    integer,
+    jsonb,
+    numeric,
+    pgEnum,
+    pgTable,
+    real,
+    text,
+    timestamp,
+    varchar,
 } from 'drizzle-orm/pg-core';
 
 import type { NWM_Property } from '../types';
 
 import { tsvector } from '../../plugins/tsvector';
-import { softDelete, timestamps } from '../common.schema';
+import { idPrimaryKey, softDelete, timestamps } from '../common.schema';
 
 // ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
 
 export const standardStatusEnum = pgEnum('standard_status', [
-  'Active',
-  'ActiveUnderContract',
-  'Canceled',
-  'Closed',
-  'ComingSoon',
-  'Delete',
-  'Expired',
-  'Hold',
-  'Incomplete',
-  'Pending',
-  'Withdrawn',
+    'Active',
+    'ActiveUnderContract',
+    'Canceled',
+    'Closed',
+    'ComingSoon',
+    'Delete',
+    'Expired',
+    'Hold',
+    'Incomplete',
+    'Pending',
+    'Withdrawn',
 ]);
 
 export const propertyTypeEnum = pgEnum('property_type', [
-  'BusinessOpportunity',
-  'CommercialLease',
-  'CommercialSale',
-  'Farm',
-  'Land',
-  'ManufacturedInPark',
-  'Residential',
-  'ResidentialIncome',
-  'ResidentialLease',
+    'BusinessOpportunity',
+    'CommercialLease',
+    'CommercialSale',
+    'Farm',
+    'Land',
+    'ManufacturedInPark',
+    'Residential',
+    'ResidentialIncome',
+    'ResidentialLease',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -57,496 +57,508 @@ export const propertyTypeEnum = pgEnum('property_type', [
 // ---------------------------------------------------------------------------
 
 export const properties = pgTable(
-  'properties',
-  {
-    // ---- MLS Grid identifiers ----
-    listingKey: varchar('listing_key', { length: 64 }).primaryKey(),
-    listingId: varchar('listing_id', { length: 64 }),
-    originatingSystemName: varchar('originating_system_name', { length: 32 })
-      .notNull()
-      .default('nwmls'),
+    'properties',
+    {
+        id: idPrimaryKey,
+        // ---- MLS Grid identifiers ----
+        listingKey: varchar('listing_key', { length: 64 }).unique().notNull(),
+        listingId: varchar('listing_id', { length: 64 }),
+        originatingSystemName: varchar('originating_system_name', { length: 32 })
+            .notNull()
+            .default('nwmls'),
 
-    // ---- Status & classification ----
-    standardStatus: standardStatusEnum('standard_status'),
-    mlsStatus: varchar('mls_status', { length: 64 }),
-    propertyType: propertyTypeEnum('property_type'),
-    propertySubType: varchar('property_sub_type', { length: 128 }),
+        // ---- Status & classification ----
+        standardStatus: standardStatusEnum('standard_status'),
+        mlsStatus: varchar('mls_status', { length: 64 }),
+        propertyType: propertyTypeEnum('property_type'),
+        propertySubType: varchar('property_sub_type', { length: 128 }),
 
-    // ---- Sync / visibility ----
-    mlgCanView: boolean('mlg_can_view').notNull().default(true),
-    modificationTimestamp: timestamp('modification_timestamp', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    originalEntryTimestamp: timestamp('original_entry_timestamp', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    majorChangeTimestamp: timestamp('major_change_timestamp', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    majorChangeType: varchar('major_change_type', { length: 128 }),
-    photosChangeTimestamp: timestamp('photos_change_timestamp', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    statusChangeTimestamp: timestamp('status_change_timestamp', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    priceChangeTimestamp: timestamp('price_change_timestamp', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    contractStatusChangeDate: timestamp('contract_status_change_date', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    purchaseContractDate: timestamp('purchase_contract_date', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    offMarketDate: timestamp('off_market_date', { withTimezone: true, mode: 'string' }),
-    closingDate: timestamp('closing_date', { withTimezone: true, mode: 'string' }),
-    internetAddressDisplayYN: boolean('internet_address_display_yn').default(true),
-    internetAutomatedValuationDisplayYN: boolean('internet_automated_valuation_display_yn').default(
-      true,
-    ),
-    availabilityDate: timestamp('availability_date', { withTimezone: true, mode: 'string' }),
-    contingentDate: timestamp('contingent_date', { withTimezone: true, mode: 'string' }),
-    closeDate: timestamp('close_date', { withTimezone: true, mode: 'string' }),
-    onMarketDate: timestamp('on_market_date', { withTimezone: true, mode: 'string' }),
-    cumulativeDaysOnMarket: integer('cumulative_days_on_market'),
-    originatingSystemModificationTimestamp: timestamp('originating_system_modification_timestamp', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    internetConsumerCommentYN: boolean('internet_consumer_comment_yn'),
-    internetEntireListingDisplayYN: boolean('internet_entire_listing_display_yn'),
-    mlgCanUse: text('mlg_can_use').array(),
-    sourceSystemName: varchar('source_system_name', { length: 255 }),
+        // ---- Sync / visibility ----
+        mlgCanView: boolean('mlg_can_view').notNull().default(true),
+        modificationTimestamp: timestamp('modification_timestamp', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        originalEntryTimestamp: timestamp('original_entry_timestamp', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        majorChangeTimestamp: timestamp('major_change_timestamp', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        majorChangeType: varchar('major_change_type', { length: 128 }),
+        photosChangeTimestamp: timestamp('photos_change_timestamp', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        statusChangeTimestamp: timestamp('status_change_timestamp', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        priceChangeTimestamp: timestamp('price_change_timestamp', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        contractStatusChangeDate: timestamp('contract_status_change_date', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        purchaseContractDate: timestamp('purchase_contract_date', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        offMarketDate: timestamp('off_market_date', { withTimezone: true, mode: 'string' }),
+        closingDate: timestamp('closing_date', { withTimezone: true, mode: 'string' }),
+        internetAddressDisplayYN: boolean('internet_address_display_yn').default(true),
+        internetAutomatedValuationDisplayYN: boolean('internet_automated_valuation_display_yn').default(
+            true,
+        ),
+        availabilityDate: timestamp('availability_date', { withTimezone: true, mode: 'string' }),
+        contingentDate: timestamp('contingent_date', { withTimezone: true, mode: 'string' }),
+        closeDate: timestamp('close_date', { withTimezone: true, mode: 'string' }),
+        onMarketDate: timestamp('on_market_date', { withTimezone: true, mode: 'string' }),
+        cumulativeDaysOnMarket: integer('cumulative_days_on_market'),
+        originatingSystemModificationTimestamp: timestamp('originating_system_modification_timestamp', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        internetConsumerCommentYN: boolean('internet_consumer_comment_yn'),
+        internetEntireListingDisplayYN: boolean('internet_entire_listing_display_yn'),
+        mlgCanUse: text('mlg_can_use').array(),
+        sourceSystemName: varchar('source_system_name', { length: 255 }),
 
-    // ---- Address ----
-    unparsedAddress: text('unparsed_address'),
-    streetNumber: varchar('street_number', { length: 32 }),
-    streetNumberNumeric: integer('street_number_numeric'),
-    streetDirPrefix: varchar('street_dir_prefix', { length: 16 }),
-    streetName: varchar('street_name', { length: 128 }),
-    streetSuffix: varchar('street_suffix', { length: 32 }),
-    streetDirSuffix: varchar('street_dir_suffix', { length: 16 }),
-    unitNumber: varchar('unit_number', { length: 32 }),
-    city: varchar('city', { length: 128 }),
-    stateOrProvince: varchar('state_or_province', { length: 32 }),
-    postalCode: varchar('postal_code', { length: 16 }),
-    postalCodePlus4: varchar('postal_code_plus4', { length: 4 }),
-    country: varchar('country', { length: 8 }).default('US'),
-    countyOrParish: varchar('county_or_parish', { length: 128 }),
-    subdivisionName: varchar('subdivision_name', { length: 256 }),
-    mlsAreaMajor: varchar('mls_area_major', { length: 64 }),
-    mlsAreaMinor: varchar('mls_area_minor', { length: 64 }),
-    directions: text('directions'),
+        // ---- Address ----
+        unparsedAddress: text('unparsed_address'),
+        streetNumber: varchar('street_number', { length: 32 }),
+        streetNumberNumeric: integer('street_number_numeric'),
+        streetDirPrefix: varchar('street_dir_prefix', { length: 16 }),
+        streetName: varchar('street_name', { length: 128 }),
+        streetSuffix: varchar('street_suffix', { length: 32 }),
+        streetDirSuffix: varchar('street_dir_suffix', { length: 16 }),
+        unitNumber: varchar('unit_number', { length: 32 }),
+        city: varchar('city', { length: 128 }),
+        stateOrProvince: varchar('state_or_province', { length: 32 }),
+        postalCode: varchar('postal_code', { length: 16 }),
+        postalCodePlus4: varchar('postal_code_plus4', { length: 4 }),
+        country: varchar('country', { length: 8 }).default('US'),
+        countyOrParish: varchar('county_or_parish', { length: 128 }),
+        subdivisionName: varchar('subdivision_name', { length: 256 }),
+        mlsAreaMajor: varchar('mls_area_major', { length: 64 }),
+        mlsAreaMinor: varchar('mls_area_minor', { length: 64 }),
+        directions: text('directions'),
 
-    // ---- Geo ----
-    latitude: real('latitude'),
-    longitude: real('longitude'),
+        // ---- Geo ----
+        latitude: real('latitude'),
+        longitude: real('longitude'),
 
-    // ---- H3 spatial index ----
-    // Computed from lat/lng at import + sync time. Never null when lat/lng is set.
-    // h3R6: district level  (~36 km²  — city/large neighborhood)
-    // h3R7: neighborhood    (~5.2 km² — walkable neighborhood)
-    // h3R8: block level     (~0.74 km² — block/micro-neighborhood)
-    h3R6: varchar('h3_r6', { length: 20 }),
-    h3R7: varchar('h3_r7', { length: 20 }),
-    h3R8: varchar('h3_r8', { length: 20 }),
+        // ---- H3 spatial index ----
+        // Computed from lat/lng at import + sync time. Never null when lat/lng is set.
+        // h3R6: district level  (~36 km²  — city/large neighborhood)
+        // h3R7: neighborhood    (~5.2 km² — walkable neighborhood)
+        // h3R8: block level     (~0.74 km² — block/micro-neighborhood)
+        h3R6: varchar('h3_r6', { length: 20 }),
+        h3R7: varchar('h3_r7', { length: 20 }),
+        h3R8: varchar('h3_r8', { length: 20 }),
 
-    // ---- Pricing ----
-    listPrice: numeric('list_price', { precision: 14, scale: 2 }),
-    listPriceLow: numeric('list_price_low', { precision: 14, scale: 2 }),
-    originalListPrice: numeric('original_list_price', {
-      precision: 14,
-      scale: 2,
-    }),
-    previousListPrice: numeric('previous_list_price', {
-      precision: 14,
-      scale: 2,
-    }),
-    closePrice: numeric('close_price', { precision: 14, scale: 2 }),
-    taxAssessedValue: numeric('tax_assessed_value', {
-      precision: 14,
-      scale: 2,
-    }),
+        // ---- Pricing ----
+        listPrice: numeric('list_price', { precision: 14, scale: 2 }),
+        listPriceLow: numeric('list_price_low', { precision: 14, scale: 2 }),
+        originalListPrice: numeric('original_list_price', {
+            precision: 14,
+            scale: 2,
+        }),
+        previousListPrice: numeric('previous_list_price', {
+            precision: 14,
+            scale: 2,
+        }),
+        closePrice: numeric('close_price', { precision: 14, scale: 2 }),
+        taxAssessedValue: numeric('tax_assessed_value', {
+            precision: 14,
+            scale: 2,
+        }),
 
-    // ---- Property characteristics ----
-    bedroomsTotal: integer('bedrooms_total'),
-    bathroomsFull: integer('bathrooms_full'),
-    bathroomsHalf: integer('bathrooms_half'),
-    bathroomsThreeQuarter: integer('bathrooms_three_quarter'),
-    bathroomsOneQuarter: integer('bathrooms_one_quarter'),
-    bathroomsTotalInteger: integer('bathrooms_total_integer'),
-    roomsTotal: integer('rooms_total'),
-    storiesTotal: integer('stories_total'),
-    levels: text('levels').array(), // multi-value
-    garageSpaces: integer('garage_spaces'),
-    parkingTotal: integer('parking_total'),
-    additionalParcelsDescription: varchar('additional_parcels_description', { length: 255 }),
-    bedroomsPossible: integer('bedrooms_possible'),
-    bodyType: text('body_type').array(),
-    carportSpaces: numeric('carport_spaces', { precision: 13, scale: 2 }),
-    carportYN: boolean('carport_yn'),
-    coveredSpaces: numeric('covered_spaces', { precision: 13, scale: 2 }),
-    openParkingSpaces: numeric('open_parking_spaces', { precision: 13, scale: 2 }),
-    mainLevelBathrooms: integer('main_level_bathrooms'),
-    mainLevelBedrooms: integer('main_level_bedrooms'),
+        // ---- Property characteristics ----
+        bedroomsTotal: integer('bedrooms_total'),
+        bathroomsFull: integer('bathrooms_full'),
+        bathroomsHalf: integer('bathrooms_half'),
+        bathroomsThreeQuarter: integer('bathrooms_three_quarter'),
+        bathroomsOneQuarter: integer('bathrooms_one_quarter'),
+        bathroomsTotalInteger: integer('bathrooms_total_integer'),
+        roomsTotal: integer('rooms_total'),
+        storiesTotal: integer('stories_total'),
+        levels: text('levels').array(), // multi-value
+        garageSpaces: integer('garage_spaces'),
+        parkingTotal: integer('parking_total'),
+        additionalParcelsDescription: varchar('additional_parcels_description', { length: 255 }),
+        bedroomsPossible: integer('bedrooms_possible'),
+        bodyType: text('body_type').array(),
+        carportSpaces: numeric('carport_spaces', { precision: 13, scale: 2 }),
+        carportYN: boolean('carport_yn'),
+        coveredSpaces: numeric('covered_spaces', { precision: 13, scale: 2 }),
+        openParkingSpaces: numeric('open_parking_spaces', { precision: 13, scale: 2 }),
+        mainLevelBathrooms: integer('main_level_bathrooms'),
+        mainLevelBedrooms: integer('main_level_bedrooms'),
 
-    // ---- Size ----
-    livingArea: numeric('living_area', { precision: 14, scale: 2 }),
-    livingAreaUnits: varchar('living_area_units', { length: 32 }),
-    lotSizeAcres: numeric('lot_size_acres', { precision: 10, scale: 4 }),
-    lotSizeSquareFeet: numeric('lot_size_square_feet', {
-      precision: 12,
-      scale: 2,
-    }),
-    buildingAreaTotal: numeric('building_area_total', {
-      precision: 14,
-      scale: 2,
-    }),
-    aboveGradeFinishedArea: numeric('above_grade_finished_area', {
-      precision: 14,
-      scale: 2,
-    }),
-    belowGradeFinishedArea: numeric('below_grade_finished_area', {
-      precision: 14,
-      scale: 2,
-    }),
-    lotSizeDimensions: varchar('lot_size_dimensions', { length: 150 }),
-    lotSizeUnits: varchar('lot_size_units', { length: 25 }),
-    leasableArea: numeric('leasable_area', { precision: 13, scale: 2 }),
-    leasableAreaUnits: varchar('leasable_area_units', { length: 25 }),
-    numberOfUnitsInCommunity: integer('number_of_units_in_community'),
-    numberOfUnitsTotal: integer('number_of_units_total'),
+        // ---- Size ----
+        livingArea: numeric('living_area', { precision: 14, scale: 2 }),
+        livingAreaUnits: varchar('living_area_units', { length: 32 }),
+        lotSizeAcres: numeric('lot_size_acres', { precision: 10, scale: 4 }),
+        lotSizeSquareFeet: numeric('lot_size_square_feet', {
+            precision: 12,
+            scale: 2,
+        }),
+        buildingAreaTotal: numeric('building_area_total', {
+            precision: 14,
+            scale: 2,
+        }),
+        aboveGradeFinishedArea: numeric('above_grade_finished_area', {
+            precision: 14,
+            scale: 2,
+        }),
+        belowGradeFinishedArea: numeric('below_grade_finished_area', {
+            precision: 14,
+            scale: 2,
+        }),
+        lotSizeDimensions: varchar('lot_size_dimensions', { length: 150 }),
+        lotSizeUnits: varchar('lot_size_units', { length: 25 }),
+        leasableArea: numeric('leasable_area', { precision: 13, scale: 2 }),
+        leasableAreaUnits: varchar('leasable_area_units', { length: 25 }),
+        numberOfUnitsInCommunity: integer('number_of_units_in_community'),
+        numberOfUnitsTotal: integer('number_of_units_total'),
 
-    // ---- Building details ----
-    yearBuilt: integer('year_built'),
-    yearBuiltSource: varchar('year_built_source', { length: 64 }),
-    newConstructionYN: boolean('new_construction_yn'),
-    propertyCondition: text('property_condition').array(),
-    architecturalStyle: text('architectural_style').array(),
-    constructionMaterials: text('construction_materials').array(),
-    foundationDetails: text('foundation_details').array(),
-    roof: text('roof').array(),
-    commonWalls: text('common_walls').array(),
-    builderName: varchar('builder_name', { length: 50 }),
-    buildingAreaUnits: varchar('building_area_units', { length: 25 }),
-    buildingFeatures: text('building_features').array(),
-    buildingName: varchar('building_name', { length: 50 }),
-    yearBuiltEffective: integer('year_built_effective'),
-    yearEstablished: integer('year_established'),
-    yearsCurrentOwner: integer('years_current_owner'),
-    make: varchar('make', { length: 50 }),
-    model: varchar('model', { length: 50 }),
-    mobileHomeRemainsYN: boolean('mobile_home_remains_yn'),
+        // ---- Building details ----
+        yearBuilt: integer('year_built'),
+        yearBuiltSource: varchar('year_built_source', { length: 64 }),
+        newConstructionYN: boolean('new_construction_yn'),
+        propertyCondition: text('property_condition').array(),
+        architecturalStyle: text('architectural_style').array(),
+        constructionMaterials: text('construction_materials').array(),
+        foundationDetails: text('foundation_details').array(),
+        roof: text('roof').array(),
+        commonWalls: text('common_walls').array(),
+        builderName: varchar('builder_name', { length: 50 }),
+        buildingAreaUnits: varchar('building_area_units', { length: 25 }),
+        buildingFeatures: text('building_features').array(),
+        buildingName: varchar('building_name', { length: 50 }),
+        yearBuiltEffective: integer('year_built_effective'),
+        yearEstablished: integer('year_established'),
+        yearsCurrentOwner: integer('years_current_owner'),
+        make: varchar('make', { length: 50 }),
+        model: varchar('model', { length: 50 }),
+        mobileHomeRemainsYN: boolean('mobile_home_remains_yn'),
 
-    // ---- Systems ----
-    heating: text('heating').array(),
-    cooling: text('cooling').array(),
-    electric: text('electric').array(),
-    waterSource: text('water_source').array(),
-    sewer: text('sewer').array(),
-    utilities: text('utilities').array(),
-    coolingYN: boolean('cooling_yn'),
-    electricOnPropertyYN: boolean('electric_on_property_yn'),
-    heatingYN: boolean('heating_yn'),
-    irrigationSource: text('irrigation_source').array(),
-    irrigationWaterRightsYN: boolean('irrigation_water_rights_yn'),
-    leaseAssignableYN: boolean('lease_assignable_yn'),
-    operatingExpenseIncludes: text('operating_expense_includes').array(),
-    powerProductionType: text('power_production_type').array(),
+        // ---- Systems ----
+        heating: text('heating').array(),
+        cooling: text('cooling').array(),
+        electric: text('electric').array(),
+        waterSource: text('water_source').array(),
+        sewer: text('sewer').array(),
+        utilities: text('utilities').array(),
+        coolingYN: boolean('cooling_yn'),
+        electricOnPropertyYN: boolean('electric_on_property_yn'),
+        heatingYN: boolean('heating_yn'),
+        irrigationSource: text('irrigation_source').array(),
+        irrigationWaterRightsYN: boolean('irrigation_water_rights_yn'),
+        leaseAssignableYN: boolean('lease_assignable_yn'),
+        operatingExpenseIncludes: text('operating_expense_includes').array(),
+        powerProductionType: text('power_production_type').array(),
 
-    // ---- Interior ----
-    interiorFeatures: text('interior_features').array(),
-    flooring: text('flooring').array(),
-    appliances: text('appliances').array(),
-    fireplaceFeatures: text('fireplace_features').array(),
-    fireplaceYN: boolean('fireplace_yn'),
-    fireplacesTotal: integer('fireplaces_total'),
-    laundryFeatures: text('laundry_features').array(),
-    windowFeatures: text('window_features').array(),
-    accessibilityFeatures: text('accessibility_features').array(),
-    entryLocation: varchar('entry_location', { length: 50 }),
-    furnished: varchar('furnished', { length: 50 }),
-    inclusions: text('inclusions'),
-    otherEquipment: text('other_equipment').array(),
-    petsAllowed: text('pets_allowed').array(),
-    possession: text('possession').array(),
-    securityFeatures: text('security_features').array(),
-    skirt: text('skirt').array(),
-    specialLicenses: text('special_licenses').array(),
+        // ---- Interior ----
+        interiorFeatures: text('interior_features').array(),
+        flooring: text('flooring').array(),
+        appliances: text('appliances').array(),
+        fireplaceFeatures: text('fireplace_features').array(),
+        fireplaceYN: boolean('fireplace_yn'),
+        fireplacesTotal: integer('fireplaces_total'),
+        laundryFeatures: text('laundry_features').array(),
+        windowFeatures: text('window_features').array(),
+        accessibilityFeatures: text('accessibility_features').array(),
+        entryLocation: varchar('entry_location', { length: 50 }),
+        furnished: varchar('furnished', { length: 50 }),
+        inclusions: text('inclusions'),
+        otherEquipment: text('other_equipment').array(),
+        petsAllowed: text('pets_allowed').array(),
+        possession: text('possession').array(),
+        securityFeatures: text('security_features').array(),
+        skirt: text('skirt').array(),
+        specialLicenses: text('special_licenses').array(),
 
-    // ---- Exterior ----
-    exteriorFeatures: text('exterior_features').array(),
-    patioAndPorchFeatures: text('patio_and_porch_features').array(),
-    fencing: text('fencing').array(),
-    otherStructures: text('other_structures').array(),
-    lotFeatures: text('lot_features').array(),
-    frontageType: text('frontage_type').array(),
-    view: text('view').array(),
-    waterfrontYN: boolean('waterfront_yn'),
-    waterfrontFeatures: text('waterfront_features').array(),
-    poolPrivateYN: boolean('pool_private_yn'),
-    poolFeatures: text('pool_features').array(),
-    spaFeatures: text('spa_features').array(),
-    horseYN: boolean('horse_yn'),
-    directionFaces: varchar('direction_faces', { length: 25 }),
-    elevation: integer('elevation'),
-    elevationUnits: varchar('elevation_units', { length: 10 }),
-    possibleUse: text('possible_use').array(),
-    roadResponsibility: text('road_responsibility').array(),
-    roadSurfaceType: text('road_surface_type').array(),
-    signOnPropertyYN: boolean('sign_on_property_yn'),
-    spaYN: boolean('spa_yn'),
-    structureType: text('structure_type').array(),
-    topography: varchar('topography', { length: 255 }),
-    vegetation: text('vegetation').array(),
-    viewYN: boolean('view_yn'),
-    zoning: varchar('zoning', { length: 25 }),
-    zoningDescription: varchar('zoning_description', { length: 255 }),
+        // ---- Exterior ----
+        exteriorFeatures: text('exterior_features').array(),
+        patioAndPorchFeatures: text('patio_and_porch_features').array(),
+        fencing: text('fencing').array(),
+        otherStructures: text('other_structures').array(),
+        lotFeatures: text('lot_features').array(),
+        frontageType: text('frontage_type').array(),
+        view: text('view').array(),
+        waterfrontYN: boolean('waterfront_yn'),
+        waterfrontFeatures: text('waterfront_features').array(),
+        poolPrivateYN: boolean('pool_private_yn'),
+        poolFeatures: text('pool_features').array(),
+        spaFeatures: text('spa_features').array(),
+        horseYN: boolean('horse_yn'),
+        directionFaces: varchar('direction_faces', { length: 25 }),
+        elevation: integer('elevation'),
+        elevationUnits: varchar('elevation_units', { length: 10 }),
+        possibleUse: text('possible_use').array(),
+        roadResponsibility: text('road_responsibility').array(),
+        roadSurfaceType: text('road_surface_type').array(),
+        signOnPropertyYN: boolean('sign_on_property_yn'),
+        spaYN: boolean('spa_yn'),
+        structureType: text('structure_type').array(),
+        topography: varchar('topography', { length: 255 }),
+        vegetation: text('vegetation').array(),
+        viewYN: boolean('view_yn'),
+        zoning: varchar('zoning', { length: 25 }),
+        zoningDescription: varchar('zoning_description', { length: 255 }),
 
-    // ---- Community / HOA ----
-    communityFeatures: text('community_features').array(),
-    seniorCommunityYN: boolean('senior_community_yn'),
-    associationYN: boolean('association_yn'),
-    associationName: varchar('association_name', { length: 256 }),
-    associationFee: numeric('association_fee', { precision: 14, scale: 2 }),
-    associationFeeFrequency: varchar('association_fee_frequency', {
-      length: 64,
-    }),
-    associationFeeIncludes: text('association_fee_includes').array(),
-    associationAmenities: text('association_amenities').array(),
-    associationPhone: varchar('association_phone', { length: 32 }),
-    associationEmail: varchar('association_email', { length: 256 }),
+        // ---- Community / HOA ----
+        communityFeatures: text('community_features').array(),
+        seniorCommunityYN: boolean('senior_community_yn'),
+        associationYN: boolean('association_yn'),
+        associationName: varchar('association_name', { length: 256 }),
+        associationFee: numeric('association_fee', { precision: 14, scale: 2 }),
+        associationFeeFrequency: varchar('association_fee_frequency', {
+            length: 64,
+        }),
+        associationFeeIncludes: text('association_fee_includes').array(),
+        associationAmenities: text('association_amenities').array(),
+        associationPhone: varchar('association_phone', { length: 32 }),
+        associationEmail: varchar('association_email', { length: 256 }),
 
-    // ---- Schools ----
-    elementarySchool: varchar('elementary_school', { length: 128 }),
-    middleOrJuniorSchool: varchar('middle_or_junior_school', { length: 128 }),
-    highSchool: varchar('high_school', { length: 128 }),
-    elementarySchoolDistrict: varchar('elementary_school_district', {
-      length: 128,
-    }),
-    middleOrJuniorSchoolDistrict: varchar('middle_or_junior_school_district', {
-      length: 128,
-    }),
-    highSchoolDistrict: varchar('high_school_district', { length: 128 }),
+        // ---- Schools ----
+        elementarySchool: varchar('elementary_school', { length: 128 }),
+        middleOrJuniorSchool: varchar('middle_or_junior_school', { length: 128 }),
+        highSchool: varchar('high_school', { length: 128 }),
+        elementarySchoolDistrict: varchar('elementary_school_district', {
+            length: 128,
+        }),
+        middleOrJuniorSchoolDistrict: varchar('middle_or_junior_school_district', {
+            length: 128,
+        }),
+        highSchoolDistrict: varchar('high_school_district', { length: 128 }),
 
-    // ---- Financials ----
-    taxYear: integer('tax_year'),
-    taxLegalDescription: text('tax_legal_description'),
-    parcelNumber: varchar('parcel_number', { length: 128 }),
-    taxMapNumber: varchar('tax_map_number', { length: 64 }),
-    listingTerms: text('listing_terms').array(),
-    buyerFinancing: text('buyer_financing').array(),
-    currentFinancing: text('current_financing').array(),
-    specialListingConditions: text('special_listing_conditions').array(),
-    listingContractDate: timestamp('listing_contract_date', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    expirationDate: timestamp('expiration_date', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    leaseExpiration: timestamp('lease_expiration', {
-      withTimezone: true,
-      mode: 'string',
-    }),
-    rentIncludes: text('rent_includes').array(),
-    capRate: numeric('cap_rate', { precision: 13, scale: 2 }),
-    electricExpense: numeric('electric_expense', { precision: 13, scale: 2 }),
-    fuelExpense: numeric('fuel_expense', { precision: 13, scale: 2 }),
-    grossScheduledIncome: numeric('gross_scheduled_income', { precision: 13, scale: 2 }),
-    insuranceExpense: numeric('insurance_expense', { precision: 13, scale: 2 }),
-    landLeaseAmount: numeric('land_lease_amount', { precision: 13, scale: 2 }),
-    landLeaseAmountFrequency: varchar('land_lease_amount_frequency', { length: 25 }),
-    landLeaseYN: boolean('land_lease_yn'),
-    netOperatingIncome: numeric('net_operating_income', { precision: 13, scale: 2 }),
-    otherExpense: numeric('other_expense', { precision: 13, scale: 2 }),
-    ownership: text('ownership'),
-    taxAnnualAmount: numeric('tax_annual_amount', { precision: 13, scale: 2 }),
-    totalActualRent: numeric('total_actual_rent', { precision: 13, scale: 2 }),
+        // ---- Financials ----
+        taxYear: integer('tax_year'),
+        taxLegalDescription: text('tax_legal_description'),
+        parcelNumber: varchar('parcel_number', { length: 128 }),
+        taxMapNumber: varchar('tax_map_number', { length: 64 }),
+        listingTerms: text('listing_terms').array(),
+        buyerFinancing: text('buyer_financing').array(),
+        currentFinancing: text('current_financing').array(),
+        specialListingConditions: text('special_listing_conditions').array(),
+        listingContractDate: timestamp('listing_contract_date', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        expirationDate: timestamp('expiration_date', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        leaseExpiration: timestamp('lease_expiration', {
+            withTimezone: true,
+            mode: 'string',
+        }),
+        rentIncludes: text('rent_includes').array(),
+        capRate: numeric('cap_rate', { precision: 13, scale: 2 }),
+        electricExpense: numeric('electric_expense', { precision: 13, scale: 2 }),
+        fuelExpense: numeric('fuel_expense', { precision: 13, scale: 2 }),
+        grossScheduledIncome: numeric('gross_scheduled_income', { precision: 13, scale: 2 }),
+        insuranceExpense: numeric('insurance_expense', { precision: 13, scale: 2 }),
+        landLeaseAmount: numeric('land_lease_amount', { precision: 13, scale: 2 }),
+        landLeaseAmountFrequency: varchar('land_lease_amount_frequency', { length: 25 }),
+        landLeaseYN: boolean('land_lease_yn'),
+        netOperatingIncome: numeric('net_operating_income', { precision: 13, scale: 2 }),
+        otherExpense: numeric('other_expense', { precision: 13, scale: 2 }),
+        ownership: text('ownership'),
+        taxAnnualAmount: numeric('tax_annual_amount', { precision: 13, scale: 2 }),
+        totalActualRent: numeric('total_actual_rent', { precision: 13, scale: 2 }),
 
-    // ---- Agent / Office ----
-    listAgentKey: varchar('list_agent_key', { length: 64 }),
-    listAgentMlsId: varchar('list_agent_mls_id', { length: 64 }),
-    listAgentFullName: varchar('list_agent_full_name', { length: 256 }),
-    listAgentEmail: varchar('list_agent_email', { length: 256 }),
-    listAgentDirectPhone: varchar('list_agent_direct_phone', { length: 32 }),
-    listOfficeKey: varchar('list_office_key', { length: 64 }),
-    listOfficeMlsId: varchar('list_office_mls_id', { length: 64 }),
-    listOfficeName: varchar('list_office_name', { length: 256 }),
-    listOfficePhone: varchar('list_office_phone', { length: 32 }),
-    coListAgentKey: varchar('co_list_agent_key', { length: 64 }),
-    coListAgentMlsId: varchar('co_list_agent_mls_id', { length: 64 }),
-    coListAgentFullName: varchar('co_list_agent_full_name', { length: 256 }),
-    buyerAgentKey: varchar('buyer_agent_key', { length: 64 }),
-    buyerAgentMlsId: varchar('buyer_agent_mls_id', { length: 64 }),
-    buyerAgentFullName: varchar('buyer_agent_full_name', { length: 256 }),
-    buyerAgentOfficePhone: varchar('buyer_agent_office_phone', { length: 16 }),
-    buyerAgentOfficePhoneExt: varchar('buyer_agent_office_phone_ext', { length: 10 }),
-    buyerOfficeKey: varchar('buyer_office_key', { length: 64 }),
-    buyerOfficeMlsId: varchar('buyer_office_mls_id', { length: 64 }),
-    buyerOfficeName: varchar('buyer_office_name', { length: 256 }),
-    buyerOfficePhone: varchar('buyer_office_phone', { length: 16 }),
-    buyerOfficePhoneExt: varchar('buyer_office_phone_ext', { length: 10 }),
-    coBuyerAgentFullName: varchar('co_buyer_agent_full_name', { length: 150 }),
-    coBuyerAgentKey: varchar('co_buyer_agent_key', { length: 255 }),
-    coBuyerAgentMlsId: varchar('co_buyer_agent_mls_id', { length: 25 }),
-    coBuyerOfficeKey: varchar('co_buyer_office_key', { length: 255 }),
-    coBuyerOfficeMlsId: varchar('co_buyer_office_mls_id', { length: 25 }),
-    coBuyerOfficeName: varchar('co_buyer_office_name', { length: 255 }),
-    coBuyerOfficePhone: varchar('co_buyer_office_phone', { length: 16 }),
-    coBuyerOfficePhoneExt: varchar('co_buyer_office_phone_ext', { length: 10 }),
-    coListOfficeKey: varchar('co_list_office_key', { length: 255 }),
-    coListOfficeMlsId: varchar('co_list_office_mls_id', { length: 25 }),
-    coListOfficeName: varchar('co_list_office_name', { length: 255 }),
-    coListOfficePhone: varchar('co_list_office_phone', { length: 16 }),
-    coListOfficePhoneExt: varchar('co_list_office_phone_ext', { length: 10 }),
-    listOfficePhoneExt: varchar('list_office_phone_ext', { length: 10 }),
+        // ---- Agent / Office ----
+        listAgentKey: varchar('list_agent_key', { length: 64 }),
+        listAgentMlsId: varchar('list_agent_mls_id', { length: 64 }),
+        listAgentFullName: varchar('list_agent_full_name', { length: 256 }),
+        listAgentEmail: varchar('list_agent_email', { length: 256 }),
+        listAgentDirectPhone: varchar('list_agent_direct_phone', { length: 32 }),
+        listOfficeKey: varchar('list_office_key', { length: 64 }),
+        listOfficeMlsId: varchar('list_office_mls_id', { length: 64 }),
+        listOfficeName: varchar('list_office_name', { length: 256 }),
+        listOfficePhone: varchar('list_office_phone', { length: 32 }),
+        coListAgentKey: varchar('co_list_agent_key', { length: 64 }),
+        coListAgentMlsId: varchar('co_list_agent_mls_id', { length: 64 }),
+        coListAgentFullName: varchar('co_list_agent_full_name', { length: 256 }),
+        buyerAgentKey: varchar('buyer_agent_key', { length: 64 }),
+        buyerAgentMlsId: varchar('buyer_agent_mls_id', { length: 64 }),
+        buyerAgentFullName: varchar('buyer_agent_full_name', { length: 256 }),
+        buyerAgentOfficePhone: varchar('buyer_agent_office_phone', { length: 16 }),
+        buyerAgentOfficePhoneExt: varchar('buyer_agent_office_phone_ext', { length: 10 }),
+        buyerOfficeKey: varchar('buyer_office_key', { length: 64 }),
+        buyerOfficeMlsId: varchar('buyer_office_mls_id', { length: 64 }),
+        buyerOfficeName: varchar('buyer_office_name', { length: 256 }),
+        buyerOfficePhone: varchar('buyer_office_phone', { length: 16 }),
+        buyerOfficePhoneExt: varchar('buyer_office_phone_ext', { length: 10 }),
+        coBuyerAgentFullName: varchar('co_buyer_agent_full_name', { length: 150 }),
+        coBuyerAgentKey: varchar('co_buyer_agent_key', { length: 255 }),
+        coBuyerAgentMlsId: varchar('co_buyer_agent_mls_id', { length: 25 }),
+        coBuyerOfficeKey: varchar('co_buyer_office_key', { length: 255 }),
+        coBuyerOfficeMlsId: varchar('co_buyer_office_mls_id', { length: 25 }),
+        coBuyerOfficeName: varchar('co_buyer_office_name', { length: 255 }),
+        coBuyerOfficePhone: varchar('co_buyer_office_phone', { length: 16 }),
+        coBuyerOfficePhoneExt: varchar('co_buyer_office_phone_ext', { length: 10 }),
+        coListOfficeKey: varchar('co_list_office_key', { length: 255 }),
+        coListOfficeMlsId: varchar('co_list_office_mls_id', { length: 25 }),
+        coListOfficeName: varchar('co_list_office_name', { length: 255 }),
+        coListOfficePhone: varchar('co_list_office_phone', { length: 16 }),
+        coListOfficePhoneExt: varchar('co_list_office_phone_ext', { length: 10 }),
+        listOfficePhoneExt: varchar('list_office_phone_ext', { length: 10 }),
 
-    // ---- Business / Manufactured home ----
-    businessName: varchar('business_name', { length: 255 }),
-    businessType: text('business_type').array(),
-    parkManagerName: varchar('park_manager_name', { length: 50 }),
-    parkManagerPhone: varchar('park_manager_phone', { length: 16 }),
-    parkName: varchar('park_name', { length: 50 }),
-    serialU: varchar('serial_u', { length: 25 }),
+        // ---- Business / Manufactured home ----
+        businessName: varchar('business_name', { length: 255 }),
+        businessType: text('business_type').array(),
+        parkManagerName: varchar('park_manager_name', { length: 50 }),
+        parkManagerPhone: varchar('park_manager_phone', { length: 16 }),
+        parkName: varchar('park_name', { length: 50 }),
+        serialU: varchar('serial_u', { length: 25 }),
 
-    // ---- Compensation ----
-    buyerAgencyCompensation: varchar('buyer_agency_compensation', {
-      length: 32,
-    }),
-    buyerAgencyCompensationType: varchar('buyer_agency_compensation_type', {
-      length: 32,
-    }),
-    buyerBrokerageCompensation: varchar('buyer_brokerage_compensation', { length: 25 }),
-    buyerBrokerageCompensationType: varchar('buyer_brokerage_compensation_type', { length: 25 }),
+        // ---- Compensation ----
+        buyerAgencyCompensation: varchar('buyer_agency_compensation', {
+            length: 32,
+        }),
+        buyerAgencyCompensationType: varchar('buyer_agency_compensation_type', {
+            length: 32,
+        }),
+        buyerBrokerageCompensation: varchar('buyer_brokerage_compensation', { length: 25 }),
+        buyerBrokerageCompensationType: varchar('buyer_brokerage_compensation_type', { length: 25 }),
 
-    // ---- Remarks ----
-    publicRemarks: text('public_remarks'),
-    privateRemarks: text('private_remarks'),
-    syndicationRemarks: text('syndication_remarks'),
-    syndicateTo: text('syndicate_to').array(),
+        // ---- Remarks ----
+        publicRemarks: text('public_remarks'),
+        privateRemarks: text('private_remarks'),
+        syndicationRemarks: text('syndication_remarks'),
+        syndicateTo: text('syndicate_to').array(),
 
-    // ---- Media counts ----
-    photosCount: integer('photos_count'),
-    videosCount: integer('videos_count'),
+        // ---- Media counts ----
+        photosCount: integer('photos_count'),
+        videosCount: integer('videos_count'),
 
-    // ---- Virtual tours ----
-    virtualTourURLUnbranded: text('virtual_tour_url_unbranded'),
-    virtualTourURLBranded: text('virtual_tour_url_branded'),
+        // ---- Virtual tours ----
+        virtualTourURLUnbranded: text('virtual_tour_url_unbranded'),
+        virtualTourURLBranded: text('virtual_tour_url_branded'),
 
-    // ---- Parking ----
-    parkingFeatures: text('parking_features').array(),
-    garageYN: boolean('garage_yn'),
-    attachedGarageYN: boolean('attached_garage_yn'),
-    openParkingYN: boolean('open_parking_yn'),
+        // ---- Parking ----
+        parkingFeatures: text('parking_features').array(),
+        garageYN: boolean('garage_yn'),
+        attachedGarageYN: boolean('attached_garage_yn'),
+        openParkingYN: boolean('open_parking_yn'),
 
-    // ---- Basement ----
-    basement: text('basement').array(),
-    basementYN: boolean('basement_yn'),
+        // ---- Basement ----
+        basement: text('basement').array(),
+        basementYN: boolean('basement_yn'),
 
-    // ---- Green ----
-    greenBuildingVerificationType: text('green_building_verification_type').array(),
-    greenEnergyEfficient: text('green_energy_efficient').array(),
-    greenEnergyGeneration: text('green_energy_generation').array(),
+        // ---- Green ----
+        greenBuildingVerificationType: text('green_building_verification_type').array(),
+        greenEnergyEfficient: text('green_energy_efficient').array(),
+        greenEnergyGeneration: text('green_energy_generation').array(),
 
-    // ---- NWMLS Local Metadata ----
-    NWM: jsonb('nwm').$type<NWM_Property>(),
+        // ---- NWMLS Local Metadata ----
+        NWM: jsonb('nwm').$type<NWM_Property>(),
 
-    // ---- Platform metadata ----
-    featuredListingYN: boolean('featured_listing_yn').default(false),
-    ...timestamps,
-    ...softDelete,
+        // ---- Platform metadata ----
+        featuredListingYN: boolean('featured_listing_yn').default(false),
+        ...timestamps,
+        ...softDelete,
 
-    // ---- Full-text search vector ────────────────────────────────────────────
-    // GENERATED ALWAYS AS STORED — PostgreSQL maintains this automatically on
-    // every INSERT and UPDATE. No trigger, no backfill, no application code.
-    //
-    // Must be declared last so drizzle-kit emits ADD COLUMN for new source
-    // columns before this one in incremental diff migrations.
-    searchVector: tsvector('search_vector')
-      .language('english')
-      // A — exact property identifier (address, listing ID)
-      .cols(['unparsed_address', 'listing_id'])
-      .weight('A')
-      // B — contextual (agent, office, classification, year)
-      .cols(['property_sub_type', 'list_agent_full_name', 'list_office_name', 'year_built'])
-      .weight('B')
-      // C — feature arrays (each element individually searchable)
-      .cols([
-        'interior_features',
-        'exterior_features',
-        'appliances',
-        'heating',
-        'cooling',
-        'community_features',
-        'view',
-        'waterfront_features',
-        'lot_features',
-        'construction_materials',
-        'parking_features',
-      ])
-      .weight('C')
-      .array()
-      // D — descriptive text (public remarks)
-      .cols(['public_remarks'])
-      .weight('D'),
-  },
-  (t) => [
-    index('idx_properties_property_type')
-      .on(t.propertyType)
-      .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-    // Geo bounding box (kept for raw lat/lng queries)
-    index('idx_properties_geo')
-      .on(t.latitude, t.longitude)
-      .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-    // H3 spatial indexes — btree, used with = ANY(:cells) queries
-    // These are the primary geo search indexes; much faster than bbox for
-    // "near me" and area searches because they avoid lat/lng inequality scans.
-    index('idx_properties_visible_h3_r8_status')
-      .on(t.h3R8, t.standardStatus)
-      .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-    index('idx_properties_visible_h3_r7_status')
-      .on(t.h3R7, t.standardStatus)
-      .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-    // Active-only featured/status filtering path.
-    index('idx_properties_visible_featured_status')
-      .on(t.featuredListingYN, t.standardStatus, t.listingKey)
-      .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-    // Featured path is non-geo scoped; keep featured/status index above.
-    // Sync cursor
-    index('idx_properties_sync').on(t.originatingSystemName, t.modificationTimestamp),
-    // Query acceleration for visibility/status + section sort path.
-    index('idx_properties_visible_status_sort')
-      .on(t.standardStatus, t.onMarketDate, t.modificationTimestamp, t.listingKey)
-      .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-    // Scoped office filtering + section sort path.
-    index('idx_properties_visible_office_status_sort')
-      .on(
-        t.listOfficeMlsId,
-        t.standardStatus,
-        t.onMarketDate,
-        t.modificationTimestamp,
-        t.listingKey,
-      )
-      .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-    // Scoped member filtering + section sort path.
-    index('idx_properties_visible_member_status_sort')
-      .on(t.listAgentMlsId, t.standardStatus, t.onMarketDate, t.modificationTimestamp, t.listingKey)
-      .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-    index('idx_properties_visible_search_vector')
-      .using('gin', t.searchVector)
-      .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
-  ],
+        // ---- Full-text search vector ────────────────────────────────────────────
+        // GENERATED ALWAYS AS STORED — PostgreSQL maintains this automatically on
+        // every INSERT and UPDATE. No trigger, no backfill, no application code.
+        //
+        // Must be declared last so drizzle-kit emits ADD COLUMN for new source
+        // columns before this one in incremental diff migrations.
+        searchVector: tsvector('search_vector')
+            .language('english')
+            // A — exact property identifier (address, listing ID)
+            .cols(['unparsed_address', 'listing_id'])
+            .weight('A')
+            // B — contextual (agent, office, classification, year)
+            .cols(['property_sub_type', 'list_agent_full_name', 'list_office_name', 'year_built'])
+            .weight('B')
+            // C — feature arrays (each element individually searchable)
+            .cols([
+                'interior_features',
+                'exterior_features',
+                'appliances',
+                'heating',
+                'cooling',
+                'community_features',
+                'view',
+                'waterfront_features',
+                'lot_features',
+                'construction_materials',
+                'parking_features',
+            ])
+            .weight('C')
+            .array()
+            // D — descriptive text (public remarks)
+            .cols(['public_remarks'])
+            .weight('D'),
+    },
+    (t) => [
+        index('idx_properties_property_type')
+            .on(t.propertyType)
+            .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        // Geo bounding box (kept for raw lat/lng queries)
+        index('idx_properties_geo')
+            .on(t.latitude, t.longitude)
+            .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        // H3 spatial indexes — btree, used with = ANY(:cells) queries
+        // These are the primary geo search indexes; much faster than bbox for
+        // "near me" and area searches because they avoid lat/lng inequality scans.
+        index('idx_properties_visible_h3_r8_status')
+            .on(t.h3R8, t.standardStatus)
+            .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        index('idx_properties_visible_h3_r7_status')
+            .on(t.h3R7, t.standardStatus)
+            .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        // Active-only featured/status filtering path.
+        index('idx_properties_visible_featured_status')
+            .on(t.featuredListingYN, t.standardStatus, t.listingKey)
+            .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        // Featured path is non-geo scoped; keep featured/status index above.
+        // Sync cursor
+        index('idx_properties_sync').on(t.originatingSystemName, t.modificationTimestamp),
+        // Query acceleration for visibility/status + section sort path.
+        index('idx_properties_visible_status_sort')
+            .on(t.standardStatus, t.onMarketDate, t.modificationTimestamp, t.listingKey)
+            .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        // Scoped office filtering + section sort path.
+        index('idx_properties_visible_office_status_sort')
+            .on(
+                t.listOfficeMlsId,
+                t.standardStatus,
+                t.onMarketDate,
+                t.modificationTimestamp,
+                t.listingKey,
+            )
+            .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        // Scoped member filtering + section sort path.
+        index('idx_properties_visible_member_status_sort')
+            .on(t.listAgentMlsId, t.standardStatus, t.onMarketDate, t.modificationTimestamp, t.listingKey)
+            .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        index('idx_properties_visible_search_vector')
+            .using('gin', t.searchVector)
+            .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        // Narrow FTS marker-search path: active + visible + geocoded rows only.
+        // This keeps the GIN posting tree smaller for the listings marker endpoint.
+        index('idx_properties_visible_active_geo_search_vector')
+            .using('gin', t.searchVector)
+            .where(
+                sql`${t.mlgCanView} = true
+          AND ${t.deletedAt} IS NULL
+          AND ${t.standardStatus} IN ('Active', 'ActiveUnderContract', 'ComingSoon')
+          AND ${t.latitude} IS NOT NULL
+          AND ${t.longitude} IS NOT NULL`,
+            ),
+    ],
 );
 
 /*

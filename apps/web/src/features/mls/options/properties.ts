@@ -6,6 +6,7 @@ import {
   getAvailablePropertiesServerFn,
   getFeaturedPropertiesServerFn,
   getPendingPropertiesServerFn,
+  getPropertyByListingKeyServerFn,
   getSoldPropertiesServerFn,
 } from '../functions';
 
@@ -15,6 +16,7 @@ import {
 
 export const propertiesKeys = {
   all: ['properties'] as const,
+  individual: (listingKey: string) => [...propertiesKeys.all, 'individual', listingKey] as const,
   featured: (params?: PropertyParams) => [...propertiesKeys.all, 'featured', params] as const,
   available: (params?: PropertyParams) => [...propertiesKeys.all, 'available', params] as const,
   pending: (params?: PropertyParams) => [...propertiesKeys.all, 'pending', params] as const,
@@ -24,6 +26,15 @@ export const propertiesKeys = {
 // ============================================================================
 // QUERY OPTIONS
 // ============================================================================
+
+export function propertyByListingKeyOptions(params: { listingKey: string }) {
+  return queryOptions({
+    queryKey: propertiesKeys.individual(params.listingKey),
+    queryFn: ({ signal }) => getPropertyByListingKeyServerFn({ signal, data: params }),
+    staleTime: 60 * 1000 * 5, // 5 min
+    retry: 1,
+  });
+}
 
 /**
  * Query options for featured property cards (Active, ActiveUnderContract,

@@ -1,7 +1,7 @@
 import type { standardStatusEnum } from '@kws/schema';
 
 import type { CursorDirection, CursorResult } from './cursor';
-import type { NWM_Property, TPropertyCard } from './property';
+import type { NWM_Property, PropertyListing, TPropertyCard } from './property';
 import type { TMapBounds, TQueryResourceLimit } from './search';
 
 export type PropertyStatus = (typeof standardStatusEnum.enumValues)[number];
@@ -32,6 +32,19 @@ export interface PropertySearchParams {
 export type TListingMarker = Pick<
   TPropertyCard,
   'listingKey' | 'latitude' | 'longitude' | 'listPrice' | 'standardStatus'
+> & {
+  id: string;
+};
+export type PropertySearchMarker = Pick<
+  PropertyListing,
+  | 'id'
+  | 'listingKey'
+  | 'listPrice'
+  | 'bedroomsTotal'
+  | 'bathroomsTotalInteger'
+  | 'livingArea'
+  | 'latitude'
+  | 'longitude'
 >;
 
 export type PropertyMapMarker = TListingMarker;

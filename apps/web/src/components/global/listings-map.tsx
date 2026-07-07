@@ -1,17 +1,17 @@
-import type { TListingMarker } from '@kws/types';
+import type { TListingsSearch } from '@kws/types';
 
+import { useQuery } from '@tanstack/react-query';
 import { ClientOnly } from '@tanstack/react-router';
+import React from 'react';
 import { BeatLoader } from 'react-spinners';
+
+import { listingsForSearchAndFilterOptions } from '@/features/mls/options/listings';
 
 import { MapView } from './map';
 
-export function ListingsMap({
-  markers,
-  markersLoading = false,
-}: {
-  markers: TListingMarker[];
-  markersLoading?: boolean;
-}) {
+export function ListingsMap({ search }: { search: Partial<TListingsSearch> }) {
+  const { data, isLoading } = useQuery(listingsForSearchAndFilterOptions(search));
+  const markers = React.useMemo(() => data?.markers || [], [data]);
   return (
     <div className='relative h-[60vh] w-full overflow-hidden portrait:h-[60vh] landscape:h-[60vh] landscape:lg:h-[calc(80vh-4rem)]'>
       <ClientOnly
@@ -20,7 +20,7 @@ export function ListingsMap({
             <BeatLoader color='#ff0000' loading={true} size={15} />
           </main>
         }>
-        <MapView properties={markers} markersLoading={markersLoading} />
+        <MapView properties={markers} markersLoading={isLoading} />
       </ClientOnly>
     </div>
   );

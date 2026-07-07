@@ -157,8 +157,13 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
     const pipelinePrefetchEnabled = MLS_SYNC_DEFAULTS.seedFetchIngestOverlapEnabled;
     const pipelineQueueDepth = Math.max(1, MLS_SYNC_DEFAULTS.seedFetchIngestQueueDepth);
 
-    // Local-first replay: exhaust on-disk history before API calls.
-    for await (const replayBatch of replayHistoryResource<TPayload>({ resource })) {
+    // Local-first replay: only process history records newer than the current
+    // replay watermark so restarts do not reprocess stale chunks.
+    for await (const replayBatch of replayHistoryResource<TPayload>({
+      resource,
+      afterTimestamp: activeAfterTimestamp,
+      getTimestamp,
+    })) {
       const replaySanitized = await quarantineInvalidTimestampRecords({
         resource,
         records: replayBatch,

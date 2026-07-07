@@ -1,28 +1,264 @@
-import type { TListingMarker } from '@kws/types';
+import type { PropertySearchMarker } from '@kws/types';
 
 import { DEFAULT_POSITION } from '@kws/config/constants/properties';
-import { useQueryClient } from '@tanstack/react-query';
-import L, { DivIcon, type LeafletEvent } from 'leaflet';
-import 'leaflet-edgebuffer';
+import L, { DivIcon, type LeafletEvent, type PopupEvent } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import Supercluster from 'supercluster';
 
-import { markerCardByListingKeyOptions } from '@/features/mls/options/search';
+import { ensureLeafletRegistered, registerLeafletMap } from '@/lib/tools/leaflet';
 import { abbreviateNumber } from '@/lib/utils';
 import { useMapActions, useMapStore } from '@/stores/map.store';
-import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
-import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
 
 import Loader from './map-loader';
-import MapPopupCard from './map-popup-card';
+import PropertyCardSkeleton from './property-card-skeleton';
 
-export const ZOOM_BREAKPOINT = 14;
+ensureLeafletRegistered();
+
+const ZOOM_BREAKPOINT = 14;
+const CLUSTER_VIEWPORT_BUFFER_RATIO = 0.3;
+
+const POPUP_SKELETON_NODE = <PropertyCardSkeleton className='w-full max-w-none' />;
+
+type OpenPopupState = {
+  listingKey: string;
+  lat: number;
+  lng: number;
+};
+
+type MarkerLayerProps = {
+  index: Supercluster<ClusterPointProperties, ClusterProperties>;
+  showPriceLabels: boolean;
+  markerIconFactory: (
+    listPrice: PropertySearchMarker['listPrice'],
+    showPriceLabels: boolean,
+  ) => L.DivIcon;
+  clusterIconFactory: (count: number) => L.DivIcon;
+  onMarkerClick: (property: PropertySearchMarker) => void;
+};
+
+type ClusterPointProperties = {
+  property: PropertySearchMarker;
+};
+
+type ClusterProperties = {
+  cluster: true;
+  cluster_id: number;
+  point_count: number;
+  point_count_abbreviated: number | string;
+};
+
+type ClusterPointFeature = {
+  type: 'Feature';
+  properties: ClusterPointProperties;
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+};
+
+type ClusterFeature = {
+  type: 'Feature';
+  properties: ClusterProperties;
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+};
+
+const isClusterFeature = (
+  feature: ClusterPointFeature | ClusterFeature,
+): feature is ClusterFeature => {
+  return (feature.properties as Partial<ClusterProperties>).cluster === true;
+};
+
+const MarkerLayer = React.memo(function MarkerLayer({
+  index,
+  showPriceLabels,
+  markerIconFactory,
+  clusterIconFactory,
+  onMarkerClick,
+}: MarkerLayerProps) {
+  const map = useMap();
+
+  const getBufferedBounds = React.useCallback(() => {
+    return map.getBounds().pad(CLUSTER_VIEWPORT_BUFFER_RATIO);
+  }, [map]);
+
+  const [viewport, setViewport] = useState<{
+    zoom: number;
+    bounds: [number, number, number, number];
+  }>(() => {
+    const bounds = getBufferedBounds();
+    return {
+      zoom: Math.round(map.getZoom()),
+      bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
+    };
+  });
+
+  const syncViewport = React.useCallback(() => {
+    const bounds = getBufferedBounds();
+    setViewport({
+      zoom: Math.round(map.getZoom()),
+      bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
+    });
+  }, [getBufferedBounds, map]);
+
+  useMapEvents({
+    moveend: syncViewport,
+    zoomend: syncViewport,
+  });
+
+  useEffect(() => {
+    syncViewport();
+  }, [index, syncViewport]);
+
+  const clusters = useMemo(
+    () =>
+      index.getClusters(viewport.bounds, viewport.zoom) as Array<
+        ClusterPointFeature | ClusterFeature
+      >,
+    [index, viewport.bounds, viewport.zoom],
+  );
+
+  return (
+    <>
+      {clusters.map((feature) => {
+        const [lng, lat] = feature.geometry.coordinates;
+
+        if (isClusterFeature(feature)) {
+          const clusterId = feature.properties.cluster_id;
+          const pointCount = feature.properties.point_count;
+
+          return (
+            <Marker
+              key={`cluster-${clusterId}`}
+              position={[lat, lng]}
+              icon={clusterIconFactory(pointCount)}
+              eventHandlers={{
+                click: () => {
+                  const nextZoom = Math.min(index.getClusterExpansionZoom(clusterId), 18);
+                  map.setView([lat, lng], nextZoom, { animate: true });
+                },
+              }}
+            />
+          );
+        }
+
+        const property = feature.properties.property;
+        return (
+          <Marker
+            key={property.id}
+            position={[Number(property.latitude), Number(property.longitude)]}
+            icon={markerIconFactory(property.listPrice, showPriceLabels)}
+            eventHandlers={{
+              click: () => {
+                onMarkerClick(property);
+              },
+            }}
+          />
+        );
+      })}
+    </>
+  );
+});
+
+type SharedPopupHostProps = {
+  openPopup: OpenPopupState | null;
+  onClose: () => void;
+};
+
+function SharedPopupHost({ openPopup, onClose }: SharedPopupHostProps) {
+  const map = useMap();
+  const popupRef = useRef<L.Popup | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
+  const [PopupCardComponent, setPopupCardComponent] = useState<React.ComponentType<{
+    listingKey: string;
+  }> | null>(null);
+
+  useEffect(() => {
+    if (!openPopup || PopupCardComponent) {
+      return;
+    }
+
+    let active = true;
+
+    void import('./map-popup-card').then((mod) => {
+      if (!active) {
+        return;
+      }
+      setPopupCardComponent(() => mod.default);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [openPopup, PopupCardComponent]);
+
+  useEffect(() => {
+    popupRef.current = L.popup({
+      autoPan: true,
+      keepInView: true,
+      closeButton: false,
+      className: 'w-72',
+    });
+
+    const handlePopupClose = (event: PopupEvent) => {
+      if (event.popup === popupRef.current) {
+        onClose();
+      }
+    };
+
+    map.on('popupclose', handlePopupClose);
+
+    return () => {
+      map.off('popupclose', handlePopupClose);
+      popupRef.current?.remove();
+      popupRef.current = null;
+      containerRef.current = null;
+    };
+  }, [map, onClose]);
+
+  useEffect(() => {
+    if (!popupRef.current) {
+      return;
+    }
+
+    if (!openPopup) {
+      map.closePopup(popupRef.current);
+      return;
+    }
+
+    if (!containerRef.current) {
+      const container = document.createElement('div');
+      container.className = 'w-72';
+      containerRef.current = container;
+    }
+
+    popupRef.current
+      .setLatLng([openPopup.lat, openPopup.lng])
+      .setContent(containerRef.current)
+      .openOn(map);
+  }, [map, openPopup]);
+
+  if (!openPopup || !containerRef.current) {
+    return null;
+  }
+
+  return createPortal(
+    PopupCardComponent ? (
+      <PopupCardComponent listingKey={openPopup.listingKey} />
+    ) : (
+      POPUP_SKELETON_NODE
+    ),
+    containerRef.current,
+  );
+}
 
 type MapProps = {
-  properties: TListingMarker[];
+  properties: PropertySearchMarker[];
   markersLoading?: boolean;
   onInitialMarkersRendered?: () => void;
 };
@@ -127,42 +363,35 @@ function MapEvents({
   return null;
 }
 
+function MapLifecycleTracker() {
+  const map = useMap();
+
+  useEffect(() => {
+    return registerLeafletMap(map);
+  }, [map]);
+
+  return null;
+}
+
 export function MapView({
   properties,
   markersLoading = false,
   onInitialMarkersRendered,
 }: MapProps) {
-  const queryClient = useQueryClient();
   const [mapLoading, setMapLoading] = React.useState(true);
   const [mapReady, setMapReady] = React.useState(false);
-  const [openPopup, setOpenPopup] = useState<{ listingKey: string; container: HTMLElement } | null>(
-    null,
-  );
+  const [markersReady, setMarkersReady] = React.useState(false);
+  const [openPopup, setOpenPopup] = useState<OpenPopupState | null>(null);
   const initialMarkersRenderedRef = useRef(false);
+  const markerIconCacheRef = useRef(new Map<string, L.DivIcon>());
+  const clusterIconCacheRef = useRef(new Map<number, L.DivIcon>());
   const mapTimestamp = useMapStore((state) => state.timestamp);
   const positionUpdated = useMapStore((state) => state.positionUpdated);
   const mapPosition = useMapStore((state) => state.mapPosition);
   const userPosition = useMapStore((state) => state.userPosition);
   const zoom = useMapStore((state) => state.zoom);
   const { setPositionUpdated, setBounds, setMapPosition, setZoom } = useMapActions();
-
-  const validProperties = useMemo(
-    () =>
-      properties.filter((property) => {
-        const latitude = Number(property.latitude);
-        const longitude = Number(property.longitude);
-
-        return (
-          Number.isFinite(latitude) &&
-          Number.isFinite(longitude) &&
-          latitude >= -90 &&
-          latitude <= 90 &&
-          longitude >= -180 &&
-          longitude <= 180
-        );
-      }),
-    [properties],
-  );
+  const displayedProperties = properties;
 
   const initialCenter = useMemo<[number, number]>(() => {
     const timestamp = Date.now() - mapTimestamp;
@@ -181,56 +410,104 @@ export function MapView({
     return timestamp < millisecondsInOneDay && zoom ? zoom : DEFAULT_POSITION.zoom;
   }, [mapTimestamp, zoom]);
 
-  const prefetchMarkerCard = React.useCallback(
-    (listingKey: string) => {
-      if (!listingKey) {
-        return;
-      }
+  const handleMarkerClick = React.useCallback((property: PropertySearchMarker) => {
+    if (!property.listingKey) {
+      return;
+    }
 
-      const options = markerCardByListingKeyOptions(listingKey);
-      const state = queryClient.getQueryState(options.queryKey);
-      const staleTime = typeof options.staleTime === 'number' ? options.staleTime : 0;
+    const latitude = Number(property.latitude);
+    const longitude = Number(property.longitude);
 
-      if (state?.fetchStatus === 'fetching') {
-        return;
-      }
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return;
+    }
 
-      if (state?.dataUpdatedAt && staleTime > 0) {
-        const isFresh = Date.now() - state.dataUpdatedAt < staleTime;
-        if (isFresh) {
-          return;
-        }
-      }
-
-      void queryClient.ensureQueryData(options).catch(() => undefined);
-    },
-    [queryClient],
-  );
-
-  const mountPopupContent = React.useCallback((e: LeafletEvent, property: TListingMarker) => {
-    const marker = e.target as L.Marker;
-    const container = document.createElement('div');
-    container.className = 'w-72';
-    marker.setPopupContent(container);
-    setOpenPopup({ listingKey: property.listingKey, container });
+    setOpenPopup({
+      listingKey: property.listingKey,
+      lat: latitude,
+      lng: longitude,
+    });
   }, []);
 
-  function clusterMarkerFactory() {
-    return new DivIcon({
+  const clusterMarkerFactory = React.useCallback((_count: number) => {
+    const cached = clusterIconCacheRef.current.get(0);
+    if (cached) {
+      return cached;
+    }
+
+    const icon = new DivIcon({
       className: 'h-auto w-auto rounded-full',
       html: `<div class="bg-polaris-primary flex shadow-md items-center justify-center h-3.5 min-w-3.5 w-fit px-1 font-rounded rounded-full text-center font-medium text-white ring-2 ring-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis-icon lucide-ellipsis"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></div>`,
     });
-  }
 
-  const markerIcon = (listPrice: string, zoom: number) =>
-    L.divIcon({
-      className: 'h-auto w-auto rounded-full',
-      html: `<div class="bg-polaris-primary flex text-2xs leading-0 shadow-md items-center justify-center h-3.5 min-w-3.5 w-fit rounded-full text-center ${
-        zoom >= ZOOM_BREAKPOINT ? 'px-2' : 'px-0'
-      } font-medium text-white ring-2 ring-white">${
-        zoom >= ZOOM_BREAKPOINT ? abbreviateNumber(Number(listPrice), 2, { padding: false }) : ''
-      }</div>`,
+    clusterIconCacheRef.current.set(0, icon);
+    return icon;
+  }, []);
+
+  const markerIcon = React.useCallback(
+    (listPrice: PropertySearchMarker['listPrice'], showPriceLabels: boolean) => {
+      const cacheKey = showPriceLabels
+        ? `price-${abbreviateNumber(Number(listPrice ?? 0), 2, { padding: false })}`
+        : 'dot';
+
+      const cached = markerIconCacheRef.current.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      const label = showPriceLabels
+        ? abbreviateNumber(Number(listPrice ?? 0), 2, { padding: false })
+        : '';
+
+      const icon = L.divIcon({
+        className: 'h-auto w-auto rounded-full',
+        html: `<div class="bg-polaris-primary flex text-2xs leading-0 shadow-md items-center justify-center h-3.5 min-w-3.5 w-fit rounded-full text-center ${
+          showPriceLabels ? 'px-2' : 'px-0'
+        } font-medium text-white ring-2 ring-white">${label}</div>`,
+      });
+
+      markerIconCacheRef.current.set(cacheKey, icon);
+
+      return icon;
+    },
+    [],
+  );
+
+  const showPriceLabels = zoom >= ZOOM_BREAKPOINT;
+
+  const clusterPoints = useMemo<Array<ClusterPointFeature>>(
+    () =>
+      displayedProperties.flatMap((property) => {
+        const latitude = Number(property.latitude);
+        const longitude = Number(property.longitude);
+
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          return [];
+        }
+
+        return [
+          {
+            type: 'Feature',
+            properties: { property },
+            geometry: {
+              type: 'Point',
+              coordinates: [longitude, latitude],
+            },
+          },
+        ];
+      }),
+    [displayedProperties],
+  );
+
+  const clusterIndex = useMemo(() => {
+    const index = new Supercluster<ClusterPointProperties, ClusterProperties>({
+      radius: 60,
+      maxZoom: 18,
+      minZoom: 0,
     });
+    index.load(clusterPoints);
+    return index;
+  }, [clusterPoints]);
 
   useEffect(() => {
     if (!mapReady) {
@@ -241,15 +518,27 @@ export function MapView({
   useEffect(() => {
     if (markersLoading) {
       initialMarkersRenderedRef.current = false;
+      setMarkersReady(false);
     }
   }, [markersLoading]);
 
   useEffect(() => {
     if (mapReady && !markersLoading && !initialMarkersRenderedRef.current) {
       initialMarkersRenderedRef.current = true;
+      setMarkersReady(true);
       onInitialMarkersRendered?.();
     }
-  }, [mapReady, markersLoading, onInitialMarkersRendered, validProperties.length]);
+  }, [mapReady, markersLoading, onInitialMarkersRendered, displayedProperties.length]);
+
+  useEffect(() => {
+    const markerIconCache = markerIconCacheRef.current;
+    const clusterIconCache = clusterIconCacheRef.current;
+
+    return () => {
+      markerIconCache.clear();
+      clusterIconCache.clear();
+    };
+  }, []);
 
   return (
     <>
@@ -280,46 +569,25 @@ export function MapView({
           setMapReady={setMapReady}
         />
 
-        <MarkerClusterGroup
-          animate={false}
-          chunkedLoading
-          chunkInterval={120}
-          chunkDelay={20}
-          maxClusterRadius={(currentZoom: number) => {
-            return currentZoom < ZOOM_BREAKPOINT ? 36 : 16;
+        <MapLifecycleTracker />
+
+        <MarkerLayer
+          index={clusterIndex}
+          showPriceLabels={showPriceLabels}
+          markerIconFactory={markerIcon}
+          clusterIconFactory={clusterMarkerFactory}
+          onMarkerClick={handleMarkerClick}
+        />
+
+        <SharedPopupHost
+          openPopup={openPopup}
+          onClose={() => {
+            setOpenPopup(null);
           }}
-          showCoverageOnHover={false}
-          removeOutsideVisibleBounds
-          spiderfyOnMaxZoom
-          iconCreateFunction={clusterMarkerFactory}>
-          {validProperties.map((property) => (
-            <Marker
-              key={property.listingKey}
-              position={[Number(property.latitude), Number(property.longitude)]}
-              icon={markerIcon(property.listPrice ?? '0', zoom)}
-              eventHandlers={{
-                mouseover: () => {
-                  prefetchMarkerCard(property.listingKey);
-                },
-                popupopen: (e: LeafletEvent) => {
-                  mountPopupContent(e, property);
-                },
-                popupclose: () => {
-                  setOpenPopup(null);
-                },
-              }}>
-              <Popup autoPan keepInView closeButton={false} className='w-72'>
-                <p>Loading property details...</p>
-              </Popup>
-            </Marker>
-          ))}
-        </MarkerClusterGroup>
+        />
       </MapContainer>
 
-      {mapLoading || !mapReady ? <Loader /> : null}
-      {openPopup
-        ? createPortal(<MapPopupCard listingKey={openPopup.listingKey} />, openPopup.container)
-        : null}
+      {mapLoading || !mapReady || markersLoading || !markersReady ? <Loader /> : null}
     </>
   );
 }

@@ -775,6 +775,8 @@ export async function persistHistoryPage<T extends Record<string, unknown>>(para
 export async function* replayHistoryResource<T extends Record<string, unknown>>(params: {
   resource: MlsResource;
   batchSize?: number;
+  afterTimestamp?: Date;
+  getTimestamp?: (record: T) => string | undefined;
 }): AsyncGenerator<T[]> {
   if (!isHistoryEnabled()) {
     return;
@@ -782,6 +784,8 @@ export async function* replayHistoryResource<T extends Record<string, unknown>>(
 
   const { resource } = params;
   const batchSize = params.batchSize ?? MLS_HISTORY_DEFAULTS.replayBatchSize;
+  const afterTimestamp = params.afterTimestamp;
+  const getTimestamp = params.getTimestamp;
   const resourceDir = path.join(HISTORY_ROOT, resource);
 
   const partitionDirs = await listPartitionDirectories(resourceDir);
@@ -796,6 +800,11 @@ export async function* replayHistoryResource<T extends Record<string, unknown>>(
     }
 
     for (const chunk of manifest.chunks) {
+      const chunkLastTimestamp = normalizeTimestamp(chunk.lastTimestamp);
+      if (afterTimestamp && chunkLastTimestamp && chunkLastTimestamp <= afterTimestamp) {
+        continue;
+      }
+
       const file = path.join(partitionDir, chunk.file);
       try {
         const payload = await readChunkPayload<T>(file);
@@ -805,7 +814,15 @@ export async function* replayHistoryResource<T extends Record<string, unknown>>(
           );
         }
 
-        for (const record of payload.records) {
+        const candidateRecords =
+          afterTimestamp && getTimestamp
+            ? payload.records.filter((record) => {
+              const recordTimestamp = normalizeTimestamp(getTimestamp(record));
+              return Boolean(recordTimestamp && recordTimestamp > afterTimestamp);
+            })
+            : payload.records;
+
+        for (const record of candidateRecords) {
           batch.push(record);
 
           if (batch.length >= batchSize) {

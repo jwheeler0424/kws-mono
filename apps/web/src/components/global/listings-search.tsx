@@ -31,19 +31,19 @@ import {
 import { Slider } from '@kws/design/ui/slider';
 import { toast } from '@kws/design/ui/toast';
 import { isValidMapBounds } from '@kws/types';
-import { useQueryClient } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { Search, X } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/global/button';
 import {
-  hydrateListingCardsByKeysOptions,
-  searchListingsPageFromRouteOptions,
-} from '@/features/mls/options/search';
+  getHydratedListingsPaginatedServerFn,
+  getListingsForSearchAndFilterServerFn,
+} from '@/features/mls/functions/listings';
+import { ListingsKeys, normalizeListingsSearchInput } from '@/features/mls/options/listings';
 import { cn, numberFormatInternational } from '@/lib/utils';
 import { getAddressStreet, numberFormat } from '@/lib/utils/properties';
-import { Route as ListingsRoute } from '@/routes/listings/_listings.index';
 import { useMapActions, useMapStore } from '@/stores/map.store';
 
 import { ScrollArea } from './listings-search-scroll-area';
@@ -51,6 +51,15 @@ import { ScrollArea } from './listings-search-scroll-area';
 type TListingsSearchPatch = Partial<TListingsSearch>;
 
 type TListingsRouteSearch = Partial<TListingsSearch>;
+
+type ListingsSearchProps = {
+  search: TListingsRouteSearch;
+};
+
+type TRangeFilterValue = {
+  min: number | null;
+  max: number | null;
+};
 
 const toOptional = <T,>(value: T | null | undefined): T | undefined => value ?? undefined;
 
@@ -111,9 +120,23 @@ const normalizeBounds = (bounds: TMapBounds | null | undefined): TMapBounds | nu
   return isValidMapBounds(normalized) ? normalized : null;
 };
 
-export default function ListingsSearch() {
-  const search = ListingsRoute.useSearch();
-  const navigate = ListingsRoute.useNavigate();
+const toOptionalRangeFilter = (
+  min: number | null,
+  max: number | null,
+): TRangeFilterValue | undefined => {
+  if (min === null && max === null) {
+    return undefined;
+  }
+
+  return {
+    min,
+    max,
+  };
+};
+
+export default function ListingsSearch({ search }: ListingsSearchProps) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [filterOpen, setFilterOpen] = React.useState<boolean>(false);
   const { min: priceMin, max: priceMax } = search.price ?? { min: null, max: null };
   const { min: sqFtMin, max: sqFtMax } = search.sqFt ?? { min: null, max: null };
@@ -127,7 +150,6 @@ export default function ListingsSearch() {
   };
   const query = search.query;
   const useMapBounds = search.useMapBounds;
-  const queryClient = useQueryClient();
 
   const mapBounds = useMapStore((state) => state.bounds);
   const normalizedMapBounds = React.useMemo(() => normalizeBounds(mapBounds), [mapBounds]);
@@ -157,21 +179,35 @@ export default function ListingsSearch() {
   const latestSearchRequestRef = React.useRef(0);
   const boundsSyncTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const listingsSearchMutation = useMutation({
+    mutationFn: (input: Partial<TListingsSearch>) =>
+      getListingsForSearchAndFilterServerFn({
+        data: input,
+      }),
+    onSuccess: (data, input) => {
+      queryClient.setQueryData(ListingsKeys.searchAndFilter(input), data);
+    },
+  });
+
   const { minPrice, maxPrice, minSqFt, maxSqFt, minBedroom, maxBedroom, minBathroom, maxBathroom } =
     FILTER_LIMITS;
 
   const buildSearchPatchFromLocal = React.useCallback(
     (queryValue: string | undefined): TListingsSearchPatch => {
       const shouldUseMapBounds = Boolean(useMapBoundsLocal && normalizedMapBounds);
+      const price = toOptionalRangeFilter(priceValues[0], priceValues[1]);
+      const sqFt = toOptionalRangeFilter(sqFtValues[0], sqFtValues[1]);
+      const bedrooms = toOptionalRangeFilter(bedroomValues[0], bedroomValues[1]);
+      const bathrooms = toOptionalRangeFilter(bathroomValues[0], bathroomValues[1]);
 
       return {
         query: queryValue && queryValue.length >= 3 ? queryValue : null,
-        price: { min: priceValues[0], max: priceValues[1] },
-        sqFt: { min: sqFtValues[0], max: sqFtValues[1] },
-        bedrooms: { min: bedroomValues[0], max: bedroomValues[1] },
-        bathrooms: { min: bathroomValues[0], max: bathroomValues[1] },
-        useMapBounds: shouldUseMapBounds,
-        bounds: shouldUseMapBounds ? normalizedMapBounds : null,
+        price,
+        sqFt,
+        bedrooms,
+        bathrooms,
+        useMapBounds: shouldUseMapBounds ? true : undefined,
+        bounds: shouldUseMapBounds ? normalizedMapBounds : undefined,
       };
     },
     [
@@ -195,12 +231,30 @@ export default function ListingsSearch() {
     [navigate],
   );
 
+  const runListingsSearchMutation = React.useCallback(
+    async (nextSearch: TListingsRouteSearch) => {
+      const normalizedSearch = normalizeListingsSearchInput(nextSearch);
+      const response = await listingsSearchMutation.mutateAsync(normalizedSearch);
+
+      // Remove stale hydration data from previous sessions as search inputs change.
+      queryClient.removeQueries({
+        queryKey: [...ListingsKeys.all, 'hydrated-paginated'],
+      });
+
+      return response;
+    },
+    [listingsSearchMutation, queryClient],
+  );
+
   const handleClearSearchQuery = (_e: React.MouseEvent) => {
     setSearchQueryLocal(undefined);
     setSearchResults([]);
     setIsSearchLoading(false);
 
-    commitSearchPatch({ query: null }, { replace: true });
+    const patch: TListingsSearchPatch = { query: null };
+    const routeSearch = mergePatchIntoRouteSearch(search, patch);
+    void runListingsSearchMutation(routeSearch);
+    commitSearchPatch(patch, { replace: true });
   };
 
   const handleSetBounds = (checked: CheckboxRootState['checked']) => {
@@ -253,36 +307,27 @@ export default function ListingsSearch() {
         return;
       }
 
-      commitSearchPatch(patch, { replace: true });
-
       const requestId = latestSearchRequestRef.current + 1;
       latestSearchRequestRef.current = requestId;
       setIsSearchLoading(true);
 
       try {
         const previewLimit = routeSearch.limit ?? 25;
-
-        const page = await queryClient.ensureQueryData(
-          searchListingsPageFromRouteOptions(routeSearch, {
+        const searchResult = await runListingsSearchMutation(routeSearch);
+        const response = await getHydratedListingsPaginatedServerFn({
+          data: {
+            sessionId: searchResult.sessionId,
             limit: previewLimit,
-          }),
-        );
-
-        const listingKeys = page.items.map((item) => item.listingKey);
-        const response = listingKeys.length
-          ? await queryClient.ensureQueryData(
-              hydrateListingCardsByKeysOptions({
-                listingKeys,
-                maxBatchSize: previewLimit,
-              }),
-            )
-          : [];
+            cursor: null,
+          },
+        });
 
         if (latestSearchRequestRef.current !== requestId) {
           return;
         }
 
-        setSearchResults(response);
+        setSearchResults(response.items);
+        commitSearchPatch(patch, { replace: true });
       } catch {
         if (latestSearchRequestRef.current !== requestId) {
           return;
@@ -295,7 +340,7 @@ export default function ListingsSearch() {
         }
       }
     },
-    [buildSearchPatchFromLocal, commitSearchPatch, search, queryClient],
+    [buildSearchPatchFromLocal, commitSearchPatch, runListingsSearchMutation, search],
   );
 
   const resetSearchFilters = (_e: React.MouseEvent<HTMLButtonElement>) => {
@@ -305,17 +350,17 @@ export default function ListingsSearch() {
     setBathroomValuesLocal([null, null]);
     setUseBoundsLocal(false);
 
-    commitSearchPatch(
-      {
-        price: null,
-        sqFt: null,
-        bedrooms: null,
-        bathrooms: null,
-        useMapBounds: false,
-        bounds: null,
-      },
-      { replace: true },
-    );
+    const patch: TListingsSearchPatch = {
+      price: null,
+      sqFt: null,
+      bedrooms: null,
+      bathrooms: null,
+      useMapBounds: false,
+      bounds: null,
+    };
+    const routeSearch = mergePatchIntoRouteSearch(search, patch);
+    void runListingsSearchMutation(routeSearch);
+    commitSearchPatch(patch, { replace: true });
   };
 
   const handleInputSearch = React.useCallback(
@@ -323,8 +368,10 @@ export default function ListingsSearch() {
       if (e.key === 'Enter' && e.currentTarget.value.length >= 3) {
         const queryValue = e.currentTarget.value;
         const patch = buildSearchPatchFromLocal(queryValue);
+        const routeSearch = mergePatchIntoRouteSearch(search, patch);
         setIsSearchLoading(false);
         setSearchResults([]);
+        void runListingsSearchMutation(routeSearch);
         commitSearchPatch(patch);
         return;
       }
@@ -333,7 +380,7 @@ export default function ListingsSearch() {
         setSearchResults([]);
       }
     },
-    [buildSearchPatchFromLocal, commitSearchPatch],
+    [buildSearchPatchFromLocal, commitSearchPatch, runListingsSearchMutation, search],
   );
 
   React.useEffect(() => {
@@ -409,7 +456,9 @@ export default function ListingsSearch() {
         setMapZoom(DEFAULT_POSITION.zoom);
       }
       const patch = buildSearchPatchFromLocal(queryValue);
+      const routeSearch = mergePatchIntoRouteSearch(search, patch);
       setSearchResults([]);
+      void runListingsSearchMutation(routeSearch);
       commitSearchPatch(patch);
       setFilterOpen(false);
     },
@@ -419,6 +468,8 @@ export default function ListingsSearch() {
       searchQueryLocal,
       setMapBounds,
       setMapZoom,
+      runListingsSearchMutation,
+      search,
       useMapBoundsLocal,
     ],
   );
@@ -884,54 +935,58 @@ export default function ListingsSearch() {
                   searchResults.length > 3 ? 'h-72 lg:h-96' : 'h-auto',
                 )}>
                 <ItemGroup className='gap-1'>
-                  {searchResults.map((result) => (
-                    <Link
-                      key={result.listingKey}
-                      className='group m-0 flex w-full items-start gap-1 rounded-none text-left text-black no-underline hover:no-underline'
-                      to={`/listings/$listingKey`}
-                      preload='intent'
-                      params={{
-                        listingKey: result.listingKey,
-                      }}>
-                      <Item className='items-center px-2.5 group-hover:bg-muted'>
-                        <ItemMedia className='-mt-0.5 aspect-video h-10 w-fit overflow-clip rounded-sm bg-muted shadow transition-all duration-200 ease-linear group-hover:ring-2 group-hover:ring-polaris-primary group-hover:ring-offset-2 group-hover:ring-offset-white'>
-                          <img
-                            src={
-                              result.primaryPhotoThumbnailUrl ||
-                              result.primaryPhotoPreviewUrl ||
-                              result.primaryPhotoFullUrl ||
-                              result.primaryPhotoUrl ||
-                              PROPERTY_IMAGE_PLACEHOLDER_URL
-                            }
-                            alt={result.unparsedAddress ?? 'Property image'}
-                            className='object-cover object-center'
-                          />
-                        </ItemMedia>
-                        <ItemContent className='h-10 justify-center py-0'>
-                          <ItemTitle className='line-clamp-1 w-full truncate text-sm font-semibold transition-colors duration-200 ease-linear group-hover:text-polaris-primary'>
-                            <span className='block w-full truncate'>
-                              {getAddressStreet(result)}
-                            </span>
-                          </ItemTitle>
-                          <ItemDescription className='text-xs font-normal'>
-                            <span>
-                              {result.internetAutomatedValuationDisplayYN === false
-                                ? 'Unavailable'
-                                : numberFormat({ value: parseInt(result.listPrice ?? '0') })}
-                            </span>
-                            <span className='hidden @sm:inline'>
-                              {' '}
-                              | {result.propertySubType ?? result.propertyType}
-                            </span>
-                            <span>
-                              {' '}
-                              | {result.city}, {result.stateOrProvince}
-                            </span>
-                          </ItemDescription>
-                        </ItemContent>
-                      </Item>
-                    </Link>
-                  ))}
+                  {searchResults
+                    .filter((result): result is TPropertyCard & { listingKey: string } =>
+                      Boolean(result.listingKey),
+                    )
+                    .map((result) => (
+                      <Link
+                        key={result.listingKey}
+                        className='group m-0 flex w-full items-start gap-1 rounded-none text-left text-black no-underline hover:no-underline'
+                        to={`/listings/$listingKey`}
+                        preload='intent'
+                        params={{
+                          listingKey: result.listingKey,
+                        }}>
+                        <Item className='items-center px-2.5 group-hover:bg-muted'>
+                          <ItemMedia className='-mt-0.5 aspect-video h-10 w-fit overflow-clip rounded-sm bg-muted shadow transition-all duration-200 ease-linear group-hover:ring-2 group-hover:ring-polaris-primary group-hover:ring-offset-2 group-hover:ring-offset-white'>
+                            <img
+                              src={
+                                result.primaryPhotoThumbnailUrl ||
+                                result.primaryPhotoPreviewUrl ||
+                                result.primaryPhotoFullUrl ||
+                                result.primaryPhotoUrl ||
+                                PROPERTY_IMAGE_PLACEHOLDER_URL
+                              }
+                              alt={result.unparsedAddress ?? 'Property image'}
+                              className='object-cover object-center'
+                            />
+                          </ItemMedia>
+                          <ItemContent className='h-10 justify-center py-0'>
+                            <ItemTitle className='line-clamp-1 w-full truncate text-sm font-semibold transition-colors duration-200 ease-linear group-hover:text-polaris-primary'>
+                              <span className='block w-full truncate'>
+                                {getAddressStreet(result)}
+                              </span>
+                            </ItemTitle>
+                            <ItemDescription className='text-xs font-normal'>
+                              <span>
+                                {result.internetAutomatedValuationDisplayYN === false
+                                  ? 'Unavailable'
+                                  : numberFormat({ value: parseInt(result.listPrice ?? '0') })}
+                              </span>
+                              <span className='hidden @sm:inline'>
+                                {' '}
+                                | {result.propertySubType ?? result.propertyType}
+                              </span>
+                              <span>
+                                {' '}
+                                | {result.city}, {result.stateOrProvince}
+                              </span>
+                            </ItemDescription>
+                          </ItemContent>
+                        </Item>
+                      </Link>
+                    ))}
                 </ItemGroup>
               </ScrollArea>
             ) : null}

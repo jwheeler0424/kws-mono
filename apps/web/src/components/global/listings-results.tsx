@@ -1,99 +1,134 @@
 import type { CursorResult, TListingsSearch, TPropertyCard } from '@kws/types';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import React from 'react';
+import { BeatLoader } from 'react-spinners';
 
-import { searchListingsCardsPageFromRouteOptions } from '@/features/mls/options/search';
+import {
+  hydratedListingsPaginatedInfiniteOptions,
+  listingsForSearchAndFilterOptions,
+} from '@/features/mls/options/listings';
 
 import ListingsSection from './listings-section';
-import Loader from './map-loader';
 
-export function ListingsResults({
-  params,
-  resultCount,
-}: {
-  params: Partial<TListingsSearch>;
-  resultCount: number;
-}) {
-  const queryClient = useQueryClient();
-  const pageSize = params.limit ?? 24;
+export function ListingsResults({ params }: { params: Partial<TListingsSearch> }) {
+  const pageSize = params.limit ?? 48;
+  const MAX_RENDER_PAGES = 6;
 
   const {
-    data: firstPageCards,
-    isPending,
-    isFetching,
-  } = useQuery(searchListingsCardsPageFromRouteOptions(params, { limit: pageSize }));
+    data: searchResult,
+    isPending: isListingsPending,
+    isFetching: isListingsFetching,
+    refetch: refetchListings,
+  } = useQuery(listingsForSearchAndFilterOptions(params));
 
-  const [pages, setPages] = React.useState<CursorResult<TPropertyCard>[]>([]);
-  const [nextCursor, setNextCursor] = React.useState<string | null>(null);
-  const [loadingMore, setLoadingMore] = React.useState(false);
+  const {
+    data: hydratedPages,
+    isPending: isHydrationPending,
+    isFetching: isHydrationFetching,
+    isError: isHydrationError,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery(
+    hydratedListingsPaginatedInfiniteOptions({
+      sessionId: searchResult?.sessionId ?? '',
+      limit: pageSize,
+    }),
+  );
 
-  React.useEffect(() => {
-    if (!firstPageCards) {
-      setPages([]);
-      setNextCursor(null);
-      return;
+  const properties = React.useMemo(() => {
+    const pages = hydratedPages?.pages.slice(-MAX_RENDER_PAGES) ?? [];
+    const seen = new Set<string>();
+    const deduped: TPropertyCard[] = [];
+
+    for (const page of pages) {
+      for (const item of page.items) {
+        const stableId = (item as TPropertyCard & { id?: unknown }).id;
+        const dedupeKey =
+          typeof stableId === 'string' && stableId.length > 0
+            ? `id:${stableId}`
+            : `listing:${item.listingKey}`;
+
+        if (seen.has(dedupeKey)) {
+          continue;
+        }
+
+        seen.add(dedupeKey);
+        deduped.push(item);
+      }
     }
 
-    setPages([
-      {
-        items: firstPageCards.items,
-        nextCursor: firstPageCards.nextCursor,
-        hasMore: firstPageCards.hasMore,
-      },
-    ]);
-    setNextCursor(firstPageCards.nextCursor);
-  }, [firstPageCards]);
+    return deduped;
+  }, [hydratedPages?.pages]);
 
-  const properties = React.useMemo(() => pages.flatMap((page) => page.items), [pages]);
-  const resultCountRef = React.useRef(resultCount);
-  resultCountRef.current = resultCount;
+  const recoverySessionRef = React.useRef<string | null>(null);
+
+  const titleCount = searchResult?.total ?? 0;
 
   const handleLoadMore = React.useCallback(() => {
-    if (!nextCursor || loadingMore || properties.length >= resultCountRef.current) {
+    if (!hasNextPage || isFetchingNextPage) {
       return false;
     }
 
-    setLoadingMore(true);
-
-    void (async () => {
-      const cardsPage = await queryClient.ensureQueryData(
-        searchListingsCardsPageFromRouteOptions(params, {
-          cursor: nextCursor,
-          limit: pageSize,
-        }),
-      );
-
-      return {
-        items: cardsPage.items,
-        nextCursor: cardsPage.nextCursor,
-        hasMore: cardsPage.hasMore,
-      } as CursorResult<TPropertyCard>;
-    })()
-      .then((page) => {
-        setPages((currentPages) => [...currentPages, page]);
-        setNextCursor(page.nextCursor);
-      })
-      .catch(() => {
-        // Keep current page state; allow users to retry load-more.
-      })
-      .finally(() => {
-        setLoadingMore(false);
-      });
+    void fetchNextPage();
 
     return true;
-  }, [loadingMore, nextCursor, pageSize, params, properties.length, queryClient]);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  React.useEffect(() => {
+    if (!searchResult?.sessionId) {
+      recoverySessionRef.current = null;
+      return;
+    }
+
+    if (isListingsPending || isListingsFetching || isHydrationPending || isHydrationFetching) {
+      return;
+    }
+
+    const expectedTotal = searchResult.total ?? 0;
+    if (expectedTotal <= properties.length || hasNextPage) {
+      return;
+    }
+
+    if (recoverySessionRef.current === searchResult.sessionId) {
+      return;
+    }
+
+    recoverySessionRef.current = searchResult.sessionId;
+    void refetchListings();
+  }, [
+    hasNextPage,
+    isHydrationFetching,
+    isHydrationPending,
+    isListingsFetching,
+    isListingsPending,
+    properties.length,
+    refetchListings,
+    searchResult?.sessionId,
+    searchResult?.total,
+  ]);
 
   return (
     <>
-      {isPending ? <Loader /> : null}
+      {isListingsPending ? (
+        <main className='flex h-full min-h-[50vh] w-full flex-1 items-center justify-center py-20'>
+          <BeatLoader color='#ff0000' loading={true} size={15} />
+        </main>
+      ) : null}
       <ListingsSection
         properties={{ items: properties } as CursorResult<TPropertyCard>}
-        title={`Search Results ${resultCount ? `(${resultCount})` : ''}`}
-        emptyText={isPending || isFetching ? '' : 'There are currently no results to view.'}
-        pageSize={params.limit ?? 24}
-        hasMore={Boolean(nextCursor)}
-        loadingMore={loadingMore}
+        title={`Search Results ${titleCount ? `(${titleCount})` : ''}`}
+        emptyText={
+          isHydrationError
+            ? 'Property cards failed to load. Please refresh and try again.'
+            : isListingsPending || isListingsFetching || isHydrationPending || isHydrationFetching
+              ? ''
+              : 'There are currently no results to view.'
+        }
+        pageSize={pageSize}
+        hasMore={Boolean(hasNextPage)}
+        loadingMore={isFetchingNextPage}
         onLoadMore={handleLoadMore}
       />
     </>

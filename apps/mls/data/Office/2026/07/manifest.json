@@ -3,7 +3,7 @@
   "resource": "Office",
   "year": "2026",
   "month": "07",
-  "updatedAt": "2026-07-06T19:34:35.988Z",
+  "updatedAt": "2026-07-07T22:06:51.211Z",
   "chunks": [
     {
       "file": "office-2026-07-06T17-36-00-230Z-lt1o4t7c.jsonl.gz",
@@ -28,6 +28,142 @@
       "firstTimestamp": "2026-07-06T19:11:08.783Z",
       "lastTimestamp": "2026-07-06T19:26:09.479Z",
       "createdAt": "2026-07-06T19:34:35.988Z"
+    },
+    {
+      "file": "office-2026-07-07T15-47-21-120Z-wodg3fn1.jsonl.gz",
+      "checksumSha256": "5ef0dfa708a00fb7e6019b5ac4cb71c19aa96f9ce36c376997998e17a65cb748",
+      "recordCount": 15,
+      "firstTimestamp": "2026-07-06T19:41:08.730Z",
+      "lastTimestamp": "2026-07-07T15:41:09.813Z",
+      "createdAt": "2026-07-07T15:47:21.123Z"
+    },
+    {
+      "file": "office-2026-07-07T16-06-16-226Z-5xggijcq.jsonl.gz",
+      "checksumSha256": "3f8d4d75d6a82c6c41acae41ee289304b772a28574b71dae260e6d13c816b9de",
+      "recordCount": 1,
+      "firstTimestamp": "2026-07-07T15:56:08.638Z",
+      "lastTimestamp": "2026-07-07T15:56:08.638Z",
+      "createdAt": "2026-07-07T16:06:16.226Z"
+    },
+    {
+      "file": "office-2026-07-07T16-22-01-323Z-xyqwyi16.jsonl.gz",
+      "checksumSha256": "df310aee05f075ded09d349d96469f6e1ee570b9ffa40aef3ee8874c1a332af1",
+      "recordCount": 1,
+      "firstTimestamp": "2026-07-07T16:11:09.384Z",
+      "lastTimestamp": "2026-07-07T16:11:09.384Z",
+      "createdAt": "2026-07-07T16:22:01.324Z"
+    },
+    {
+      "file": "office-2026-07-07T16-37-01-363Z-mmzxklt9.jsonl.gz",
+      "checksumSha256": "33bc5cb073f46731c1d4c4a8773725ced1599210749d83f22c8a261a229fc7c4",
+      "recordCount": 2,
+      "firstTimestamp": "2026-07-07T16:26:08.684Z",
+      "lastTimestamp": "2026-07-07T16:26:08.805Z",
+      "createdAt": "2026-07-07T16:37:01.364Z"
+    },
+    {
+      "file": "office-2026-07-07T16-52-01-235Z-6vn2w35o.jsonl.gz",
+      "checksumSha256": "a0ea8520c31174b1ae9a687f0a4efc38e76e807cd9e807752520bfe4b6df103c",
+      "recordCount": 6,
+      "firstTimestamp": "2026-07-07T16:26:08.805Z",
+      "lastTimestamp": "2026-07-07T16:41:08.989Z",
+      "createdAt": "2026-07-07T16:52:01.236Z"
+    },
+    {
+      "file": "office-2026-07-07T17-07-01-129Z-8qb3i6za.jsonl.gz",
+      "checksumSha256": "2056304c88655d7d2cc47198fce0e247081e290154e97cdc1512100b2bc89969",
+      "recordCount": 5,
+      "firstTimestamp": "2026-07-07T16:41:08.902Z",
+      "lastTimestamp": "2026-07-07T16:56:09.117Z",
+      "createdAt": "2026-07-07T17:07:01.130Z"
+    },
+    {
+      "file": "office-2026-07-07T17-18-53-598Z-b7z0y1xf.jsonl.gz",
+      "checksumSha256": "50b81affd1885744d200f804dd9a8454a7fac2174d25bb3327bbf890d4f9ea59",
+      "recordCount": 7,
+      "firstTimestamp": "2026-07-07T17:11:08.707Z",
+      "lastTimestamp": "2026-07-07T17:11:09.283Z",
+      "createdAt": "2026-07-07T17:18:53.599Z"
+    },
+    {
+      "file": "office-2026-07-07T17-23-13-747Z-skfiaxx7.jsonl.gz",
+      "checksumSha256": "50b81affd1885744d200f804dd9a8454a7fac2174d25bb3327bbf890d4f9ea59",
+      "recordCount": 7,
+      "firstTimestamp": "2026-07-07T17:11:08.707Z",
+      "lastTimestamp": "2026-07-07T17:11:09.283Z",
+      "createdAt": "2026-07-07T17:23:13.747Z"
+    },
+    {
+      "file": "office-2026-07-07T17-28-28-929Z-akctx1xm.jsonl.gz",
+      "checksumSha256": "c972384476d0a8d4534d271ef697ab933ae992c9c908874e5d02c5598c2bf88a",
+      "recordCount": 8,
+      "firstTimestamp": "2026-07-07T17:11:08.707Z",
+      "lastTimestamp": "2026-07-07T17:26:09.154Z",
+      "createdAt": "2026-07-07T17:28:28.931Z"
+    },
+    {
+      "file": "office-2026-07-07T17-29-51-184Z-v54963ls.jsonl.gz",
+      "checksumSha256": "ecc092e03ddfd97f2922e2ac95d8fbf243533023c96513a0bd12bfaccc3ff2da",
+      "recordCount": 4,
+      "firstTimestamp": "2026-07-07T17:26:08.731Z",
+      "lastTimestamp": "2026-07-07T17:26:09.154Z",
+      "createdAt": "2026-07-07T17:29:51.185Z"
+    },
+    {
+      "file": "office-2026-07-07T17-32-18-229Z-9ue0j9tm.jsonl.gz",
+      "checksumSha256": "ecc092e03ddfd97f2922e2ac95d8fbf243533023c96513a0bd12bfaccc3ff2da",
+      "recordCount": 4,
+      "firstTimestamp": "2026-07-07T17:26:08.731Z",
+      "lastTimestamp": "2026-07-07T17:26:09.154Z",
+      "createdAt": "2026-07-07T17:32:18.230Z"
+    },
+    {
+      "file": "office-2026-07-07T17-37-35-935Z-gx1xt7u5.jsonl.gz",
+      "checksumSha256": "ecc092e03ddfd97f2922e2ac95d8fbf243533023c96513a0bd12bfaccc3ff2da",
+      "recordCount": 4,
+      "firstTimestamp": "2026-07-07T17:26:08.731Z",
+      "lastTimestamp": "2026-07-07T17:26:09.154Z",
+      "createdAt": "2026-07-07T17:37:35.937Z"
+    },
+    {
+      "file": "office-2026-07-07T17-48-45-265Z-cd21ucyu.jsonl.gz",
+      "checksumSha256": "e6858d58d9829e44352fecc18f3cf53585e8fb4c1c1fba9272538e3740dd05c3",
+      "recordCount": 8,
+      "firstTimestamp": "2026-07-07T17:26:09.051Z",
+      "lastTimestamp": "2026-07-07T17:41:09.293Z",
+      "createdAt": "2026-07-07T17:48:45.266Z"
+    },
+    {
+      "file": "office-2026-07-07T18-02-38-111Z-gccjyy91.jsonl.gz",
+      "checksumSha256": "a418034729f2fa392fb3b4c32c42440922cdca9dde5183685b82883f0fa34635",
+      "recordCount": 8,
+      "firstTimestamp": "2026-07-07T17:41:08.772Z",
+      "lastTimestamp": "2026-07-07T17:56:11.754Z",
+      "createdAt": "2026-07-07T18:02:38.113Z"
+    },
+    {
+      "file": "office-2026-07-07T18-09-16-725Z-5v8x60ko.jsonl.gz",
+      "checksumSha256": "c43a74153625ea4064b1290c371c334f6650801f6eff89832ecd8eb1c7a26960",
+      "recordCount": 5,
+      "firstTimestamp": "2026-07-07T17:56:11.315Z",
+      "lastTimestamp": "2026-07-07T17:56:11.754Z",
+      "createdAt": "2026-07-07T18:09:16.727Z"
+    },
+    {
+      "file": "office-2026-07-07T18-10-30-846Z-wqhksgyz.jsonl.gz",
+      "checksumSha256": "c43a74153625ea4064b1290c371c334f6650801f6eff89832ecd8eb1c7a26960",
+      "recordCount": 5,
+      "firstTimestamp": "2026-07-07T17:56:11.315Z",
+      "lastTimestamp": "2026-07-07T17:56:11.754Z",
+      "createdAt": "2026-07-07T18:10:30.847Z"
+    },
+    {
+      "file": "office-2026-07-07T22-06-51-208Z-tvcp4dsa.jsonl.gz",
+      "checksumSha256": "3947ed6d373a5bdb8ea96ff71cb4e404e81f6edd8b483ae07b317a081075c976",
+      "recordCount": 261,
+      "firstTimestamp": "2026-07-07T17:56:11.315Z",
+      "lastTimestamp": "2026-07-07T21:56:13.078Z",
+      "createdAt": "2026-07-07T22:06:51.210Z"
     }
   ]
 }

@@ -159,6 +159,8 @@ export async function listMlsMediaSyncCandidates(
     options.primaryOnlyForNonPrioritizedProperties ?? false;
   const primaryOnlyForAllProperties = options.primaryOnlyForAllProperties ?? false;
   const filterEntityTypes = options.filterEntityTypes ?? [];
+  const propertyOnlyFilter =
+    filterEntityTypes.length === 1 && filterEntityTypes[0] === 'properties';
   const associationMode = options.associationMode ?? 'stale-or-unprocessed';
   const restrictToMemberPropertyKeys = [
     ...new Set((options.restrictToMemberPropertyKeys ?? []).filter(Boolean)),
@@ -256,26 +258,30 @@ export async function listMlsMediaSyncCandidates(
     : isNotNull(properties.listingKey);
   const primaryPhotoClause = or(eq(mlsMedia.preferredPhotoYN, true), eq(mlsMedia.order, 1));
 
-  const candidateWhereClause = primaryOnlyForAllProperties
-    ? and(
-      baseEligibilityClause,
-      or(isEntityMediaClause, and(isNotNull(properties.listingKey), primaryPhotoClause)),
-    )
-    : primaryOnlyForNonPrioritizedProperties
+  const candidateWhereClause = propertyOnlyFilter
+    ? primaryOnlyForAllProperties || primaryOnlyForNonPrioritizedProperties
+      ? and(baseEligibilityClause, isNotNull(properties.listingKey), primaryPhotoClause)
+      : and(baseEligibilityClause, isNotNull(properties.listingKey))
+    : primaryOnlyForAllProperties
       ? and(
         baseEligibilityClause,
-        prioritizedPropertyListingClause
-          ? or(
-            isEntityMediaClause,
-            prioritizedPropertyListingClause,
-            and(nonPrioritizedPropertyListingClause, primaryPhotoClause),
-          )
-          : or(
-            isEntityMediaClause,
-            and(nonPrioritizedPropertyListingClause, primaryPhotoClause),
-          ),
+        or(isEntityMediaClause, and(isNotNull(properties.listingKey), primaryPhotoClause)),
       )
-      : baseEligibilityClause;
+      : primaryOnlyForNonPrioritizedProperties
+        ? and(
+          baseEligibilityClause,
+          prioritizedPropertyListingClause
+            ? or(
+              isEntityMediaClause,
+              prioritizedPropertyListingClause,
+              and(nonPrioritizedPropertyListingClause, primaryPhotoClause),
+            )
+            : or(
+              isEntityMediaClause,
+              and(nonPrioritizedPropertyListingClause, primaryPhotoClause),
+            ),
+        )
+        : baseEligibilityClause;
 
   const entityTypeFilterClause =
     filterEntityTypes.length > 0
@@ -327,13 +333,15 @@ export async function listMlsMediaSyncCandidates(
     entityRecordRestrictionClause,
   );
 
-  const priorityBucket = prioritizedPropertyMatchClause
-    ? sql<number>`case
+  const priorityBucket = propertyOnlyFilter
+    ? sql<number>`1`
+    : prioritizedPropertyMatchClause
+      ? sql<number>`case
         when ${isNotNull(members.memberMlsId)} or ${isNotNull(offices.officeMlsId)} then 0
         when ${and(isNotNull(properties.listingKey), prioritizedPropertyMatchClause)} then 1
         else 2
       end`
-    : sql<number>`case
+      : sql<number>`case
         when ${isNotNull(members.memberMlsId)} or ${isNotNull(offices.officeMlsId)} then 0
         else 1
       end`;

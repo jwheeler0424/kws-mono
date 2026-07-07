@@ -26,6 +26,7 @@
     "node",
     "react",
     "react-dom",
+    "supercluster",
     "vite/client"
   ],
   "include": [

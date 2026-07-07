@@ -8,6 +8,7 @@ import {
   getAvailableProperties,
   getFeaturedProperties,
   getPendingProperties,
+  getPropertyByListingKey,
   getSoldProperties,
 } from '../queries';
 
@@ -17,6 +18,10 @@ const propertyCardQueryParamsSchema = z.object({
   officeIds: z.array(z.string().min(1)).optional(),
   memberIds: z.array(z.string().min(1)).optional(),
 });
+
+export const getPropertyByListingKeyServerFn = createServerFn({ method: 'GET' })
+  .validator(z.object({ listingKey: z.string().min(1) }))
+  .handler(({ data }) => getPropertyByListingKey({ listingKey: data.listingKey }));
 
 export const getAvailablePropertiesServerFn = createServerFn({ method: 'GET' })
   .validator(propertyCardQueryParamsSchema)

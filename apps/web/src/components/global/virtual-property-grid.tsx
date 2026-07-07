@@ -2,6 +2,7 @@ import type { TPropertyCard } from '@kws/types';
 
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import React from 'react';
+import { BeatLoader } from 'react-spinners';
 
 import { PropertyCard } from '@/components/global/property-card';
 import {
@@ -90,6 +91,20 @@ export function getResponsiveGridLayout(containerWidth: number): ResponsiveGridL
   };
 }
 
+function getListingStableId(listing: TPropertyCard): string | null {
+  const candidate = (listing as TPropertyCard & { id?: unknown }).id;
+  return typeof candidate === 'string' && candidate.length > 0 ? candidate : null;
+}
+
+function getPropertyCardKey(listing: TPropertyCard, index: number): string {
+  const stableId = getListingStableId(listing);
+  if (stableId) {
+    return stableId;
+  }
+
+  return `${listing.listingKey}-${index}`;
+}
+
 function renderCardGrid(layout: ResponsiveGridLayout, items: TPropertyCard[]) {
   return (
     <div
@@ -101,8 +116,8 @@ function renderCardGrid(layout: ResponsiveGridLayout, items: TPropertyCard[]) {
         paddingInline: `${layout.paddingX}px`,
         paddingBlock: `${layout.paddingY}px`,
       }}>
-      {items.map((listing) => (
-        <PropertyCard key={listing.listingKey} listing={listing} />
+      {items.map((listing, index) => (
+        <PropertyCard key={getPropertyCardKey(listing, index)} listing={listing} />
       ))}
     </div>
   );
@@ -121,12 +136,12 @@ export function VirtualPropertyGrid({
   const [containerWidth, setContainerWidth] = React.useState(0);
   const [scrollMargin, setScrollMargin] = React.useState(0);
   const [isLayoutReady, setIsLayoutReady] = React.useState(false);
+  const [showLoadingUi, setShowLoadingUi] = React.useState(false);
   const parentRef = React.useRef<HTMLDivElement>(null);
   const fallbackLoadMoreRef = React.useRef<HTMLDivElement>(null);
-  const loadRequestTokenRef = React.useRef<string | null>(null);
+  const lastLoadTriggerAtRef = React.useRef(0);
 
   const totalItems = items.length;
-  const firstItemKey = items[0]?.listingKey;
   const safePageSize = Math.max(1, pageSize);
   const layout = React.useMemo(() => getResponsiveGridLayout(containerWidth), [containerWidth]);
   const rowsPerPage = Math.max(1, Math.ceil(safePageSize / layout.columns));
@@ -137,7 +152,7 @@ export function VirtualPropertyGrid({
   const loaderRowIndex = totalRows;
   const preloadThresholdRows = Math.max(
     1,
-    virtualization?.threshold ?? Math.max(1, Math.ceil(rowsPerPage / 2)),
+    virtualization?.threshold ?? Math.max(2, rowsPerPage + 1),
   );
   const overscanRows =
     virtualization?.getOverscanRows?.(layout.columns) ??
@@ -182,7 +197,23 @@ export function VirtualPropertyGrid({
 
   const virtualRows = rowVirtualizer.getVirtualItems();
   const showStaticGridFallback = totalItems > 0 && virtualRows.length === 0;
-  const loaderLabel = loadingMore ? 'Loading more properties...' : 'Loading more...';
+  const loaderLabel = 'Loading more properties...';
+
+  React.useEffect(() => {
+    if (!loadingMore) {
+      setShowLoadingUi(false);
+      return;
+    }
+
+    // Avoid flashing the loader for fast local/cache-backed page fetches.
+    const timer = window.setTimeout(() => {
+      setShowLoadingUi(true);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [loadingMore]);
 
   React.useLayoutEffect(() => {
     const observedElement = parentRef.current;
@@ -237,35 +268,28 @@ export function VirtualPropertyGrid({
   }, [estimatedRowHeight, hasLoaderRow, layout.columns, layout.rowGap, rowVirtualizer, totalRows]);
 
   React.useEffect(() => {
-    if (!hasLoaderRow) {
-      loadRequestTokenRef.current = null;
-    }
-  }, [hasLoaderRow]);
-
-  React.useEffect(() => {
     if (!hasMore || loadingMore || !onLoadMore || virtualRows.length === 0) {
       return;
     }
 
     const lastVisible = virtualRows[virtualRows.length - 1];
     const triggerRowIndex = hasLoaderRow ? loaderRowIndex : Math.max(totalRows - 1, 0);
-    const triggerToken = `${totalRows}:${layout.columns}`;
+    const now = Date.now();
+    const triggerCooldownMs = 500;
 
     if (
       lastVisible &&
       lastVisible.index >= Math.max(0, triggerRowIndex - preloadThresholdRows) &&
-      loadRequestTokenRef.current !== triggerToken
+      now - lastLoadTriggerAtRef.current >= triggerCooldownMs
     ) {
       const started = onLoadMore();
-
       if (started !== false) {
-        loadRequestTokenRef.current = triggerToken;
+        lastLoadTriggerAtRef.current = now;
       }
     }
   }, [
     hasLoaderRow,
     hasMore,
-    layout.columns,
     loaderRowIndex,
     loadingMore,
     onLoadMore,
@@ -273,10 +297,6 @@ export function VirtualPropertyGrid({
     totalRows,
     virtualRows,
   ]);
-
-  React.useEffect(() => {
-    loadRequestTokenRef.current = null;
-  }, [firstItemKey, totalRows]);
 
   React.useEffect(() => {
     if (!showStaticGridFallback || !hasMore || loadingMore || !onLoadMore) {
@@ -296,7 +316,7 @@ export function VirtualPropertyGrid({
       },
       {
         root: null,
-        rootMargin: '0px 0px 240px 0px',
+        rootMargin: '0px 0px 1200px 0px',
         threshold: 0,
       },
     );
@@ -319,13 +339,18 @@ export function VirtualPropertyGrid({
             <main className='m-0! p-0!'>
               {renderCardGrid(layout, items)}
               {hasLoaderRow ? (
-                <div
-                  ref={fallbackLoadMoreRef}
-                  className='flex w-full items-center justify-center py-6'>
-                  <span className='text-gray text-center font-sans text-sm font-thin'>
-                    {loaderLabel}
-                  </span>
-                </div>
+                showLoadingUi ? (
+                  <div
+                    ref={fallbackLoadMoreRef}
+                    className='flex w-full flex-col items-center justify-center gap-6 py-10'>
+                    <BeatLoader color='#ff0000' loading={true} size={15} />
+                    <span className='text-gray text-center font-sans text-sm font-thin'>
+                      {loaderLabel}
+                    </span>
+                  </div>
+                ) : (
+                  <div ref={fallbackLoadMoreRef} className='h-px w-full' aria-hidden='true' />
+                )
               ) : null}
             </main>
           ) : (
@@ -366,12 +391,22 @@ export function VirtualPropertyGrid({
                           }),
                     }}>
                     {isLoaderRow ? (
-                      <span className='text-gray text-center font-sans text-sm font-thin'>
-                        {loaderLabel}
-                      </span>
+                      loadingMore ? (
+                        <main className='flex flex-col gap-12 h-full min-h-[50vh] w-full flex-1 items-center justify-center py-20'>
+                          <BeatLoader color='#ff0000' loading={true} size={15} />
+                          <span className='text-gray text-center font-sans text-sm font-thin'>
+                            {loaderLabel}
+                          </span>
+                        </main>
+                      ) : (
+                        <div className='h-px w-full' aria-hidden='true' />
+                      )
                     ) : (
-                      rowItems.map((listing) => (
-                        <PropertyCard key={listing.listingKey} listing={listing} />
+                      rowItems.map((listing, index) => (
+                        <PropertyCard
+                          key={getPropertyCardKey(listing, rowStartIndex + index)}
+                          listing={listing}
+                        />
                       ))
                     )}
                   </div>

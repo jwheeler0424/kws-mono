@@ -5,6 +5,8 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import React, { useRef } from 'react';
 
+import { ensureGsapRegistered } from '@/lib/tools/gsap';
+
 interface ParallaxContainerProps {
   children: React.ReactNode;
   className?: string;
@@ -14,6 +16,8 @@ interface ParallaxContainerProps {
 }
 
 let refreshRaf = 0;
+
+ensureGsapRegistered();
 
 const scheduleScrollTriggerRefresh = () => {
   if (typeof window === 'undefined' || refreshRaf) return;

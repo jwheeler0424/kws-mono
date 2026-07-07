@@ -1,4 +1,4 @@
-import type { UUIDv7 } from '@kws/types';
+import { listingsSearchShapeSchema, type UUIDv7 } from '@kws/types';
 
 import { env } from '@kws/config';
 import { processImage } from '@kws/media';
@@ -11,10 +11,22 @@ import { z } from 'zod';
 
 import { db } from '@/lib/database';
 
-import { getListingDetailByKey, getListingMarkers } from '../queries';
+import {
+  getHydratedListingsPaginated,
+  getListingDetailByKey,
+  getListingsForSearchAndFilter,
+} from '../queries';
 
 const listingDetailsParamsSchema = z.object({
   listingKey: z.string().min(1),
+});
+
+const listingsSearchParamsSchema = listingsSearchShapeSchema.partial();
+
+const hydratedListingsPaginatedParamsSchema = z.object({
+  sessionId: z.string().uuid(),
+  limit: z.number().int().positive().max(250).optional().nullable(),
+  cursor: z.string().optional().nullable(),
 });
 
 interface ListingMediaSyncRow {
@@ -42,6 +54,7 @@ interface EnsureListingMediaSummary {
 }
 
 const inFlightListingEnsures = new Map<string, number>();
+
 const ENSURE_LISTING_DEDUPE_WINDOW_MS = 30_000;
 
 function cleanupStaleEnsureEntries(now: number): void {
@@ -410,9 +423,19 @@ export const getListingDetailsServerFn = createServerFn({ method: 'GET' })
   .validator(listingDetailsParamsSchema)
   .handler(({ data }) => getListingDetailByKey(data));
 
-export const getListingMarkersServerFn = createServerFn({ method: 'GET' }).handler(() =>
-  getListingMarkers(),
-);
+export const getListingsForSearchAndFilterServerFn = createServerFn({ method: 'GET' })
+  .validator(listingsSearchParamsSchema)
+  .handler(({ data }) => getListingsForSearchAndFilter(data));
+
+export const getHydratedListingsPaginatedServerFn = createServerFn({ method: 'POST' })
+  .validator(hydratedListingsPaginatedParamsSchema)
+  .handler(({ data }) =>
+    getHydratedListingsPaginated({
+      sessionId: data.sessionId,
+      limit: data.limit,
+      cursor: data.cursor,
+    }),
+  );
 
 export const ensureListingMediaServerFn = createServerFn({ method: 'POST' })
   .validator(listingDetailsParamsSchema)

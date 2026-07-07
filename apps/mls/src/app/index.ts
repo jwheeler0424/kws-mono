@@ -2,7 +2,7 @@ import { env } from '@kws/config';
 import { writeFile } from 'node:fs/promises';
 
 import { registerMlsSyncJobTypes } from '@/actions/integration';
-import { runInitialDataSeed, runInitialMediaSeed } from '@/actions/orchestrator';
+import { runDeltaSync, runInitialDataSeed, runInitialMediaSeed } from '@/actions/orchestrator';
 import { logger } from '@/lib/logger';
 import { hasAnyMlsRecords } from '@/repositories/seed-state.repository';
 import type { SyncSummary } from '@/types';
@@ -81,7 +81,7 @@ export async function main() {
 
     if (hasExistingMlsRecords) {
       logger.info(
-        'MLS existing records found; initial seed will resume from per-resource watermarks',
+        'MLS existing records found; startup will run delta sync from per-resource watermarks',
         {
           enableInitialDataSeed,
           enableInitialMediaSeed,
@@ -91,12 +91,15 @@ export async function main() {
 
     if (enableInitialDataSeed) {
       const dataSeedSuccess = await runSeedStep({
-        run: () => runInitialDataSeed(env.MLS_ORIGINATING_SYSTEM_NAME),
-        phaseLabel: 'initial data seed',
+        run: () =>
+          hasExistingMlsRecords
+            ? runDeltaSync(env.MLS_ORIGINATING_SYSTEM_NAME)
+            : runInitialDataSeed(env.MLS_ORIGINATING_SYSTEM_NAME),
+        phaseLabel: hasExistingMlsRecords ? 'delta sync' : 'initial data seed',
         errorFile: 'mls-seed-errors.json',
       });
       if (!dataSeedSuccess) {
-        logger.error('MLS full seed completed with errors. Please check the logs for details.');
+        logger.error('MLS data sync completed with errors. Please check the logs for details.');
         process.exit(1);
       }
     } else {

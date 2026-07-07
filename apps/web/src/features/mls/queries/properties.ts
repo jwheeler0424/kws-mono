@@ -109,19 +109,44 @@ export type TPropertyCardRow = Awaited<ReturnType<typeof db.query.properties.fin
 export const formatPropertyCardData = (property: TPropertyCardRow): TPropertyCard => {
   const { NWM, media, ...rest } = property;
   const primaryMedia = media?.[0]?.media;
-  const variantMap = Object.fromEntries(
-    (primaryMedia?.variants ?? []).map((v) => [v.variantName, v.url]),
-  );
+  let fullUrl: string | null = null;
+  let previewUrl: string | null = null;
+  let thumbnailUrl: string | null = null;
+
+  for (const variant of primaryMedia?.variants ?? []) {
+    if (variant.variantName === 'full') {
+      fullUrl = variant.url;
+      continue;
+    }
+
+    if (variant.variantName === 'preview') {
+      previewUrl = variant.url;
+      continue;
+    }
+
+    if (variant.variantName === 'thumbnail') {
+      thumbnailUrl = variant.url;
+    }
+  }
 
   return {
     ...rest,
     ...NWM,
-    primaryPhotoFullUrl: variantMap['full'] ?? null,
-    primaryPhotoPreviewUrl: variantMap['preview'] ?? null,
-    primaryPhotoThumbnailUrl: variantMap['thumbnail'] ?? null,
-    primaryPhotoUrl: variantMap['full'] ?? variantMap['preview'] ?? variantMap['thumbnail'] ?? null,
+    primaryPhotoFullUrl: fullUrl,
+    primaryPhotoPreviewUrl: previewUrl,
+    primaryPhotoThumbnailUrl: thumbnailUrl,
+    primaryPhotoUrl: fullUrl ?? previewUrl ?? thumbnailUrl,
   };
 };
+
+const preparedIndividualProperty = db.query.properties
+  .findFirst({
+    ...getPropertyCardQueryConfig(),
+    where: {
+      listingKey: sql.placeholder('listingKey'),
+    },
+  })
+  .prepare('get_individual_property');
 
 const preparedActiveProperties = db.query.properties
   .findMany({
@@ -240,6 +265,21 @@ const preparedFeaturedProperties = db.query.properties
     },
   })
   .prepare('get_featured_properties');
+
+export async function getPropertyByListingKey({
+  listingKey,
+}: {
+  /** Listing key to filter by. */
+  listingKey: string;
+}): Promise<TPropertyCard | null> {
+  if (!listingKey) return null;
+
+  const result = await preparedIndividualProperty.execute({
+    listingKey,
+  });
+
+  return result ? formatPropertyCardData(result as TPropertyCardRow) : null;
+}
 
 export async function getAvailableProperties({
   officeIds,

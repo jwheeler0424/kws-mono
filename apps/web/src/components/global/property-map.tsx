@@ -1,10 +1,13 @@
 'use client';
 import L, { type LatLngTuple } from 'leaflet';
-import 'leaflet-edgebuffer';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef } from 'react';
 
+import { ensureLeafletRegistered, registerLeafletMap } from '@/lib/tools/leaflet';
+
 export const ZOOM_BREAKPOINT = 14;
+
+ensureLeafletRegistered();
 
 export function PropertyMap({
   propertyPosition,
@@ -13,7 +16,9 @@ export function PropertyMap({
   propertyPosition: LatLngTuple;
   setMapLoading: (loading: boolean) => void;
 }) {
-  const mapRef = useRef<L.Map>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
 
   useEffect(() => {
     const markerIcon = new L.Icon({
@@ -24,37 +29,60 @@ export function PropertyMap({
       popupAnchor: [0, 0],
     });
 
+    if (!containerRef.current || mapRef.current) {
+      return;
+    }
+
+    const map = L.map(containerRef.current, {
+      center: propertyPosition,
+      zoom: 12,
+      scrollWheelZoom: false,
+    }).addLayer(
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        detectRetina: true,
+        edgeBufferTiles: 2,
+      }),
+    );
+
+    const unregisterMap = registerLeafletMap(map);
+
     const marker = L.marker(propertyPosition, {
       icon: markerIcon,
     });
-    if (!mapRef.current) {
-      mapRef.current = L.map('property-map', {
-        center: propertyPosition,
-        zoom: 12,
-        scrollWheelZoom: false,
-      }).addLayer(
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          detectRetina: true,
-          edgeBufferTiles: 2,
-        }),
-      );
-    }
 
-    mapRef.current.addLayer(marker);
+    marker.addTo(map);
+    mapRef.current = map;
+    markerRef.current = marker;
 
-    mapRef.current.whenReady(() => {
+    map.whenReady(() => {
       setMapLoading(false);
     });
 
     return () => {
+      markerRef.current?.remove();
+      markerRef.current = null;
+
+      unregisterMap();
       mapRef.current?.remove();
       mapRef.current = null;
     };
   }, [propertyPosition, setMapLoading]);
 
-  return <div id='property-map' className='z-0 h-full w-full' />;
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = markerRef.current;
+
+    if (!map || !marker) {
+      return;
+    }
+
+    marker.setLatLng(propertyPosition);
+    map.setView(propertyPosition, map.getZoom(), { animate: false });
+  }, [propertyPosition]);
+
+  return <div ref={containerRef} className='z-0 h-full w-full' />;
 }
 
 export default PropertyMap;
