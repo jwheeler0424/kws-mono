@@ -131,6 +131,8 @@ const proximityLngPlaceholder = sql.placeholder('proximityLng');
 const proximityRadiusMilesPlaceholder = sql.placeholder('proximityRadiusMiles');
 const proximityH3ResolutionPlaceholder = sql.placeholder('proximityH3Resolution');
 const proximityH3CellsPlaceholder = sql.placeholder('proximityH3Cells');
+const rangeMinPlaceholder = sql.placeholder('rangeMin');
+const rangeMaxPlaceholder = sql.placeholder('rangeMax');
 
 type ListingsSortBy = NonNullable<TListingsSearch['sortBy']>;
 
@@ -160,6 +162,18 @@ type ListingsPreparedParams = {
 
 type ListingsNoFilterParams = {
   limit?: number;
+};
+
+type ListingsRangeNumericParams = {
+  limit?: number;
+  rangeMin: number;
+  rangeMax: number;
+};
+
+type ListingsRangeIntegerParams = {
+  limit?: number;
+  rangeMin: number;
+  rangeMax: number;
 };
 
 type ListingsSearchSessionMeta = {
@@ -622,6 +636,56 @@ const buildPreparedListingsNoFilterQuery = ({
     })
     .prepare(name);
 
+const buildPreparedListingsRangeQuery = ({
+  name,
+  sortBy,
+  rangeSql,
+}: {
+  name: string;
+  sortBy: Exclude<ListingsSortBy, 'proximity'>;
+  rangeSql: (table: {
+    listPrice: unknown;
+    livingArea: unknown;
+    bedroomsTotal: unknown;
+    bathroomsTotalInteger: unknown;
+  }) => ReturnType<typeof sql>;
+}) =>
+  db.query.properties
+    .findMany({
+      columns: listingsForSearchAndFilterColumns,
+      where: {
+        ...listingsForSearchAndFilterBaseWhere,
+        RAW: (table) => rangeSql(table),
+      },
+      orderBy: (table, { asc, desc }) => {
+        switch (sortBy) {
+          case 'priceAsc':
+            return [
+              asc(table.listPrice),
+              desc(table.onMarketDate),
+              desc(table.modificationTimestamp),
+              desc(table.listingKey),
+            ];
+          case 'priceDesc':
+            return [
+              desc(table.listPrice),
+              desc(table.onMarketDate),
+              desc(table.modificationTimestamp),
+              desc(table.listingKey),
+            ];
+          case 'newest':
+          default:
+            return [
+              desc(table.onMarketDate),
+              desc(table.modificationTimestamp),
+              desc(table.listingKey),
+            ];
+        }
+      },
+      limit: limitPlaceholder,
+    })
+    .prepare(name);
+
 const preparedListingsLegacyNoSortNoLimit = db.query.properties
   .findMany({
     columns: listingsForSearchAndFilterColumns,
@@ -766,6 +830,90 @@ const preparedListingsQueryMap = {
   },
 } as const;
 
+const preparedListingsSqFtRangeQueryMap = {
+  newest: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_sqft_range_newest',
+    sortBy: 'newest',
+    rangeSql: (table) =>
+      sql`${table.livingArea} >= ${rangeMinPlaceholder}::numeric AND ${table.livingArea} <= ${rangeMaxPlaceholder}::numeric`,
+  }),
+  priceAsc: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_sqft_range_price_asc',
+    sortBy: 'priceAsc',
+    rangeSql: (table) =>
+      sql`${table.livingArea} >= ${rangeMinPlaceholder}::numeric AND ${table.livingArea} <= ${rangeMaxPlaceholder}::numeric`,
+  }),
+  priceDesc: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_sqft_range_price_desc',
+    sortBy: 'priceDesc',
+    rangeSql: (table) =>
+      sql`${table.livingArea} >= ${rangeMinPlaceholder}::numeric AND ${table.livingArea} <= ${rangeMaxPlaceholder}::numeric`,
+  }),
+} as const;
+
+const preparedListingsPriceRangeQueryMap = {
+  newest: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_price_range_newest',
+    sortBy: 'newest',
+    rangeSql: (table) =>
+      sql`${table.listPrice} >= ${rangeMinPlaceholder}::numeric AND ${table.listPrice} <= ${rangeMaxPlaceholder}::numeric`,
+  }),
+  priceAsc: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_price_range_price_asc',
+    sortBy: 'priceAsc',
+    rangeSql: (table) =>
+      sql`${table.listPrice} >= ${rangeMinPlaceholder}::numeric AND ${table.listPrice} <= ${rangeMaxPlaceholder}::numeric`,
+  }),
+  priceDesc: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_price_range_price_desc',
+    sortBy: 'priceDesc',
+    rangeSql: (table) =>
+      sql`${table.listPrice} >= ${rangeMinPlaceholder}::numeric AND ${table.listPrice} <= ${rangeMaxPlaceholder}::numeric`,
+  }),
+} as const;
+
+const preparedListingsBedroomsRangeQueryMap = {
+  newest: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_bedrooms_range_newest',
+    sortBy: 'newest',
+    rangeSql: (table) =>
+      sql`${table.bedroomsTotal} >= ${rangeMinPlaceholder}::integer AND ${table.bedroomsTotal} <= ${rangeMaxPlaceholder}::integer`,
+  }),
+  priceAsc: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_bedrooms_range_price_asc',
+    sortBy: 'priceAsc',
+    rangeSql: (table) =>
+      sql`${table.bedroomsTotal} >= ${rangeMinPlaceholder}::integer AND ${table.bedroomsTotal} <= ${rangeMaxPlaceholder}::integer`,
+  }),
+  priceDesc: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_bedrooms_range_price_desc',
+    sortBy: 'priceDesc',
+    rangeSql: (table) =>
+      sql`${table.bedroomsTotal} >= ${rangeMinPlaceholder}::integer AND ${table.bedroomsTotal} <= ${rangeMaxPlaceholder}::integer`,
+  }),
+} as const;
+
+const preparedListingsBathroomsRangeQueryMap = {
+  newest: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_bathrooms_range_newest',
+    sortBy: 'newest',
+    rangeSql: (table) =>
+      sql`${table.bathroomsTotalInteger} >= ${rangeMinPlaceholder}::integer AND ${table.bathroomsTotalInteger} <= ${rangeMaxPlaceholder}::integer`,
+  }),
+  priceAsc: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_bathrooms_range_price_asc',
+    sortBy: 'priceAsc',
+    rangeSql: (table) =>
+      sql`${table.bathroomsTotalInteger} >= ${rangeMinPlaceholder}::integer AND ${table.bathroomsTotalInteger} <= ${rangeMaxPlaceholder}::integer`,
+  }),
+  priceDesc: buildPreparedListingsRangeQuery({
+    name: 'get_listings_for_bathrooms_range_price_desc',
+    sortBy: 'priceDesc',
+    rangeSql: (table) =>
+      sql`${table.bathroomsTotalInteger} >= ${rangeMinPlaceholder}::integer AND ${table.bathroomsTotalInteger} <= ${rangeMaxPlaceholder}::integer`,
+  }),
+} as const;
+
 const preparedHydratedListingsByIds = db.query.properties
   .findMany({
     ...getPropertyCardQueryConfig(),
@@ -908,9 +1056,34 @@ async function getListingsForSearchAndFilterMarkers(
   const hasExplicitLimit = source.limit !== null && source.limit !== undefined;
   const sortBy: ListingsSortBy = source.sortBy ?? 'newest';
   const preparedBySort = preparedListingsQueryMap[sortBy];
+  const sortByForRange: Exclude<ListingsSortBy, 'proximity'> =
+    sortBy === 'proximity' ? 'newest' : sortBy;
   const noFilterParams: ListingsNoFilterParams = {
     limit: source.limit ?? undefined,
   };
+
+  const hasPriceFilter = hasValue(source.price?.min) || hasValue(source.price?.max);
+  const hasSqFtFilter = hasValue(source.sqFt?.min) || hasValue(source.sqFt?.max);
+  const hasBedroomsFilter = hasValue(source.bedrooms?.min) || hasValue(source.bedrooms?.max);
+  const hasBathroomsFilter = hasValue(source.bathrooms?.min) || hasValue(source.bathrooms?.max);
+  const hasMapBoundsFilter =
+    source.useMapBounds === true &&
+    source.bounds !== null &&
+    source.bounds !== undefined &&
+    hasValue(source.bounds.northEast?.lat) &&
+    hasValue(source.bounds.northEast?.lng) &&
+    hasValue(source.bounds.southWest?.lat) &&
+    hasValue(source.bounds.southWest?.lng);
+  const hasProximityFilter =
+    hasValue(source.proximity?.lat) &&
+    hasValue(source.proximity?.lng) &&
+    hasValue(source.proximity?.radiusMiles);
+  const activeRangeFilterCount = [
+    hasPriceFilter,
+    hasSqFtFilter,
+    hasBedroomsFilter,
+    hasBathroomsFilter,
+  ].filter(Boolean).length;
 
   const params: ListingsPreparedParams = {
     limit: source.limit ?? undefined,
@@ -946,6 +1119,42 @@ async function getListingsForSearchAndFilterMarkers(
     }
 
     return preparedListingsLegacyNoSortWithLimit.execute(noFilterParams);
+  }
+
+  if (!query && !hasMapBoundsFilter && !hasProximityFilter && activeRangeFilterCount === 1) {
+    if (hasSqFtFilter) {
+      const rangeParams: ListingsRangeNumericParams = {
+        limit: source.limit ?? undefined,
+        rangeMin: source.sqFt?.min ?? 0,
+        rangeMax: source.sqFt?.max ?? 1_000_000_000,
+      };
+      return preparedListingsSqFtRangeQueryMap[sortByForRange].execute(rangeParams);
+    }
+
+    if (hasPriceFilter) {
+      const rangeParams: ListingsRangeNumericParams = {
+        limit: source.limit ?? undefined,
+        rangeMin: source.price?.min ?? 0,
+        rangeMax: source.price?.max ?? 1_000_000_000,
+      };
+      return preparedListingsPriceRangeQueryMap[sortByForRange].execute(rangeParams);
+    }
+
+    if (hasBedroomsFilter) {
+      const rangeParams: ListingsRangeIntegerParams = {
+        limit: source.limit ?? undefined,
+        rangeMin: source.bedrooms?.min ?? 0,
+        rangeMax: source.bedrooms?.max ?? 1000,
+      };
+      return preparedListingsBedroomsRangeQueryMap[sortByForRange].execute(rangeParams);
+    }
+
+    const rangeParams: ListingsRangeIntegerParams = {
+      limit: source.limit ?? undefined,
+      rangeMin: source.bathrooms?.min ?? 0,
+      rangeMax: source.bathrooms?.max ?? 1000,
+    };
+    return preparedListingsBathroomsRangeQueryMap[sortByForRange].execute(rangeParams);
   }
 
   if (!query && !hasDynamicFilters && preparedBySort.withoutSearchNoFilters) {

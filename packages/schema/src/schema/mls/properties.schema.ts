@@ -530,6 +530,79 @@ export const properties = pgTable(
         index('idx_properties_visible_status_sort')
             .on(t.standardStatus, t.onMarketDate, t.modificationTimestamp, t.listingKey)
             .where(sql`${t.mlgCanView} = true AND ${t.deletedAt} IS NULL`),
+        // Narrow numeric-filter indexes for marker search hot paths.
+        index('idx_properties_visible_active_geo_living_area')
+            .on(t.livingArea)
+            .where(
+                sql`${t.mlgCanView} = true
+          AND ${t.deletedAt} IS NULL
+          AND ${t.standardStatus} IN ('Active', 'ActiveUnderContract', 'ComingSoon')
+          AND ${t.latitude} IS NOT NULL
+          AND ${t.longitude} IS NOT NULL`,
+            ),
+        index('idx_properties_visible_active_geo_living_area_newest_sort')
+            .on(t.livingArea, t.onMarketDate, t.modificationTimestamp, t.listingKey)
+            .where(
+                sql`${t.mlgCanView} = true
+          AND ${t.deletedAt} IS NULL
+          AND ${t.standardStatus} IN ('Active', 'ActiveUnderContract', 'ComingSoon')
+          AND ${t.latitude} IS NOT NULL
+          AND ${t.longitude} IS NOT NULL`,
+            ),
+        index('idx_properties_visible_active_geo_list_price')
+            .on(t.listPrice)
+            .where(
+                sql`${t.mlgCanView} = true
+          AND ${t.deletedAt} IS NULL
+          AND ${t.standardStatus} IN ('Active', 'ActiveUnderContract', 'ComingSoon')
+          AND ${t.latitude} IS NOT NULL
+          AND ${t.longitude} IS NOT NULL`,
+            ),
+        index('idx_properties_visible_active_geo_list_price_newest_sort')
+            .on(t.listPrice, t.onMarketDate, t.modificationTimestamp, t.listingKey)
+            .where(
+                sql`${t.mlgCanView} = true
+          AND ${t.deletedAt} IS NULL
+          AND ${t.standardStatus} IN ('Active', 'ActiveUnderContract', 'ComingSoon')
+          AND ${t.latitude} IS NOT NULL
+          AND ${t.longitude} IS NOT NULL`,
+            ),
+        index('idx_properties_visible_active_geo_bedrooms_total')
+            .on(t.bedroomsTotal)
+            .where(
+                sql`${t.mlgCanView} = true
+          AND ${t.deletedAt} IS NULL
+          AND ${t.standardStatus} IN ('Active', 'ActiveUnderContract', 'ComingSoon')
+          AND ${t.latitude} IS NOT NULL
+          AND ${t.longitude} IS NOT NULL`,
+            ),
+        index('idx_properties_visible_active_geo_bedrooms_newest_sort')
+            .on(t.bedroomsTotal, t.onMarketDate, t.modificationTimestamp, t.listingKey)
+            .where(
+                sql`${t.mlgCanView} = true
+          AND ${t.deletedAt} IS NULL
+          AND ${t.standardStatus} IN ('Active', 'ActiveUnderContract', 'ComingSoon')
+          AND ${t.latitude} IS NOT NULL
+          AND ${t.longitude} IS NOT NULL`,
+            ),
+        index('idx_properties_visible_active_geo_bathrooms_total')
+            .on(t.bathroomsTotalInteger)
+            .where(
+                sql`${t.mlgCanView} = true
+          AND ${t.deletedAt} IS NULL
+          AND ${t.standardStatus} IN ('Active', 'ActiveUnderContract', 'ComingSoon')
+          AND ${t.latitude} IS NOT NULL
+          AND ${t.longitude} IS NOT NULL`,
+            ),
+        index('idx_properties_visible_active_geo_bathrooms_newest_sort')
+            .on(t.bathroomsTotalInteger, t.onMarketDate, t.modificationTimestamp, t.listingKey)
+            .where(
+                sql`${t.mlgCanView} = true
+          AND ${t.deletedAt} IS NULL
+          AND ${t.standardStatus} IN ('Active', 'ActiveUnderContract', 'ComingSoon')
+          AND ${t.latitude} IS NOT NULL
+          AND ${t.longitude} IS NOT NULL`,
+            ),
         // Scoped office filtering + section sort path.
         index('idx_properties_visible_office_status_sort')
             .on(
