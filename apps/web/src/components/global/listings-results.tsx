@@ -19,7 +19,6 @@ export function ListingsResults({ params }: { params: Partial<TListingsSearch> }
     data: searchResult,
     isPending: isListingsPending,
     isFetching: isListingsFetching,
-    refetch: refetchListings,
   } = useQuery(listingsForSearchAndFilterOptions(params));
 
   const {
@@ -62,8 +61,6 @@ export function ListingsResults({ params }: { params: Partial<TListingsSearch> }
     return deduped;
   }, [hydratedPages?.pages]);
 
-  const recoverySessionRef = React.useRef<string | null>(null);
-
   const titleCount = searchResult?.total ?? 0;
 
   const handleLoadMore = React.useCallback(() => {
@@ -75,39 +72,6 @@ export function ListingsResults({ params }: { params: Partial<TListingsSearch> }
 
     return true;
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-
-  React.useEffect(() => {
-    if (!searchResult?.sessionId) {
-      recoverySessionRef.current = null;
-      return;
-    }
-
-    if (isListingsPending || isListingsFetching || isHydrationPending || isHydrationFetching) {
-      return;
-    }
-
-    const expectedTotal = searchResult.total ?? 0;
-    if (expectedTotal <= properties.length || hasNextPage) {
-      return;
-    }
-
-    if (recoverySessionRef.current === searchResult.sessionId) {
-      return;
-    }
-
-    recoverySessionRef.current = searchResult.sessionId;
-    void refetchListings();
-  }, [
-    hasNextPage,
-    isHydrationFetching,
-    isHydrationPending,
-    isListingsFetching,
-    isListingsPending,
-    properties.length,
-    refetchListings,
-    searchResult?.sessionId,
-    searchResult?.total,
-  ]);
 
   return (
     <>
