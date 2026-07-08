@@ -34,6 +34,10 @@ import type {
 
 import { getLatestLookupTimestamp, upsertLookups } from '../repositories/lookup.repository';
 import {
+  pruneMlsMediaNamespacesWithoutLinkedMedia,
+  purgeScopedMlsMediaBeforeSync,
+} from '../repositories/media-cleanup.repository';
+import {
   getLatestMemberTimestamp,
   processMlsMembersPayload,
 } from '../repositories/member.repository';
@@ -380,6 +384,21 @@ async function runSeedInitialMedia(osn: string): Promise<SyncSummary> {
 
   const configuredMemberKeys = (env.MLS_MEMBER_ID ?? []).filter((key) => key.length > 0);
   const configuredOfficeKeys = (env.MLS_OFFICE_ID ?? []).filter((key) => key.length > 0);
+
+  const preSyncCleanup = await purgeScopedMlsMediaBeforeSync({
+    memberKeys: configuredMemberKeys,
+    officeKeys: configuredOfficeKeys,
+  });
+  const preSyncNamespacePrune = await pruneMlsMediaNamespacesWithoutLinkedMedia(undefined, {
+    memberKeys: configuredMemberKeys,
+    officeKeys: configuredOfficeKeys,
+  });
+
+  logger.info('initial media pre-sync cleanup completed', {
+    osn,
+    preSyncCleanup,
+    preSyncNamespacePrune,
+  });
 
   const phases: Array<readonly [string, () => Promise<SyncResult>]> = [
     ['Property:PrimaryMedia', () => propertyMediaSeedConfig(osn)],

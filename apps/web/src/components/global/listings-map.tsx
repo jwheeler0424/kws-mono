@@ -10,8 +10,9 @@ import { listingsForSearchAndFilterOptions } from '@/features/mls/options/listin
 import { MapView } from './map';
 
 export function ListingsMap({ search }: { search: Partial<TListingsSearch> }) {
-  const { data, isLoading } = useQuery(listingsForSearchAndFilterOptions(search));
+  const { data, isPending, isFetching } = useQuery(listingsForSearchAndFilterOptions(search));
   const markers = React.useMemo(() => data?.markers || [], [data]);
+  const markersLoading = isPending || isFetching;
   return (
     <div className='relative h-[60vh] w-full overflow-hidden portrait:h-[60vh] landscape:h-[60vh] landscape:lg:h-[calc(80vh-4rem)]'>
       <ClientOnly
@@ -20,7 +21,7 @@ export function ListingsMap({ search }: { search: Partial<TListingsSearch> }) {
             <BeatLoader color='#ff0000' loading={true} size={15} />
           </main>
         }>
-        <MapView properties={markers} markersLoading={isLoading} />
+        <MapView properties={markers} markersLoading={markersLoading} />
       </ClientOnly>
     </div>
   );

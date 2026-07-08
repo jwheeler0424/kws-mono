@@ -1,8 +1,9 @@
+import type { StandardStatus } from '@kws/schema';
 import type { UUIDv7 } from '@kws/types';
 import type { Dirent } from 'node:fs';
 
-import { media, mediaVariants, mlsMedia } from '@kws/schema';
-import { and, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { media, mediaVariants, members, mlsMedia, offices, properties } from '@kws/schema';
+import { and, eq, inArray, isNotNull, isNull, not, or, sql } from 'drizzle-orm';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -10,7 +11,13 @@ import path from 'node:path';
 import { db } from '@/lib/database';
 
 const FILE_DELETE_CHUNK_SIZE = 20;
+const MEDIA_ID_QUERY_CHUNK_SIZE = 500;
 const MLS_MEDIA_ENTITY_TYPES = ['properties', 'members', 'offices'] as const;
+const DEFAULT_ACTIVE_PROPERTY_STATUSES: readonly StandardStatus[] = [
+  'Active',
+  'ActiveUnderContract',
+  'ComingSoon',
+];
 
 export type MlsMediaStorageEntityType = (typeof MLS_MEDIA_ENTITY_TYPES)[number];
 
@@ -35,6 +42,171 @@ export interface EntityMediaPurgeSummary {
 export interface DeadMlsMediaPurgeSummary {
   mediaDeleted: number;
   variantFilesDeleted: number;
+}
+
+export interface ScopedMlsMediaPurgeSummary {
+  linkedRowsScanned: number;
+  linkedRowsDetached: number;
+  mediaDeleted: number;
+  variantFilesDeleted: number;
+}
+
+export interface MlsFilesystemNamespacePruneSummary {
+  scannedNamespaces: number;
+  deletedNamespaces: number;
+}
+
+export interface PreSyncMlsMediaCleanupOptions {
+  memberKeys?: readonly string[];
+  officeKeys?: readonly string[];
+  activePropertyStatuses?: readonly StandardStatus[];
+}
+
+async function listLinkedNamespaceKeys(
+  entityType: MlsMediaStorageEntityType,
+  options: PreSyncMlsMediaCleanupOptions = {},
+): Promise<Set<string>> {
+  const memberKeys = [...new Set((options.memberKeys ?? []).filter(Boolean))];
+  const officeKeys = [...new Set((options.officeKeys ?? []).filter(Boolean))];
+
+  const propertyAssociationMemberClause =
+    memberKeys.length > 0
+      ? or(
+        and(isNotNull(properties.listAgentKey), inArray(properties.listAgentKey, memberKeys)),
+        and(
+          isNotNull(properties.listAgentMlsId),
+          inArray(properties.listAgentMlsId, memberKeys),
+        ),
+        and(
+          isNotNull(properties.coListAgentKey),
+          inArray(properties.coListAgentKey, memberKeys),
+        ),
+        and(
+          isNotNull(properties.coListAgentMlsId),
+          inArray(properties.coListAgentMlsId, memberKeys),
+        ),
+      )
+      : undefined;
+
+  const propertyAssociationOfficeClause =
+    officeKeys.length > 0
+      ? or(
+        and(isNotNull(properties.listOfficeKey), inArray(properties.listOfficeKey, officeKeys)),
+        and(
+          isNotNull(properties.listOfficeMlsId),
+          inArray(properties.listOfficeMlsId, officeKeys),
+        ),
+        and(
+          isNotNull(properties.coListOfficeKey),
+          inArray(properties.coListOfficeKey, officeKeys),
+        ),
+        and(
+          isNotNull(properties.coListOfficeMlsId),
+          inArray(properties.coListOfficeMlsId, officeKeys),
+        ),
+      )
+      : undefined;
+
+  const propertyAssociatedListingClause =
+    propertyAssociationMemberClause && propertyAssociationOfficeClause
+      ? or(propertyAssociationMemberClause, propertyAssociationOfficeClause)
+      : (propertyAssociationMemberClause ?? propertyAssociationOfficeClause);
+
+  const propertyPrimaryPhotoClause = or(
+    eq(mlsMedia.order, 1),
+    and(isNotNull(mlsMedia.preferredPhotoYN), eq(mlsMedia.preferredPhotoYN, true)),
+  );
+
+  const resourceEligibilityClause =
+    entityType === 'properties'
+      ? and(
+        isNotNull(properties.listingKey),
+        isNull(properties.deletedAt),
+        or(
+          and(
+            eq(properties.mlgCanView, true),
+            isNotNull(properties.standardStatus),
+            inArray(properties.standardStatus, [...DEFAULT_ACTIVE_PROPERTY_STATUSES]),
+            propertyPrimaryPhotoClause,
+          ),
+          propertyAssociatedListingClause,
+        ),
+      )
+      : entityType === 'members'
+        ? and(
+          isNotNull(members.memberMlsId),
+          isNull(members.deletedAt),
+          eq(members.mlgCanView, true),
+        )
+        : and(
+          isNotNull(offices.officeMlsId),
+          isNull(offices.deletedAt),
+          eq(offices.mlgCanView, true),
+        );
+
+  const namespaceRows = await db
+    .select({ resourceRecordKey: mlsMedia.resourceRecordKey })
+    .from(mlsMedia)
+    .innerJoin(media, eq(mlsMedia.mediaId, media.id))
+    .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
+    .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberMlsId))
+    .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeMlsId))
+    .where(
+      and(
+        isNotNull(mlsMedia.resourceRecordKey),
+        isNull(media.deletedAt),
+        resourceEligibilityClause,
+      ),
+    );
+
+  return new Set(
+    namespaceRows
+      .map((row) => row.resourceRecordKey)
+      .filter((value): value is string => typeof value === 'string' && value.length > 0),
+  );
+}
+
+export async function pruneMlsMediaNamespacesWithoutLinkedMedia(
+  entityTypes: readonly MlsMediaStorageEntityType[] = MLS_MEDIA_ENTITY_TYPES,
+  options: PreSyncMlsMediaCleanupOptions = {},
+): Promise<Record<MlsMediaStorageEntityType, MlsFilesystemNamespacePruneSummary>> {
+  const uniqueEntityTypes = [...new Set(entityTypes)];
+  const summary: Record<MlsMediaStorageEntityType, MlsFilesystemNamespacePruneSummary> = {
+    properties: { scannedNamespaces: 0, deletedNamespaces: 0 },
+    members: { scannedNamespaces: 0, deletedNamespaces: 0 },
+    offices: { scannedNamespaces: 0, deletedNamespaces: 0 },
+  };
+
+  for (const entityType of uniqueEntityTypes) {
+    const keepNamespaces = await listLinkedNamespaceKeys(entityType, options);
+    const rootPath = resolveMlsEntityRoot(entityType);
+
+    let entries: Dirent<string>[];
+    try {
+      entries = await fs.readdir(rootPath, { withFileTypes: true });
+    } catch (error) {
+      if (isFilesystemNotFoundError(error)) {
+        continue;
+      }
+      throw error;
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      summary[entityType].scannedNamespaces += 1;
+      if (keepNamespaces.has(entry.name)) {
+        continue;
+      }
+
+      await fs.rm(path.join(rootPath, entry.name), { recursive: true, force: true });
+      summary[entityType].deletedNamespaces += 1;
+    }
+  }
+
+  return summary;
 }
 
 function findWorkspaceRoot(startDir: string): string {
@@ -257,6 +429,176 @@ export async function purgeDeadMlsMedia(
 
   return {
     mediaDeleted: deletedMediaRows.length,
+    variantFilesDeleted,
+  };
+}
+
+/**
+ * Purges linked MLS media that falls outside the desired sync scope:
+ * - primary media for active + viewable properties
+ * - full media for configured associated members/offices
+ * - full property media for listings associated to configured members/offices
+ */
+export async function purgeScopedMlsMediaBeforeSync(
+  options: PreSyncMlsMediaCleanupOptions = {},
+): Promise<ScopedMlsMediaPurgeSummary> {
+  const memberKeys = [...new Set((options.memberKeys ?? []).filter(Boolean))];
+  const officeKeys = [...new Set((options.officeKeys ?? []).filter(Boolean))];
+  const activePropertyStatuses: StandardStatus[] = [
+    ...new Set(
+      (options.activePropertyStatuses && options.activePropertyStatuses.length > 0
+        ? options.activePropertyStatuses
+        : [...DEFAULT_ACTIVE_PROPERTY_STATUSES]
+      ).filter(Boolean) as StandardStatus[],
+    ),
+  ];
+
+  const primaryPhotoClause = or(
+    eq(mlsMedia.order, 1),
+    and(isNotNull(mlsMedia.preferredPhotoYN), eq(mlsMedia.preferredPhotoYN, true)),
+  );
+
+  const propertyPrimaryActiveViewableClause = and(
+    isNotNull(properties.listingKey),
+    eq(properties.mlgCanView, true),
+    isNotNull(properties.standardStatus),
+    inArray(properties.standardStatus, activePropertyStatuses),
+    primaryPhotoClause,
+  );
+
+  const propertyAssociationMemberClause =
+    memberKeys.length > 0
+      ? or(
+        and(isNotNull(properties.listAgentKey), inArray(properties.listAgentKey, memberKeys)),
+        and(
+          isNotNull(properties.listAgentMlsId),
+          inArray(properties.listAgentMlsId, memberKeys),
+        ),
+        and(
+          isNotNull(properties.coListAgentKey),
+          inArray(properties.coListAgentKey, memberKeys),
+        ),
+        and(
+          isNotNull(properties.coListAgentMlsId),
+          inArray(properties.coListAgentMlsId, memberKeys),
+        ),
+      )
+      : undefined;
+
+  const propertyAssociationOfficeClause =
+    officeKeys.length > 0
+      ? or(
+        and(isNotNull(properties.listOfficeKey), inArray(properties.listOfficeKey, officeKeys)),
+        and(
+          isNotNull(properties.listOfficeMlsId),
+          inArray(properties.listOfficeMlsId, officeKeys),
+        ),
+        and(
+          isNotNull(properties.coListOfficeKey),
+          inArray(properties.coListOfficeKey, officeKeys),
+        ),
+        and(
+          isNotNull(properties.coListOfficeMlsId),
+          inArray(properties.coListOfficeMlsId, officeKeys),
+        ),
+      )
+      : undefined;
+
+  const propertyAssociationClause =
+    propertyAssociationMemberClause && propertyAssociationOfficeClause
+      ? or(propertyAssociationMemberClause, propertyAssociationOfficeClause)
+      : (propertyAssociationMemberClause ?? propertyAssociationOfficeClause);
+
+  const propertyAssociatedAnyMediaClause = propertyAssociationClause
+    ? and(isNotNull(properties.listingKey), propertyAssociationClause)
+    : undefined;
+
+  const memberAssociatedAnyMediaClause =
+    memberKeys.length > 0
+      ? and(isNotNull(members.memberMlsId), inArray(members.memberMlsId, memberKeys))
+      : undefined;
+
+  const officeAssociatedAnyMediaClause =
+    officeKeys.length > 0
+      ? and(isNotNull(offices.officeMlsId), inArray(offices.officeMlsId, officeKeys))
+      : undefined;
+
+  const desiredScopeClauses = [
+    propertyPrimaryActiveViewableClause,
+    propertyAssociatedAnyMediaClause,
+    memberAssociatedAnyMediaClause,
+    officeAssociatedAnyMediaClause,
+  ].filter((clause) => clause !== undefined);
+
+  const desiredLinkedScopeClause =
+    desiredScopeClauses.length === 1 ? desiredScopeClauses[0] : or(...desiredScopeClauses);
+  const desiredLinkedScopeClauseNonNull =
+    desiredLinkedScopeClause ?? propertyPrimaryActiveViewableClause;
+
+  const rowsToDetach = await db
+    .select({ mediaId: media.id })
+    .from(mlsMedia)
+    .innerJoin(media, eq(mlsMedia.mediaId, media.id))
+    .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
+    .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberMlsId))
+    .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeMlsId))
+    .where(
+      and(
+        isNotNull(mlsMedia.mediaId),
+        isNull(media.deletedAt),
+        not(desiredLinkedScopeClauseNonNull as NonNullable<typeof desiredLinkedScopeClauseNonNull>),
+      ),
+    );
+
+  const linkedRowsScannedResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(mlsMedia)
+    .innerJoin(media, eq(mlsMedia.mediaId, media.id))
+    .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
+    .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberMlsId))
+    .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeMlsId))
+    .where(and(isNotNull(mlsMedia.mediaId), isNull(media.deletedAt)));
+
+  const linkedRowsScanned = Number(linkedRowsScannedResult[0]?.count ?? 0);
+
+  const mediaIds = [...new Set(rowsToDetach.map((row) => row.mediaId).filter(Boolean))] as UUIDv7[];
+
+  if (mediaIds.length === 0) {
+    return {
+      linkedRowsScanned,
+      linkedRowsDetached: 0,
+      mediaDeleted: 0,
+      variantFilesDeleted: 0,
+    };
+  }
+
+  let variantFilesDeleted = 0;
+  let mediaDeleted = 0;
+
+  for (let start = 0; start < mediaIds.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {
+    const chunk = mediaIds.slice(start, start + MEDIA_ID_QUERY_CHUNK_SIZE);
+
+    const variants = await db
+      .select({ storagePath: mediaVariants.storagePath })
+      .from(mediaVariants)
+      .where(inArray(mediaVariants.mediaId, chunk));
+
+    variantFilesDeleted += await deleteVariantFilesInChunks(
+      variants.map((variant) => variant.storagePath),
+    );
+
+    const deletedMediaRows = await db
+      .delete(media)
+      .where(inArray(media.id, chunk))
+      .returning({ id: media.id });
+
+    mediaDeleted += deletedMediaRows.length;
+  }
+
+  return {
+    linkedRowsScanned,
+    linkedRowsDetached: rowsToDetach.length,
+    mediaDeleted,
     variantFilesDeleted,
   };
 }

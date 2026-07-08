@@ -94,6 +94,22 @@ const listingsForSearchAndFilterColumns = {
   longitude: true,
 } as const;
 
+const listingsExcludedTypesSql = (table: { propertyType: unknown; propertySubType: unknown }) =>
+  sql`
+    ${table.propertyType} IS DISTINCT FROM 'ResidentialLease'
+    AND ${table.propertyType} IS DISTINCT FROM 'CommercialLease'
+    AND COALESCE(${table.propertySubType}, '') NOT IN ('Timeshare', 'Time Share', 'Rental', 'Rentals')
+  `;
+
+const listingsHasAvailablePriceSql = (table: { listPrice: unknown }) =>
+  sql`${table.listPrice} IS NOT NULL AND ${table.listPrice} > 0`;
+
+const listingsBaseEligibilitySql = (table: {
+  propertyType: unknown;
+  propertySubType: unknown;
+  listPrice: unknown;
+}) => sql`${listingsExcludedTypesSql(table)} AND ${listingsHasAvailablePriceSql(table)}`;
+
 const listingsForSearchAndFilterBaseWhere = {
   mlgCanView: true,
   deletedAt: {
@@ -208,8 +224,9 @@ const LISTINGS_BASELINE_CACHE_TTL_SECONDS = Math.max(
   1,
   Math.floor(LISTINGS_BASELINE_CACHE_TTL_MS / 1000),
 );
-const LISTINGS_MARKERS_CACHE_KEY = 'mls:listings:markers';
-const LISTINGS_BASELINE_SESSION_POINTER_KEY = 'mls:listings:session:baseline:pointer';
+// Versioned keys ensure initial marker/session order changes take effect immediately.
+const LISTINGS_MARKERS_CACHE_KEY = 'mls:listings:markers:v4';
+const LISTINGS_BASELINE_SESSION_POINTER_KEY = 'mls:listings:session:baseline:pointer:v4';
 
 function parseCachedBaselineMarkers(raw: string): PropertySearchMarker[] | null {
   try {
@@ -264,7 +281,7 @@ function getListingsSearchSessionIdsKey(sessionId: string): string {
 }
 
 function getHydratedListingsCacheKey(sessionId: string, offset: number, limit: number): string {
-  return `${getListingsSearchSessionKey(sessionId)}:hydrated:${offset}:${limit}`;
+  return `${getListingsSearchSessionKey(sessionId)}:hydrated:v2:${offset}:${limit}`;
 }
 
 function parseHydratedListingsCachePage(raw: string): HydratedListingsCachePage | null {
@@ -292,8 +309,8 @@ async function touchListingsSearchSession(sessionId: string): Promise<void> {
   await Promise.all([
     typeof client.getEx === 'function'
       ? client.getEx(sessionKey, {
-          EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
-        })
+        EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
+      })
       : client.expire(sessionKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
     client.expire(sessionIdsKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
   ]);
@@ -495,8 +512,8 @@ async function getListingsSearchSessionPage(
       client.expire(sessionIdsKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
       typeof client.getEx === 'function'
         ? client.getEx(sessionKey, {
-            EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
-          })
+          EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
+        })
         : client.expire(sessionKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
     ]);
 
@@ -677,7 +694,10 @@ const buildPreparedListingsNoFilterQuery = ({
   db.query.properties
     .findMany({
       columns: listingsForSearchAndFilterColumns,
-      where: listingsForSearchAndFilterBaseWhere,
+      where: {
+        ...listingsForSearchAndFilterBaseWhere,
+        RAW: (table) => listingsBaseEligibilitySql(table),
+      },
       orderBy: (table, { asc, desc }) => {
         switch (sortBy) {
           case 'priceAsc':
@@ -726,7 +746,7 @@ const buildPreparedListingsRangeQuery = ({
       columns: listingsForSearchAndFilterColumns,
       where: {
         ...listingsForSearchAndFilterBaseWhere,
-        RAW: (table) => rangeSql(table),
+        RAW: (table) => sql`${listingsBaseEligibilitySql(table)} AND ${rangeSql(table)}`,
       },
       orderBy: (table, { asc, desc }) => {
         switch (sortBy) {
@@ -760,14 +780,30 @@ const buildPreparedListingsRangeQuery = ({
 const preparedListingsLegacyNoSortNoLimit = db.query.properties
   .findMany({
     columns: listingsForSearchAndFilterColumns,
-    where: listingsForSearchAndFilterBaseWhere,
+    where: {
+      ...listingsForSearchAndFilterBaseWhere,
+      RAW: (table) => listingsBaseEligibilitySql(table),
+    },
+    orderBy: (table, { desc }) => [
+      desc(table.onMarketDate),
+      desc(table.modificationTimestamp),
+      desc(table.listingKey),
+    ],
   })
   .prepare('get_listings_legacy_no_sort_no_limit');
 
 const preparedListingsLegacyNoSortWithLimit = db.query.properties
   .findMany({
     columns: listingsForSearchAndFilterColumns,
-    where: listingsForSearchAndFilterBaseWhere,
+    where: {
+      ...listingsForSearchAndFilterBaseWhere,
+      RAW: (table) => listingsBaseEligibilitySql(table),
+    },
+    orderBy: (table, { desc }) => [
+      desc(table.onMarketDate),
+      desc(table.modificationTimestamp),
+      desc(table.listingKey),
+    ],
     limit: limitPlaceholder,
   })
   .prepare('get_listings_legacy_no_sort_with_limit');
@@ -798,8 +834,8 @@ const buildPreparedListingsQuery = ({
         ...listingsForSearchAndFilterBaseWhere,
         RAW: (table) =>
           includeSearch
-            ? sql`${listingsFiltersSql(table)} AND ${listingsSearchQuery.match(table.searchVector)}`
-            : listingsFiltersSql(table),
+            ? sql`${listingsBaseEligibilitySql(table)} AND ${listingsFiltersSql(table)} AND ${listingsSearchQuery.match(table.searchVector)}`
+            : sql`${listingsBaseEligibilitySql(table)} AND ${listingsFiltersSql(table)}`,
       },
       orderBy: (table, { asc, desc }) => {
         switch (sortBy) {
@@ -993,7 +1029,8 @@ const preparedHydratedListingsByIds = db.query.properties
       id: true,
     },
     where: {
-      RAW: (table) => sql`${table.id} = ANY(${sql.placeholder('uuids')})`,
+      RAW: (table) =>
+        sql`${table.id} = ANY(${sql.placeholder('uuids')}) AND ${listingsBaseEligibilitySql(table)}`,
     },
   })
   .prepare('get_hydrated_listings_by_ids');

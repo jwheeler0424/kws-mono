@@ -2,12 +2,7 @@ import type { CheckboxRootState } from '@base-ui/react/checkbox';
 import type { TPropertyCard } from '@kws/schema';
 import type { TListingsSearch, TMapBounds } from '@kws/types';
 
-import {
-  DEFAULT_POSITION,
-  FILTER_LIMITS,
-  PROPERTY_IMAGE_PLACEHOLDER_URL,
-} from '@kws/config/constants/properties';
-import { Checkbox } from '@kws/design/ui/checkbox';
+import { FILTER_LIMITS, PROPERTY_IMAGE_PLACEHOLDER_URL } from '@kws/config/constants/properties';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@kws/design/ui/empty';
 import { Input } from '@kws/design/ui/input';
 import { InputDebounced } from '@kws/design/ui/input-debounced';
@@ -20,16 +15,6 @@ import {
   ItemTitle,
 } from '@kws/design/ui/item';
 import { Label } from '@kws/design/ui/label';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@kws/design/ui/sheet';
-import { Slider } from '@kws/design/ui/slider';
 import { toast } from '@kws/design/ui/toast';
 import { isValidMapBounds } from '@kws/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -38,6 +23,17 @@ import { Search, X } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/global/button';
+import { Checkbox } from '@/components/global/checkbox';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/global/sheet';
+import { Slider } from '@/components/global/slider';
 import {
   getHydratedListingsPaginatedServerFn,
   getListingsForSearchAndFilterServerFn,
@@ -45,7 +41,7 @@ import {
 import { ListingsKeys, normalizeListingsSearchInput } from '@/features/mls/options/listings';
 import { cn, numberFormatInternational } from '@/lib/utils';
 import { getAddressStreet, numberFormat } from '@/lib/utils/properties';
-import { useMapActions, useMapStore } from '@/stores/map.store';
+import { useMapStore } from '@/stores/map.store';
 
 import { ScrollArea } from './listings-search-scroll-area';
 
@@ -154,7 +150,6 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
 
   const mapBounds = useMapStore((state) => state.bounds);
   const normalizedMapBounds = React.useMemo(() => normalizeBounds(mapBounds), [mapBounds]);
-  const { setBounds: setMapBounds, setZoom: setMapZoom } = useMapActions();
 
   const [searchResults, setSearchResults] = React.useState<TPropertyCard[]>([]);
   const [searchQueryLocal, setSearchQueryLocal] = React.useState<string | undefined>(
@@ -179,6 +174,7 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
   const [isSearchLoading, setIsSearchLoading] = React.useState(false);
   const latestSearchRequestRef = React.useRef(0);
   const boundsSyncTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHydratedRouteSearchKeyRef = React.useRef<string | null>(null);
 
   const listingsSearchMutation = useMutation({
     mutationFn: (input: Partial<TListingsSearch>) =>
@@ -195,7 +191,9 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
 
   const buildSearchPatchFromLocal = React.useCallback(
     (queryValue: string | undefined): TListingsSearchPatch => {
-      const shouldUseMapBounds = Boolean(useMapBoundsLocal && normalizedMapBounds);
+      const fallbackSearchBounds = normalizeBounds(search.bounds);
+      const effectiveBounds = normalizedMapBounds ?? fallbackSearchBounds;
+      const shouldUseMapBounds = useMapBoundsLocal === true && Boolean(effectiveBounds);
       const price = toOptionalRangeFilter(priceValues[0], priceValues[1]);
       const sqFt = toOptionalRangeFilter(sqFtValues[0], sqFtValues[1]);
       const bedrooms = toOptionalRangeFilter(bedroomValues[0], bedroomValues[1]);
@@ -207,13 +205,16 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
         sqFt,
         bedrooms,
         bathrooms,
-        useMapBounds: shouldUseMapBounds ? true : undefined,
-        bounds: shouldUseMapBounds ? normalizedMapBounds : undefined,
+        // Use explicit nulls when unchecked so route search is cleared instead
+        // of preserving prior values.
+        useMapBounds: shouldUseMapBounds ? true : null,
+        bounds: shouldUseMapBounds ? effectiveBounds : null,
       };
     },
     [
       bathroomValues,
       bedroomValues,
+      search.bounds,
       normalizedMapBounds,
       priceValues,
       sqFtValues,
@@ -245,6 +246,46 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
       return response;
     },
     [listingsSearchMutation, queryClient],
+  );
+
+  const hydrateSearchPreviewFromRoute = React.useCallback(
+    async (routeSearch: TListingsRouteSearch, hydrationKey: string): Promise<boolean> => {
+      const requestId = latestSearchRequestRef.current + 1;
+      latestSearchRequestRef.current = requestId;
+      setIsSearchLoading(true);
+
+      try {
+        const previewLimit = routeSearch.limit ?? 25;
+        const searchResult = await runListingsSearchMutation(routeSearch);
+        const response = await getHydratedListingsPaginatedServerFn({
+          data: {
+            sessionId: searchResult.sessionId,
+            limit: previewLimit,
+            cursor: null,
+          },
+        });
+
+        if (latestSearchRequestRef.current !== requestId) {
+          return false;
+        }
+
+        setSearchResults(response.items);
+        lastHydratedRouteSearchKeyRef.current = hydrationKey;
+        return true;
+      } catch {
+        if (latestSearchRequestRef.current !== requestId) {
+          return false;
+        }
+
+        setSearchResults([]);
+        return false;
+      } finally {
+        if (latestSearchRequestRef.current === requestId) {
+          setIsSearchLoading(false);
+        }
+      }
+    },
+    [runListingsSearchMutation],
   );
 
   const handleClearSearchQuery = (_e: React.MouseEvent) => {
@@ -305,43 +346,17 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
         latestSearchRequestRef.current += 1;
         setIsSearchLoading(false);
         setSearchResults([]);
+        lastHydratedRouteSearchKeyRef.current = null;
         return;
       }
 
-      const requestId = latestSearchRequestRef.current + 1;
-      latestSearchRequestRef.current = requestId;
-      setIsSearchLoading(true);
-
-      try {
-        const previewLimit = routeSearch.limit ?? 25;
-        const searchResult = await runListingsSearchMutation(routeSearch);
-        const response = await getHydratedListingsPaginatedServerFn({
-          data: {
-            sessionId: searchResult.sessionId,
-            limit: previewLimit,
-            cursor: null,
-          },
-        });
-
-        if (latestSearchRequestRef.current !== requestId) {
-          return;
-        }
-
-        setSearchResults(response.items);
+      const hydrationKey = JSON.stringify(normalizeListingsSearchInput(routeSearch));
+      const didHydrate = await hydrateSearchPreviewFromRoute(routeSearch, hydrationKey);
+      if (didHydrate) {
         commitSearchPatch(patch, { replace: true });
-      } catch {
-        if (latestSearchRequestRef.current !== requestId) {
-          return;
-        }
-
-        setSearchResults([]);
-      } finally {
-        if (latestSearchRequestRef.current === requestId) {
-          setIsSearchLoading(false);
-        }
       }
     },
-    [buildSearchPatchFromLocal, commitSearchPatch, runListingsSearchMutation, search],
+    [buildSearchPatchFromLocal, commitSearchPatch, hydrateSearchPreviewFromRoute, search],
   );
 
   const resetSearchFilters = (_e: React.MouseEvent<HTMLButtonElement>) => {
@@ -439,6 +454,57 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
     };
   }, [commitSearchPatch, normalizedMapBounds, search.bounds, search.useMapBounds]);
 
+  const routeHydrationSearch = React.useMemo<TListingsRouteSearch>(() => {
+    const keyword = search.query?.trim();
+
+    return {
+      query: keyword && keyword.length >= 3 ? keyword : undefined,
+      limit: search.limit,
+      price: search.price,
+      sqFt: search.sqFt,
+      bedrooms: search.bedrooms,
+      bathrooms: search.bathrooms,
+      useMapBounds: search.useMapBounds,
+      bounds: search.bounds,
+      sortBy: search.sortBy,
+      proximity: search.proximity,
+    };
+  }, [
+    search.bathrooms,
+    search.bedrooms,
+    search.bounds,
+    search.limit,
+    search.price,
+    search.proximity,
+    search.query,
+    search.sortBy,
+    search.sqFt,
+    search.useMapBounds,
+  ]);
+
+  const routeHydrationKey = React.useMemo(() => {
+    if (!routeHydrationSearch.query) {
+      return null;
+    }
+
+    return JSON.stringify(normalizeListingsSearchInput(routeHydrationSearch));
+  }, [routeHydrationSearch]);
+
+  React.useEffect(() => {
+    if (!routeHydrationKey) {
+      lastHydratedRouteSearchKeyRef.current = null;
+      return;
+    }
+
+    if (lastHydratedRouteSearchKeyRef.current === routeHydrationKey) {
+      return;
+    }
+
+    // Set before fetching so rerenders don't queue duplicate requests.
+    lastHydratedRouteSearchKeyRef.current = routeHydrationKey;
+    void hydrateSearchPreviewFromRoute(routeHydrationSearch, routeHydrationKey);
+  }, [hydrateSearchPreviewFromRoute, routeHydrationKey, routeHydrationSearch]);
+
   const trimmedSearchQuery = searchQueryLocal?.trim() ?? '';
   const hasSearchKeyword = trimmedSearchQuery.length >= 3;
   const hasSearchResults = searchResults.length > 0;
@@ -452,10 +518,6 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
       const queryValue =
         searchQueryLocal && searchQueryLocal.length >= 3 ? searchQueryLocal : undefined;
 
-      if (!useMapBoundsLocal) {
-        setMapBounds(null);
-        setMapZoom(DEFAULT_POSITION.zoom);
-      }
       const patch = buildSearchPatchFromLocal(queryValue);
       const routeSearch = mergePatchIntoRouteSearch(search, patch);
       setSearchResults([]);
@@ -467,11 +529,8 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
       buildSearchPatchFromLocal,
       commitSearchPatch,
       searchQueryLocal,
-      setMapBounds,
-      setMapZoom,
       runListingsSearchMutation,
       search,
-      useMapBoundsLocal,
     ],
   );
 
@@ -907,10 +966,10 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
             data-slot='combobox-content'
             data-inline='true'
             className={cn(
-              'group/combobox-content relative min-h-8 max-w-full overflow-hidden border border-t-0 border-polaris-primary/40 bg-white p-0 text-popover-foreground shadow-none',
+              'group/combobox-content relative min-h-8 max-w-full overflow-hidden border border-t-0 rounded-b-[1.25rem] border-polaris-primary/40 bg-white p-0 text-popover-foreground shadow-none',
               !showSearchSurface && 'hidden',
             )}>
-            {isSearchLoading ? (
+            {isSearchLoading && !hasSearchResults ? (
               <div className='flex min-h-28 w-full items-center justify-center px-4 py-6 text-sm text-muted-foreground'>
                 Searching listings for "{trimmedSearchQuery}"...
               </div>
@@ -943,7 +1002,7 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
                     .map((result) => (
                       <Link
                         key={result.listingKey}
-                        className='group m-0 flex w-full items-start gap-1 rounded-none text-left text-black no-underline hover:no-underline'
+                        className='group -m-1 flex w-full items-start p-1 gap-1 rounded-none text-left text-black no-underline hover:no-underline'
                         to={`/listings/$listingKey`}
                         preload='intent'
                         params={{
@@ -971,9 +1030,9 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
                             </ItemTitle>
                             <ItemDescription className='text-xs font-normal'>
                               <span>
-                                {result.internetAutomatedValuationDisplayYN === false
-                                  ? 'Unavailable'
-                                  : numberFormat({ value: parseInt(result.listPrice ?? '0') })}
+                                {Number(result.listPrice ?? 0) > 0
+                                  ? numberFormat({ value: Number(result.listPrice) })
+                                  : 'Unavailable'}
                               </span>
                               <span className='hidden @sm:inline'>
                                 {' '}
@@ -1007,10 +1066,10 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
         </div>
       </div>
       <SheetContent className='border-none bg-white' side={'right'}>
-        <SheetHeader className='space-y-1'>
-          <SheetTitle className='-mt-1 text-2xl leading-1 font-normal'>Property Filters</SheetTitle>
-          <SheetDescription className='text-xs!'>
-            {`Adjust the filters to help find the perfect property for you.`}
+        <SheetHeader className='pb-2'>
+          <SheetTitle className='text-2xl leading-7 font-normal'>Property Filters</SheetTitle>
+          <SheetDescription className='text-sm'>
+            {`Adjust the filters to find the perfect property for you.`}
           </SheetDescription>
         </SheetHeader>
         <div className='flex w-full items-center justify-start gap-2 px-4'>

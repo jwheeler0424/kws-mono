@@ -83,9 +83,9 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
             {listing.yearBuilt ? ` • ${getYearsOld(listing.yearBuilt)}` : null}
           </p>
           <h3 className={cn('font-sans! font-semibold! tracking-normal! text-gray-900')}>
-            {listing.internetAutomatedValuationDisplayYN === false
-              ? 'Unavailable'
-              : numberFormat({ value: parseInt(listing.listPrice ?? '0') })}
+            {Number(listing.listPrice ?? 0) > 0
+              ? numberFormat({ value: Number(listing.listPrice) })
+              : 'Unavailable'}
           </h3>
           <div
             aria-hidden={!showAddress}

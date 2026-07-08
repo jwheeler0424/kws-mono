@@ -62,6 +62,24 @@ export function ListingsResults({ params }: { params: Partial<TListingsSearch> }
     return deduped;
   }, [hydratedPages?.pages]);
 
+  const isResolvingResults =
+    isListingsPending || isListingsFetching || isHydrationPending || isHydrationFetching;
+  const [displayedProperties, setDisplayedProperties] = React.useState<TPropertyCard[]>([]);
+
+  React.useEffect(() => {
+    if (properties.length > 0) {
+      setDisplayedProperties(properties);
+      return;
+    }
+
+    if (!isResolvingResults) {
+      setDisplayedProperties([]);
+    }
+  }, [isResolvingResults, properties]);
+
+  const shouldShowPrimaryLoader = isResolvingResults && displayedProperties.length === 0;
+  const shouldShowOverlayLoader = isResolvingResults && displayedProperties.length > 0;
+
   const titleCount = searchResult?.total ?? 0;
 
   const handleLoadMore = React.useCallback(() => {
@@ -76,26 +94,35 @@ export function ListingsResults({ params }: { params: Partial<TListingsSearch> }
 
   return (
     <>
-      {isListingsPending ? (
+      {shouldShowPrimaryLoader ? (
         <main className='flex h-full min-h-[50vh] w-full flex-1 items-center justify-center py-20'>
           <BeatLoader color='#ff0000' loading={true} size={15} />
         </main>
       ) : null}
-      <ListingsSection
-        properties={{ items: properties } as CursorResult<TPropertyCard>}
-        title={`Search Results ${titleCount ? `(${titleCount})` : ''}`}
-        emptyText={
-          isHydrationError
-            ? 'Property cards failed to load. Please refresh and try again.'
-            : isListingsPending || isListingsFetching || isHydrationPending || isHydrationFetching
-              ? ''
-              : 'There are currently no results to view.'
-        }
-        pageSize={pageSize}
-        hasMore={Boolean(hasNextPage)}
-        loadingMore={isFetchingNextPage}
-        onLoadMore={handleLoadMore}
-      />
+      {!shouldShowPrimaryLoader ? (
+        <div className='relative'>
+          <ListingsSection
+            properties={{ items: displayedProperties } as CursorResult<TPropertyCard>}
+            title={`Search Results ${titleCount ? `(${titleCount})` : ''}`}
+            emptyText={
+              isHydrationError
+                ? 'Property cards failed to load. Please refresh and try again.'
+                : isResolvingResults
+                  ? undefined
+                  : 'There are currently no results to view.'
+            }
+            pageSize={pageSize}
+            hasMore={Boolean(hasNextPage)}
+            loadingMore={isFetchingNextPage}
+            onLoadMore={handleLoadMore}
+          />
+          {shouldShowOverlayLoader ? (
+            <div className='pointer-events-none absolute inset-0 z-20 flex items-center justify-center'>
+              <BeatLoader color='#ff0000' loading={true} size={15} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </>
   );
 }
