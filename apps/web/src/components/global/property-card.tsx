@@ -1,4 +1,4 @@
-import type { TPropertyCard } from '@kws/types';
+import type { TPropertyCard } from '@kws/schema';
 
 import { PROPERTY_IMAGE_PLACEHOLDER_URL } from '@kws/config/constants/properties';
 import { Separator } from '@kws/design/ui/separator';

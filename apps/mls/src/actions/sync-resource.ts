@@ -8,7 +8,6 @@
 //   4. Return aggregate run metrics
 // ---------------------------------------------------------------------------
 
-
 import type { MlsResource } from '@/types';
 
 import { MLS_SYNC_DEFAULTS } from '@/lib/constants';
@@ -75,10 +74,7 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
   const dbWatermark = normalizeTimestamp(await config.getLatestTimestamp());
   let activeAfterTimestamp = dbWatermark;
 
-  const overlapMs = Math.max(
-    MLS_SYNC_DEFAULTS.deltaOverlapMs,
-    MLS_SYNC_DEFAULTS.minDeltaOverlapMs,
-  );
+  const overlapMs = Math.max(MLS_SYNC_DEFAULTS.deltaOverlapMs, MLS_SYNC_DEFAULTS.minDeltaOverlapMs);
   const precisionSafetyMs = MLS_SYNC_DEFAULTS.timestampPrecisionSafetyMs;
 
   if (activeAfterTimestamp && overlapMs + precisionSafetyMs > 0) {

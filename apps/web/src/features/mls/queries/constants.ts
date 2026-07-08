@@ -1,4 +1,4 @@
-import type { StandardStatus } from '@kws/types';
+import type { StandardStatus } from '@kws/schema';
 
 export const DEFAULT_ACTIVE_STATUSES: StandardStatus[] = [
   'Active',

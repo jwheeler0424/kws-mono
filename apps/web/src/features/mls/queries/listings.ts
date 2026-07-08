@@ -1,11 +1,10 @@
 import type {
-  CursorResult,
   PropertyListing,
   PropertySearchMarker,
-  TListingsSearch,
   TPropertyCard,
   TPropertyNwmFlags,
-} from '@kws/types';
+} from '@kws/schema';
+import type { CursorResult, TListingsSearch } from '@kws/types';
 
 import { type TMlsMedia } from '@kws/schema';
 import { tsquery } from '@kws/schema/plugins';
@@ -15,8 +14,13 @@ import { randomUUID } from 'node:crypto';
 import { db } from '@/lib/database';
 import { getNearMeCells, H3_RES } from '@/lib/h3';
 import { getRedisClient } from '@/lib/redis';
+
 import { DEFAULT_ACTIVE_STATUSES } from './constants';
-import { formatPropertyCardData, getPropertyCardQueryConfig, type TPropertyCardRow } from './properties';
+import {
+  formatPropertyCardData,
+  getPropertyCardQueryConfig,
+  type TPropertyCardRow,
+} from './properties';
 
 export type TPropertyWithMedia = Omit<PropertyListing, 'NWM'> & {
   NWM: TPropertyNwmFlags | null;
@@ -78,7 +82,6 @@ export async function getListingDetailByKey({
 
   return listing ? { ...listing, media: mediaWithUrl } : null;
 }
-
 
 const listingsForSearchAndFilterColumns = {
   id: true,
@@ -289,8 +292,8 @@ async function touchListingsSearchSession(sessionId: string): Promise<void> {
   await Promise.all([
     typeof client.getEx === 'function'
       ? client.getEx(sessionKey, {
-        EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
-      })
+          EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
+        })
       : client.expire(sessionKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
     client.expire(sessionIdsKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
   ]);
@@ -337,10 +340,7 @@ function parseListingsSearchSessionMeta(raw: string): ListingsSearchSessionMeta 
 
     return {
       createdAt: typeof parsed.createdAt === 'number' ? parsed.createdAt : Date.now(),
-      total:
-        typeof parsed.total === 'number' && Number.isFinite(parsed.total)
-          ? parsed.total
-          : 0,
+      total: typeof parsed.total === 'number' && Number.isFinite(parsed.total) ? parsed.total : 0,
       expiresAt: typeof parsed.expiresAt === 'number' ? parsed.expiresAt : Date.now(),
     };
   } catch {
@@ -495,14 +495,12 @@ async function getListingsSearchSessionPage(
       client.expire(sessionIdsKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
       typeof client.getEx === 'function'
         ? client.getEx(sessionKey, {
-          EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
-        })
+            EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
+          })
         : client.expire(sessionKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
     ]);
 
-    const ids = rawIds.filter(
-      (id): id is PropertySearchMarker['id'] => typeof id === 'string',
-    );
+    const ids = rawIds.filter((id): id is PropertySearchMarker['id'] => typeof id === 'string');
 
     if (!ids.length && start < sessionMeta.total) {
       return null;
@@ -1264,5 +1262,3 @@ export async function getListingsForSearchAndFilter(
     markers,
   };
 }
-
-

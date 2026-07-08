@@ -139,7 +139,25 @@ async function propertyMediaSeedConfig(osn: string): Promise<SyncResult> {
     primaryOnlyForAllProperties: true,
     associationMode: 'unprocessed-only',
     includeMissingFilesRepair: false,
+    enforceEligibilityForNonAssociatedProperties: true,
   }).then((summary) => mediaSummaryToSyncResult('Property:PrimaryMedia', osn, summary, startedAt));
+}
+
+async function propertyMediaConfiguredAssociationSeedConfig(
+  osn: string,
+  memberKeys: readonly string[],
+  officeKeys: readonly string[],
+): Promise<SyncResult> {
+  const startedAt = new Date();
+  return runInitialMlsMediaSync({
+    filterEntityTypes: ['properties'],
+    associationMode: 'unprocessed-only',
+    includeMissingFilesRepair: false,
+    restrictToMemberPropertyKeys: [...memberKeys],
+    restrictToOfficePropertyKeys: [...officeKeys],
+  }).then((summary) =>
+    mediaSummaryToSyncResult('Property:ConfiguredAssociations:Media', osn, summary, startedAt),
+  );
 }
 
 async function memberMediaSeedConfig(
@@ -366,6 +384,17 @@ async function runSeedInitialMedia(osn: string): Promise<SyncSummary> {
   const phases: Array<readonly [string, () => Promise<SyncResult>]> = [
     ['Property:PrimaryMedia', () => propertyMediaSeedConfig(osn)],
   ];
+  if (configuredMemberKeys.length > 0 || configuredOfficeKeys.length > 0) {
+    phases.push([
+      'Property:ConfiguredAssociations:Media',
+      () =>
+        propertyMediaConfiguredAssociationSeedConfig(
+          osn,
+          configuredMemberKeys,
+          configuredOfficeKeys,
+        ),
+    ]);
+  }
   if (configuredMemberKeys.length > 0) {
     phases.push(['Member:Media', () => memberMediaSeedConfig(osn, configuredMemberKeys)]);
   }

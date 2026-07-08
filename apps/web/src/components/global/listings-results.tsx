@@ -1,4 +1,5 @@
-import type { CursorResult, TListingsSearch, TPropertyCard } from '@kws/types';
+import type { TPropertyCard } from '@kws/schema';
+import type { CursorResult, TListingsSearch } from '@kws/types';
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import React from 'react';

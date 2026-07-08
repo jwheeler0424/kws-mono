@@ -1,5 +1,12 @@
-import type { TMlsMedia, TMlsMember, TMlsOffice } from '@kws/schema';
-import type { NWM_Property, PropertyListing, TAddressData, TPropertyCard } from '@kws/types';
+import type {
+  PropertyListing,
+  TAddressData,
+  TMlsMedia,
+  TMlsMember,
+  TMlsOffice,
+  TPropertyCard,
+} from '@kws/schema';
+import type { NWM_Property } from '@kws/types';
 
 import type { TPropertyWithMedia } from '@/features/mls/queries';
 

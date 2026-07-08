@@ -5,7 +5,10 @@ import type { MlsResource } from '@/types';
 import { MLS_RESOURCE_NAMES, MLS_SCHEDULER_DEFAULTS } from '@/lib/constants';
 import { mlsLogger } from '@/lib/logger';
 
-import { purgeDeadMlsPropertyMedia } from '../repositories/media-cleanup.repository';
+import {
+  pruneEmptyMlsMediaDirectories,
+  purgeDeadMlsMedia,
+} from '../repositories/media-cleanup.repository';
 import { runMlsCleanup } from './cleanup';
 import { isMlsDeltaResourceName, runDeltaSyncResource } from './orchestrator';
 import { runMlsMediaSync } from './seed-media';
@@ -37,7 +40,7 @@ function defaultResourceScheduleId(resource: MlsResource) {
 function resolveMlsDeltaResourceSchedules() {
   const enabled = true;
   const overrides = new Map<MlsResource, string>();
-  for (const value of env.MLS_QUEUE_RESOURCE_CRON_SCHEDULES) {
+  for (const value of env.MLS_RESOURCE_CRON_SCHEDULES) {
     const [rawResource, rawCron] = value.split(':', 2);
     const resource = rawResource?.trim();
     const cronExpression = rawCron?.trim();
@@ -132,16 +135,19 @@ async function runScheduledMediaSyncAndCleanup(
     repairMaxBatches: 1,
   });
 
-  const deadPropertyMediaPurgeSummary = await purgeDeadMlsPropertyMedia();
+  const deadMlsMediaPurgeSummary = await purgeDeadMlsMedia();
+  const prunedEmptyDirectories = await pruneEmptyMlsMediaDirectories();
 
-  syncMlsLogger.info('scheduled MLS media sync + dead property media purge completed', {
+  syncMlsLogger.info('scheduled MLS media sync + dead media purge completed', {
     scheduleId,
     property: mediaSummary.property,
+    propertyConfiguredAssociations: mediaSummary.propertyConfiguredAssociations,
     memberTargets: mediaSummary.memberKeys.length,
     member: mediaSummary.member,
     officeTargets: mediaSummary.officeKeys.length,
     office: mediaSummary.office,
-    deadPropertyMediaPurgeSummary,
+    deadMlsMediaPurgeSummary,
+    prunedEmptyDirectories,
   });
 }
 
@@ -164,6 +170,7 @@ async function runScheduledMediaReconcile(
   syncMlsLogger.info('scheduled MLS media reconcile completed', {
     scheduleId,
     property: mediaSummary.property,
+    propertyConfiguredAssociations: mediaSummary.propertyConfiguredAssociations,
     memberTargets: mediaSummary.memberKeys.length,
     member: mediaSummary.member,
     officeTargets: mediaSummary.officeKeys.length,
@@ -199,7 +206,23 @@ async function runScheduledMediaPhases(
     associationMode: options.associationMode,
     includeMissingFilesRepair: options.includeMissingFilesRepair,
     repairMaxBatches: options.repairMaxBatches,
+    enforceEligibilityForNonAssociatedProperties: true,
   });
+
+  let configuredAssociationPropertySummary: Awaited<ReturnType<typeof runMlsMediaSync>> | undefined;
+  if (memberKeys.length > 0 || officeKeys.length > 0) {
+    configuredAssociationPropertySummary = await runMlsMediaSync({
+      batchSize: input.mediaSyncBatchSize,
+      maxBatches: input.mediaSyncMaxBatches,
+      processConcurrency: input.mediaSyncProcessConcurrency,
+      filterEntityTypes: ['properties'],
+      associationMode: options.associationMode,
+      includeMissingFilesRepair: options.includeMissingFilesRepair,
+      repairMaxBatches: options.repairMaxBatches,
+      restrictToMemberPropertyKeys: memberKeys,
+      restrictToOfficePropertyKeys: officeKeys,
+    });
+  }
 
   let memberSummary: Awaited<ReturnType<typeof runMlsMediaSync>> | undefined;
   if (memberKeys.length > 0) {
@@ -231,6 +254,7 @@ async function runScheduledMediaPhases(
 
   return {
     property: propertySummary,
+    propertyConfiguredAssociations: configuredAssociationPropertySummary,
     member: memberSummary,
     office: officeSummary,
     memberKeys,
@@ -240,7 +264,7 @@ async function runScheduledMediaPhases(
 
 function resolveMlsCleanupSchedule() {
   const enabled = true;
-  const cronExpression = env.MLS_QUEUE_CLEANUP_CRON || '2 * * * *';
+  const cronExpression = env.MLS_CLEANUP_CRON || '2 * * * *';
 
   return {
     scheduleId: MLS_CLEANUP_HOURLY_SCHEDULE_ID,
@@ -252,7 +276,7 @@ function resolveMlsCleanupSchedule() {
 
 function resolveMlsMediaSyncSchedule() {
   const enabled = true;
-  const cronExpression = env.MLS_QUEUE_MEDIA_SYNC_CRON || '*/15 * * * *';
+  const cronExpression = env.MLS_MEDIA_SYNC_CRON || '*/15 * * * *';
 
   return {
     scheduleId: MLS_MEDIA_SYNC_SCHEDULE_ID,
@@ -263,7 +287,7 @@ function resolveMlsMediaSyncSchedule() {
 
 function resolveMlsMediaReconcileSchedule() {
   const enabled = true;
-  const cronExpression = env.MLS_QUEUE_MEDIA_RECONCILE_CRON || '0 */6 * * *';
+  const cronExpression = env.MLS_MEDIA_RECONCILE_CRON || '0 */6 * * *';
 
   return {
     scheduleId: MLS_MEDIA_RECONCILE_SCHEDULE_ID,

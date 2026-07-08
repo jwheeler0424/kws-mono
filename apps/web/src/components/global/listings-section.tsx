@@ -1,4 +1,5 @@
-import type { CursorResult, TPropertyCard } from '@kws/types';
+import type { TPropertyCard } from '@kws/schema';
+import type { CursorResult } from '@kws/types';
 
 import VirtualPropertyGrid from '@/components/global/virtual-property-grid';
 

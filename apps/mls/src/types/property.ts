@@ -1,4 +1,4 @@
-import type { PropertyListing } from '@kws/types';
+import type { PropertyListing } from '@kws/schema';
 
 import z from 'zod';
 

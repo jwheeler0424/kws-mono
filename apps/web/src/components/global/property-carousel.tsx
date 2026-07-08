@@ -1,4 +1,4 @@
-import type { TPropertyCard } from '@kws/types';
+import type { TPropertyCard } from '@kws/schema';
 
 import {
   Carousel,

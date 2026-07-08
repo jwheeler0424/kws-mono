@@ -1,4 +1,4 @@
-import type { PropertyParams } from '@kws/types';
+import type { PropertyParams } from '@kws/schema';
 
 import { queryOptions } from '@tanstack/react-query';
 

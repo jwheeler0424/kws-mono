@@ -10,7 +10,6 @@ const envSchema = z.object({
   DB_NAME: z.string().min(1),
   DB_HOST: z.hostname().default('localhost'),
   DB_PORT: z.coerce.number().int().positive(),
-  PG_MAX_CLIENTS: z.coerce.number().int().positive().default(10),
 
   // ── Redis configuration ─────────────────────────────────────────────────
   REDIS_HOST: z.hostname().default('localhost'),

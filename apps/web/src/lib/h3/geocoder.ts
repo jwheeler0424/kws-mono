@@ -8,9 +8,10 @@
  * so each unique query only ever hits the geocoder once.
  */
 
-import { db } from '@/lib/database';
 import { createLogger } from '@kws/logger';
 import { geoCache } from '@kws/schema';
+
+import { db } from '@/lib/database';
 
 import type { H3Resolution } from './index';
 

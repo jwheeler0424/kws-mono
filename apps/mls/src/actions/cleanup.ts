@@ -5,6 +5,8 @@ import { MLS_SYNC_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
 
 import {
+  pruneEmptyMlsMediaDirectories,
+  purgeDeadMlsMedia,
   purgeDeadMlsPropertyMedia,
   purgeEntityMedia,
   type DeadMlsMediaPurgeSummary,
@@ -26,6 +28,8 @@ export interface MlsCleanupSummary {
     offices: EntityMediaPurgeSummary;
     properties: EntityMediaPurgeSummary;
     deadPropertyMedia: DeadMlsMediaPurgeSummary;
+    deadEntityMedia: DeadMlsMediaPurgeSummary;
+    prunedEmptyDirectories: number;
     totals: EntityMediaPurgeSummary;
   };
   totalDeleted: number;
@@ -71,13 +75,21 @@ export async function runMlsCleanup(
     .map((row) => row.resourceRecordKey)
     .filter((key): key is string => Boolean(key));
 
-  const [membersMediaPurge, officesMediaPurge, propertiesMediaPurge, deadPropertyMediaPurge] =
-    await Promise.all([
-      purgeEntityMedia(memberKeys),
-      purgeEntityMedia(officeKeys),
-      purgeEntityMedia(propertyKeys),
-      purgeDeadMlsPropertyMedia(),
-    ]);
+  const [
+    membersMediaPurge,
+    officesMediaPurge,
+    propertiesMediaPurge,
+    deadPropertyMediaPurge,
+    deadEntityMediaPurge,
+  ] = await Promise.all([
+    purgeEntityMedia(memberKeys),
+    purgeEntityMedia(officeKeys),
+    purgeEntityMedia(propertyKeys),
+    purgeDeadMlsPropertyMedia(),
+    purgeDeadMlsMedia(['members', 'offices']),
+  ]);
+
+  const prunedEmptyDirectories = await pruneEmptyMlsMediaDirectories();
 
   const [lookupDeleted, officeDeleted, memberDeleted, openHouseDeleted, propertyDeleted] =
     await Promise.all([
@@ -122,17 +134,21 @@ export async function runMlsCleanup(
     offices: officesMediaPurge,
     properties: propertiesMediaPurge,
     deadPropertyMedia: deadPropertyMediaPurge,
+    deadEntityMedia: deadEntityMediaPurge,
+    prunedEmptyDirectories,
     totals: {
       mediaDeleted:
         membersMediaPurge.mediaDeleted +
         officesMediaPurge.mediaDeleted +
         propertiesMediaPurge.mediaDeleted +
-        deadPropertyMediaPurge.mediaDeleted,
+        deadPropertyMediaPurge.mediaDeleted +
+        deadEntityMediaPurge.mediaDeleted,
       variantFilesDeleted:
         membersMediaPurge.variantFilesDeleted +
         officesMediaPurge.variantFilesDeleted +
         propertiesMediaPurge.variantFilesDeleted +
-        deadPropertyMediaPurge.variantFilesDeleted,
+        deadPropertyMediaPurge.variantFilesDeleted +
+        deadEntityMediaPurge.variantFilesDeleted,
       mlsMediaRowsDeleted:
         membersMediaPurge.mlsMediaRowsDeleted +
         officesMediaPurge.mlsMediaRowsDeleted +

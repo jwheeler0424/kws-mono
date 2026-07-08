@@ -58,8 +58,8 @@ Seed behavior is local-first:
 - `MLS_QUEUE_MEDIA_SYNC_CRON` (required)
 - `MLS_QUEUE_MEDIA_RECONCILE_CRON` (optional, default `0 */6 * * *`)
 
-Most MLS sync and scheduler tuning values are now fixed in app constants so they do not need
-to be set via environment variables.
+Most MLS sync and scheduler tuning values are now fixed in app constants so they do not need to be
+set via environment variables.
 
 ## Maintenance APIs
 

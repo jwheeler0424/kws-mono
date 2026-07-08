@@ -1,4 +1,4 @@
-import type { TPropertyCard } from '@kws/types';
+import type { TPropertyCard } from '@kws/schema';
 
 import VirtualPropertyGrid from '@/components/global/virtual-property-grid';
 

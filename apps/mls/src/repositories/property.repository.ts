@@ -37,7 +37,9 @@ async function applySeedStagingSettings(
     );
   }
   if (MLS_PROPERTY_DEFAULTS.seedStagingLockTimeoutMs) {
-    await execute(`SET LOCAL lock_timeout TO '${MLS_PROPERTY_DEFAULTS.seedStagingLockTimeoutMs}ms'`);
+    await execute(
+      `SET LOCAL lock_timeout TO '${MLS_PROPERTY_DEFAULTS.seedStagingLockTimeoutMs}ms'`,
+    );
   }
   if (MLS_PROPERTY_DEFAULTS.seedStagingWorkMemMb) {
     await execute(`SET LOCAL work_mem TO '${MLS_PROPERTY_DEFAULTS.seedStagingWorkMemMb}MB'`);

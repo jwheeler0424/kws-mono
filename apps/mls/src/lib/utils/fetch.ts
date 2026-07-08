@@ -295,13 +295,13 @@ export function fetchLookups(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsLookupPayload>(
     startUrl ??
-    buildResourceUrl({
-      resource: 'Lookup',
-      osn,
-      afterTimestamp,
-      beforeTimestamp,
-      top: Math.min(MLS_SYNC_DEFAULTS.pageSize, 5000),
-    }),
+      buildResourceUrl({
+        resource: 'Lookup',
+        osn,
+        afterTimestamp,
+        beforeTimestamp,
+        top: Math.min(MLS_SYNC_DEFAULTS.pageSize, 5000),
+      }),
   );
 }
 
@@ -313,13 +313,13 @@ export function fetchMembers(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsMemberPayload>(
     startUrl ??
-    buildResourceUrl({
-      resource: 'Member',
-      osn,
-      afterTimestamp,
-      beforeTimestamp,
-      top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
-    }),
+      buildResourceUrl({
+        resource: 'Member',
+        osn,
+        afterTimestamp,
+        beforeTimestamp,
+        top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
+      }),
   );
 }
 
@@ -331,13 +331,13 @@ export function fetchOffices(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsOfficePayload>(
     startUrl ??
-    buildResourceUrl({
-      resource: 'Office',
-      osn,
-      afterTimestamp,
-      beforeTimestamp,
-      top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
-    }),
+      buildResourceUrl({
+        resource: 'Office',
+        osn,
+        afterTimestamp,
+        beforeTimestamp,
+        top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
+      }),
   );
 }
 
@@ -348,13 +348,13 @@ export function fetchOpenHouses(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsOpenHousePayload>(
     startUrl ??
-    buildResourceUrl({
-      resource: 'OpenHouse',
-      osn,
-      afterTimestamp,
-      beforeTimestamp,
-      top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
-    }),
+      buildResourceUrl({
+        resource: 'OpenHouse',
+        osn,
+        afterTimestamp,
+        beforeTimestamp,
+        top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
+      }),
   );
 }
 
@@ -441,9 +441,9 @@ export function fetchPropertiesByOffice(
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
   return paginate<MlsPropertyPayload>(
     options?.startUrl ??
-    buildPropertySeedUrl(osn, getPropertySeedTop(), {
-      officeMlsId,
-    }),
+      buildPropertySeedUrl(osn, getPropertySeedTop(), {
+        officeMlsId,
+      }),
   );
 }
 
@@ -514,12 +514,12 @@ export async function* fetchViewablePropertiesByTypesAndStatuses(
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
   yield* paginate<MlsPropertyPayload>(
     options?.startUrl ??
-    buildPropertySeedUrl(osn, getPropertySeedTop(), {
-      propertyTypes: propertyTypes ? [...propertyTypes] : undefined,
-      standardStatuses: standardStatuses ? [...standardStatuses] : undefined,
-      afterTimestamp: options?.afterTimestamp,
-      beforeTimestamp: options?.beforeTimestamp,
-    }),
+      buildPropertySeedUrl(osn, getPropertySeedTop(), {
+        propertyTypes: propertyTypes ? [...propertyTypes] : undefined,
+        standardStatuses: standardStatuses ? [...standardStatuses] : undefined,
+        afterTimestamp: options?.afterTimestamp,
+        beforeTimestamp: options?.beforeTimestamp,
+      }),
   );
 }
 

@@ -11,9 +11,9 @@ import {
 
 type TRangeInput =
   | {
-    min?: number | null;
-    max?: number | null;
-  }
+      min?: number | null;
+      max?: number | null;
+    }
   | null
   | undefined;
 
@@ -35,7 +35,9 @@ function normalizeRange(range: TRangeInput) {
   };
 }
 
-export function normalizeListingsSearchInput(input: Partial<TListingsSearch>): Partial<TListingsSearch> {
+export function normalizeListingsSearchInput(
+  input: Partial<TListingsSearch>,
+): Partial<TListingsSearch> {
   const query = typeof input.query === 'string' ? input.query.trim() : undefined;
   const price = normalizeRange(input.price);
   const sqFt = normalizeRange(input.sqFt);
@@ -46,7 +48,8 @@ export function normalizeListingsSearchInput(input: Partial<TListingsSearch>): P
     typeof input.proximity?.lng === 'number' &&
     typeof input.proximity?.radiusMiles === 'number';
   const useMapBounds = input.useMapBounds === true;
-  const bounds = useMapBounds && input.bounds && isValidMapBounds(input.bounds) ? input.bounds : undefined;
+  const bounds =
+    useMapBounds && input.bounds && isValidMapBounds(input.bounds) ? input.bounds : undefined;
 
   return {
     query: query && query.length > 0 ? query : undefined,

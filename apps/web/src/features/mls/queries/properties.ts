@@ -1,4 +1,4 @@
-import type { TPropertyCard, TPropertyNwmFlags } from '@kws/types';
+import type { TPropertyCard, TPropertyNwmFlags } from '@kws/schema';
 
 import { sql } from 'drizzle-orm';
 

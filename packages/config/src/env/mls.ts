@@ -68,10 +68,6 @@ const resourceCronSchema = z.string().superRefine((value, ctx) => {
 
 const envSchema = z.object({
   // ── MLS configuration ────────────────────────────────────────────────────────
-  /* -- Test Credentials -- */
-  MLS_TEST_ACCESS_KEY: z.hash('sha1').optional(),
-  MLS_TEST_API_URL: z.httpUrl().optional(),
-
   /* -- Live Credentials -- */
   MLS_ACCESS_KEY: z.hash('sha1'),
   MLS_API_URL: z.httpUrl(),
@@ -116,13 +112,13 @@ const envSchema = z.object({
   MLS_MEDIA_STORE_PATH: z.string().min(1).optional(),
 
   /* -- MLS Scheduler config -- */
-  MLS_QUEUE_RESOURCE_CRON_SCHEDULES: z
+  MLS_RESOURCE_CRON_SCHEDULES: z
     .string()
     .transform((str) => str.split(';').map((s) => s.trim()))
     .pipe(z.array(resourceCronSchema)),
-  MLS_QUEUE_CLEANUP_CRON: cronScheduleSchema,
-  MLS_QUEUE_MEDIA_SYNC_CRON: cronScheduleSchema,
-  MLS_QUEUE_MEDIA_RECONCILE_CRON: cronScheduleSchema.optional(),
+  MLS_CLEANUP_CRON: cronScheduleSchema,
+  MLS_MEDIA_SYNC_CRON: cronScheduleSchema,
+  MLS_MEDIA_RECONCILE_CRON: cronScheduleSchema.optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

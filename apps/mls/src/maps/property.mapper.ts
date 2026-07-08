@@ -1,5 +1,10 @@
-import type { properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
-import type { PropertyType, StandardStatus } from '@kws/types';
+import type {
+  properties,
+  propertyRooms,
+  PropertyType,
+  propertyUnitTypes,
+  StandardStatus,
+} from '@kws/schema';
 
 import type { MlsPropertyPayload, MlsRoomPayload, MlsUnitTypePayload } from '@/types';
 import type { NWM_Property, NWM_PropertyUnitType } from '@/types/property';

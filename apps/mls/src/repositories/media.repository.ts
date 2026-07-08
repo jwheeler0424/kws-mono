@@ -33,6 +33,8 @@ export async function upsertMlsMedia(data: (typeof mlsMedia.$inferInsert)[]) {
   const batches = chunkArray(deduped, 1000);
   const setFields = getUpsertSetFields(mlsMedia, ['mediaKey', 'createdAt', 'searchVector']);
   const updateWhere = sql`
+    excluded.resource_record_key is distinct from ${mlsMedia.resourceRecordKey}
+    or
     excluded.media_modification_timestamp is distinct from ${mlsMedia.mediaModificationTimestamp}
     or excluded.media_url is distinct from ${mlsMedia.mediaURL}
     or excluded.preferred_photo_yn is distinct from ${mlsMedia.preferredPhotoYN}

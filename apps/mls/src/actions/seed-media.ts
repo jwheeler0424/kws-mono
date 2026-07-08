@@ -56,6 +56,11 @@ export interface MlsMediaSyncOptions {
    */
   restrictToMemberPropertyKeys?: string[];
   /**
+   * When set, property media is restricted to listings where the list office
+   * or co-list office matches one of the provided office keys / MLS IDs.
+   */
+  restrictToOfficePropertyKeys?: string[];
+  /**
    * When set, member media is restricted to rows whose resourceRecordKey /
    * member MLS ID matches one of these values.
    */
@@ -65,6 +70,16 @@ export interface MlsMediaSyncOptions {
    * office MLS ID matches one of these values.
    */
   restrictToOfficeEntityKeys?: string[];
+  /**
+   * When true, property media candidates not associated to prioritized
+   * configured keys are restricted to viewable active listings.
+   */
+  enforceEligibilityForNonAssociatedProperties?: boolean;
+  /**
+   * Active property statuses used when
+   * `enforceEligibilityForNonAssociatedProperties` is true.
+   */
+  activePropertyStatuses?: string[];
   /**
    * Candidate eligibility mode for media association checks.
    */
@@ -419,8 +434,12 @@ export async function runMlsMediaSync(
   const associationMode = options.associationMode ?? 'stale-or-unprocessed';
   const filterEntityTypes = options.filterEntityTypes;
   const restrictToMemberPropertyKeys = options.restrictToMemberPropertyKeys;
+  const restrictToOfficePropertyKeys = options.restrictToOfficePropertyKeys;
   const restrictToMemberEntityKeys = options.restrictToMemberEntityKeys;
   const restrictToOfficeEntityKeys = options.restrictToOfficeEntityKeys;
+  const enforceEligibilityForNonAssociatedProperties =
+    options.enforceEligibilityForNonAssociatedProperties;
+  const activePropertyStatuses = options.activePropertyStatuses;
   const includeMissingFilesRepair = options.includeMissingFilesRepair ?? false;
   const repairMaxBatches = Math.max(1, options.repairMaxBatches ?? maxBatches);
 
@@ -539,8 +558,11 @@ export async function runMlsMediaSync(
       associationMode,
       filterEntityTypes,
       restrictToMemberPropertyKeys,
+      restrictToOfficePropertyKeys,
       restrictToMemberEntityKeys,
       restrictToOfficeEntityKeys,
+      enforceEligibilityForNonAssociatedProperties,
+      activePropertyStatuses,
     });
     const elapsedMsSelection = Date.now() - selectionStartedAt;
 
@@ -620,8 +642,11 @@ export async function runMlsMediaSync(
         associationMode: 'repair-missing-files',
         filterEntityTypes,
         restrictToMemberPropertyKeys,
+        restrictToOfficePropertyKeys,
         restrictToMemberEntityKeys,
         restrictToOfficeEntityKeys,
+        enforceEligibilityForNonAssociatedProperties,
+        activePropertyStatuses,
       });
       const elapsedMsRepairSelection = Date.now() - repairSelectionStartedAt;
 

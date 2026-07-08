@@ -8,193 +8,191 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as SellingRouteImport } from './routes/selling'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as BuyingRouteImport } from './routes/buying'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as PropertiesIndexRouteImport } from './routes/properties/index'
-import { Route as BlogIndexRouteImport } from './routes/blog/index'
-import { Route as RobotsDotTxtRouteImport } from './routes/robots[.].txt'
-import { Route as PoliciesPrivacyRouteImport } from './routes/policies/privacy'
-import { Route as PoliciesDmcaRouteImport } from './routes/policies/dmca'
-import { Route as ListingsListingKeyRouteImport } from './routes/listings/$listingKey'
-import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
-import { Route as ListingsListingsRouteRouteImport } from './routes/listings/_listings.route'
-import { Route as ListingsListingsIndexRouteImport } from './routes/listings/_listings.index'
-import { Route as ApiListingsIndexRouteImport } from './routes/api/listings/index'
-import { Route as BlogTagChar123TagChar125Char123SlugChar125RouteImport } from './routes/blog/tag.{-$tag}.{-$slug}'
-import { Route as BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport } from './routes/blog/category.{-$category}.{-$slug}'
-import { Route as BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport } from './routes/blog/archive/{-$year}/{-$month}/{-$day}'
+import { Route as rootRouteImport } from './routes/__root';
+import { Route as AboutRouteImport } from './routes/about';
+import { Route as ApiListingsIndexRouteImport } from './routes/api/listings/index';
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug';
+import { Route as BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport } from './routes/blog/archive/{-$year}/{-$month}/{-$day}';
+import { Route as BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport } from './routes/blog/category.{-$category}.{-$slug}';
+import { Route as BlogIndexRouteImport } from './routes/blog/index';
+import { Route as BlogTagChar123TagChar125Char123SlugChar125RouteImport } from './routes/blog/tag.{-$tag}.{-$slug}';
+import { Route as BuyingRouteImport } from './routes/buying';
+import { Route as ContactRouteImport } from './routes/contact';
+import { Route as IndexRouteImport } from './routes/index';
+import { Route as ListingsListingKeyRouteImport } from './routes/listings/$listingKey';
+import { Route as ListingsListingsIndexRouteImport } from './routes/listings/_listings.index';
+import { Route as ListingsListingsRouteRouteImport } from './routes/listings/_listings.route';
+import { Route as PoliciesDmcaRouteImport } from './routes/policies/dmca';
+import { Route as PoliciesPrivacyRouteImport } from './routes/policies/privacy';
+import { Route as PropertiesIndexRouteImport } from './routes/properties/index';
+import { Route as RobotsDotTxtRouteImport } from './routes/robots[.].txt';
+import { Route as SellingRouteImport } from './routes/selling';
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml';
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SellingRoute = SellingRouteImport.update({
   id: '/selling',
   path: '/selling',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const BuyingRoute = BuyingRouteImport.update({
   id: '/buying',
   path: '/buying',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PropertiesIndexRoute = PropertiesIndexRouteImport.update({
   id: '/properties/',
   path: '/properties/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const RobotsDotTxtRoute = RobotsDotTxtRouteImport.update({
   id: '/robots./txt',
   path: '/robots./txt',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PoliciesPrivacyRoute = PoliciesPrivacyRouteImport.update({
   id: '/policies/privacy',
   path: '/policies/privacy',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PoliciesDmcaRoute = PoliciesDmcaRouteImport.update({
   id: '/policies/dmca',
   path: '/policies/dmca',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ListingsListingKeyRoute = ListingsListingKeyRouteImport.update({
   id: '/listings/$listingKey',
   path: '/listings/$listingKey',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ListingsListingsRouteRoute = ListingsListingsRouteRouteImport.update({
   id: '/listings/_listings',
   path: '/listings',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ListingsListingsIndexRoute = ListingsListingsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ListingsListingsRouteRoute,
-} as any)
+} as any);
 const ApiListingsIndexRoute = ApiListingsIndexRouteImport.update({
   id: '/api/listings/',
   path: '/api/listings/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const BlogTagChar123TagChar125Char123SlugChar125Route =
   BlogTagChar123TagChar125Char123SlugChar125RouteImport.update({
     id: '/blog/tag/{-$tag}/{-$slug}',
     path: '/blog/tag/{-$tag}/{-$slug}',
     getParentRoute: () => rootRouteImport,
-  } as any)
+  } as any);
 const BlogCategoryChar123CategoryChar125Char123SlugChar125Route =
   BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport.update({
     id: '/blog/category/{-$category}/{-$slug}',
     path: '/blog/category/{-$category}/{-$slug}',
     getParentRoute: () => rootRouteImport,
-  } as any)
+  } as any);
 const BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route =
-  BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport.update(
-    {
-      id: '/blog/archive/{-$year}/{-$month}/{-$day}',
-      path: '/blog/archive/{-$year}/{-$month}/{-$day}',
-      getParentRoute: () => rootRouteImport,
-    } as any,
-  )
+  BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport.update({
+    id: '/blog/archive/{-$year}/{-$month}/{-$day}',
+    path: '/blog/archive/{-$year}/{-$month}/{-$day}',
+    getParentRoute: () => rootRouteImport,
+  } as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/buying': typeof BuyingRoute
-  '/contact': typeof ContactRoute
-  '/selling': typeof SellingRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/listings': typeof ListingsListingsRouteRouteWithChildren
-  '/blog/$slug': typeof BlogSlugRoute
-  '/listings/$listingKey': typeof ListingsListingKeyRoute
-  '/policies/dmca': typeof PoliciesDmcaRoute
-  '/policies/privacy': typeof PoliciesPrivacyRoute
-  '/robots./txt': typeof RobotsDotTxtRoute
-  '/blog/': typeof BlogIndexRoute
-  '/properties/': typeof PropertiesIndexRoute
-  '/api/listings/': typeof ApiListingsIndexRoute
-  '/listings/': typeof ListingsListingsIndexRoute
-  '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
-  '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
-  '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
+  '/': typeof IndexRoute;
+  '/about': typeof AboutRoute;
+  '/buying': typeof BuyingRoute;
+  '/contact': typeof ContactRoute;
+  '/selling': typeof SellingRoute;
+  '/sitemap.xml': typeof SitemapDotxmlRoute;
+  '/listings': typeof ListingsListingsRouteRouteWithChildren;
+  '/blog/$slug': typeof BlogSlugRoute;
+  '/listings/$listingKey': typeof ListingsListingKeyRoute;
+  '/policies/dmca': typeof PoliciesDmcaRoute;
+  '/policies/privacy': typeof PoliciesPrivacyRoute;
+  '/robots./txt': typeof RobotsDotTxtRoute;
+  '/blog/': typeof BlogIndexRoute;
+  '/properties/': typeof PropertiesIndexRoute;
+  '/api/listings/': typeof ApiListingsIndexRoute;
+  '/listings/': typeof ListingsListingsIndexRoute;
+  '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route;
+  '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route;
+  '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/buying': typeof BuyingRoute
-  '/contact': typeof ContactRoute
-  '/selling': typeof SellingRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/listings/$listingKey': typeof ListingsListingKeyRoute
-  '/policies/dmca': typeof PoliciesDmcaRoute
-  '/policies/privacy': typeof PoliciesPrivacyRoute
-  '/robots./txt': typeof RobotsDotTxtRoute
-  '/blog': typeof BlogIndexRoute
-  '/properties': typeof PropertiesIndexRoute
-  '/api/listings': typeof ApiListingsIndexRoute
-  '/listings': typeof ListingsListingsIndexRoute
-  '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
-  '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
-  '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
+  '/': typeof IndexRoute;
+  '/about': typeof AboutRoute;
+  '/buying': typeof BuyingRoute;
+  '/contact': typeof ContactRoute;
+  '/selling': typeof SellingRoute;
+  '/sitemap.xml': typeof SitemapDotxmlRoute;
+  '/blog/$slug': typeof BlogSlugRoute;
+  '/listings/$listingKey': typeof ListingsListingKeyRoute;
+  '/policies/dmca': typeof PoliciesDmcaRoute;
+  '/policies/privacy': typeof PoliciesPrivacyRoute;
+  '/robots./txt': typeof RobotsDotTxtRoute;
+  '/blog': typeof BlogIndexRoute;
+  '/properties': typeof PropertiesIndexRoute;
+  '/api/listings': typeof ApiListingsIndexRoute;
+  '/listings': typeof ListingsListingsIndexRoute;
+  '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route;
+  '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route;
+  '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/buying': typeof BuyingRoute
-  '/contact': typeof ContactRoute
-  '/selling': typeof SellingRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/listings/_listings': typeof ListingsListingsRouteRouteWithChildren
-  '/blog/$slug': typeof BlogSlugRoute
-  '/listings/$listingKey': typeof ListingsListingKeyRoute
-  '/policies/dmca': typeof PoliciesDmcaRoute
-  '/policies/privacy': typeof PoliciesPrivacyRoute
-  '/robots./txt': typeof RobotsDotTxtRoute
-  '/blog/': typeof BlogIndexRoute
-  '/properties/': typeof PropertiesIndexRoute
-  '/api/listings/': typeof ApiListingsIndexRoute
-  '/listings/_listings/': typeof ListingsListingsIndexRoute
-  '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
-  '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route
-  '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
+  __root__: typeof rootRouteImport;
+  '/': typeof IndexRoute;
+  '/about': typeof AboutRoute;
+  '/buying': typeof BuyingRoute;
+  '/contact': typeof ContactRoute;
+  '/selling': typeof SellingRoute;
+  '/sitemap.xml': typeof SitemapDotxmlRoute;
+  '/listings/_listings': typeof ListingsListingsRouteRouteWithChildren;
+  '/blog/$slug': typeof BlogSlugRoute;
+  '/listings/$listingKey': typeof ListingsListingKeyRoute;
+  '/policies/dmca': typeof PoliciesDmcaRoute;
+  '/policies/privacy': typeof PoliciesPrivacyRoute;
+  '/robots./txt': typeof RobotsDotTxtRoute;
+  '/blog/': typeof BlogIndexRoute;
+  '/properties/': typeof PropertiesIndexRoute;
+  '/api/listings/': typeof ApiListingsIndexRoute;
+  '/listings/_listings/': typeof ListingsListingsIndexRoute;
+  '/blog/category/{-$category}/{-$slug}': typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route;
+  '/blog/tag/{-$tag}/{-$slug}': typeof BlogTagChar123TagChar125Char123SlugChar125Route;
+  '/blog/archive/{-$year}/{-$month}/{-$day}': typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/'
     | '/about'
@@ -214,8 +212,8 @@ export interface FileRouteTypes {
     | '/listings/'
     | '/blog/category/{-$category}/{-$slug}'
     | '/blog/tag/{-$tag}/{-$slug}'
-    | '/blog/archive/{-$year}/{-$month}/{-$day}'
-  fileRoutesByTo: FileRoutesByTo
+    | '/blog/archive/{-$year}/{-$month}/{-$day}';
+  fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
     | '/about'
@@ -234,7 +232,7 @@ export interface FileRouteTypes {
     | '/listings'
     | '/blog/category/{-$category}/{-$slug}'
     | '/blog/tag/{-$tag}/{-$slug}'
-    | '/blog/archive/{-$year}/{-$month}/{-$day}'
+    | '/blog/archive/{-$year}/{-$month}/{-$day}';
   id:
     | '__root__'
     | '/'
@@ -255,180 +253,179 @@ export interface FileRouteTypes {
     | '/listings/_listings/'
     | '/blog/category/{-$category}/{-$slug}'
     | '/blog/tag/{-$tag}/{-$slug}'
-    | '/blog/archive/{-$year}/{-$month}/{-$day}'
-  fileRoutesById: FileRoutesById
+    | '/blog/archive/{-$year}/{-$month}/{-$day}';
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
-  BuyingRoute: typeof BuyingRoute
-  ContactRoute: typeof ContactRoute
-  SellingRoute: typeof SellingRoute
-  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  ListingsListingsRouteRoute: typeof ListingsListingsRouteRouteWithChildren
-  BlogSlugRoute: typeof BlogSlugRoute
-  ListingsListingKeyRoute: typeof ListingsListingKeyRoute
-  PoliciesDmcaRoute: typeof PoliciesDmcaRoute
-  PoliciesPrivacyRoute: typeof PoliciesPrivacyRoute
-  RobotsDotTxtRoute: typeof RobotsDotTxtRoute
-  BlogIndexRoute: typeof BlogIndexRoute
-  PropertiesIndexRoute: typeof PropertiesIndexRoute
-  ApiListingsIndexRoute: typeof ApiListingsIndexRoute
-  BlogCategoryChar123CategoryChar125Char123SlugChar125Route: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route
-  BlogTagChar123TagChar125Char123SlugChar125Route: typeof BlogTagChar123TagChar125Char123SlugChar125Route
-  BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route: typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route
+  IndexRoute: typeof IndexRoute;
+  AboutRoute: typeof AboutRoute;
+  BuyingRoute: typeof BuyingRoute;
+  ContactRoute: typeof ContactRoute;
+  SellingRoute: typeof SellingRoute;
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute;
+  ListingsListingsRouteRoute: typeof ListingsListingsRouteRouteWithChildren;
+  BlogSlugRoute: typeof BlogSlugRoute;
+  ListingsListingKeyRoute: typeof ListingsListingKeyRoute;
+  PoliciesDmcaRoute: typeof PoliciesDmcaRoute;
+  PoliciesPrivacyRoute: typeof PoliciesPrivacyRoute;
+  RobotsDotTxtRoute: typeof RobotsDotTxtRoute;
+  BlogIndexRoute: typeof BlogIndexRoute;
+  PropertiesIndexRoute: typeof PropertiesIndexRoute;
+  ApiListingsIndexRoute: typeof ApiListingsIndexRoute;
+  BlogCategoryChar123CategoryChar125Char123SlugChar125Route: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125Route;
+  BlogTagChar123TagChar125Char123SlugChar125Route: typeof BlogTagChar123TagChar125Char123SlugChar125Route;
+  BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route: typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/sitemap.xml';
+      path: '/sitemap.xml';
+      fullPath: '/sitemap.xml';
+      preLoaderRoute: typeof SitemapDotxmlRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/selling': {
-      id: '/selling'
-      path: '/selling'
-      fullPath: '/selling'
-      preLoaderRoute: typeof SellingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/selling';
+      path: '/selling';
+      fullPath: '/selling';
+      preLoaderRoute: typeof SellingRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/contact';
+      path: '/contact';
+      fullPath: '/contact';
+      preLoaderRoute: typeof ContactRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/buying': {
-      id: '/buying'
-      path: '/buying'
-      fullPath: '/buying'
-      preLoaderRoute: typeof BuyingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/buying';
+      path: '/buying';
+      fullPath: '/buying';
+      preLoaderRoute: typeof BuyingRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/about';
+      path: '/about';
+      fullPath: '/about';
+      preLoaderRoute: typeof AboutRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/';
+      path: '/';
+      fullPath: '/';
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/properties/': {
-      id: '/properties/'
-      path: '/properties'
-      fullPath: '/properties/'
-      preLoaderRoute: typeof PropertiesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/properties/';
+      path: '/properties';
+      fullPath: '/properties/';
+      preLoaderRoute: typeof PropertiesIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/blog/': {
-      id: '/blog/'
-      path: '/blog'
-      fullPath: '/blog/'
-      preLoaderRoute: typeof BlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/blog/';
+      path: '/blog';
+      fullPath: '/blog/';
+      preLoaderRoute: typeof BlogIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/robots./txt': {
-      id: '/robots./txt'
-      path: '/robots./txt'
-      fullPath: '/robots./txt'
-      preLoaderRoute: typeof RobotsDotTxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/robots./txt';
+      path: '/robots./txt';
+      fullPath: '/robots./txt';
+      preLoaderRoute: typeof RobotsDotTxtRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/policies/privacy': {
-      id: '/policies/privacy'
-      path: '/policies/privacy'
-      fullPath: '/policies/privacy'
-      preLoaderRoute: typeof PoliciesPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/policies/privacy';
+      path: '/policies/privacy';
+      fullPath: '/policies/privacy';
+      preLoaderRoute: typeof PoliciesPrivacyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/policies/dmca': {
-      id: '/policies/dmca'
-      path: '/policies/dmca'
-      fullPath: '/policies/dmca'
-      preLoaderRoute: typeof PoliciesDmcaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/policies/dmca';
+      path: '/policies/dmca';
+      fullPath: '/policies/dmca';
+      preLoaderRoute: typeof PoliciesDmcaRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/listings/$listingKey': {
-      id: '/listings/$listingKey'
-      path: '/listings/$listingKey'
-      fullPath: '/listings/$listingKey'
-      preLoaderRoute: typeof ListingsListingKeyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/listings/$listingKey';
+      path: '/listings/$listingKey';
+      fullPath: '/listings/$listingKey';
+      preLoaderRoute: typeof ListingsListingKeyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/blog/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/blog/$slug';
+      path: '/blog/$slug';
+      fullPath: '/blog/$slug';
+      preLoaderRoute: typeof BlogSlugRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/listings/_listings': {
-      id: '/listings/_listings'
-      path: '/listings'
-      fullPath: '/listings'
-      preLoaderRoute: typeof ListingsListingsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/listings/_listings';
+      path: '/listings';
+      fullPath: '/listings';
+      preLoaderRoute: typeof ListingsListingsRouteRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/listings/_listings/': {
-      id: '/listings/_listings/'
-      path: '/'
-      fullPath: '/listings/'
-      preLoaderRoute: typeof ListingsListingsIndexRouteImport
-      parentRoute: typeof ListingsListingsRouteRoute
-    }
+      id: '/listings/_listings/';
+      path: '/';
+      fullPath: '/listings/';
+      preLoaderRoute: typeof ListingsListingsIndexRouteImport;
+      parentRoute: typeof ListingsListingsRouteRoute;
+    };
     '/api/listings/': {
-      id: '/api/listings/'
-      path: '/api/listings'
-      fullPath: '/api/listings/'
-      preLoaderRoute: typeof ApiListingsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/api/listings/';
+      path: '/api/listings';
+      fullPath: '/api/listings/';
+      preLoaderRoute: typeof ApiListingsIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/blog/tag/{-$tag}/{-$slug}': {
-      id: '/blog/tag/{-$tag}/{-$slug}'
-      path: '/blog/tag/{-$tag}/{-$slug}'
-      fullPath: '/blog/tag/{-$tag}/{-$slug}'
-      preLoaderRoute: typeof BlogTagChar123TagChar125Char123SlugChar125RouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/blog/tag/{-$tag}/{-$slug}';
+      path: '/blog/tag/{-$tag}/{-$slug}';
+      fullPath: '/blog/tag/{-$tag}/{-$slug}';
+      preLoaderRoute: typeof BlogTagChar123TagChar125Char123SlugChar125RouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/blog/category/{-$category}/{-$slug}': {
-      id: '/blog/category/{-$category}/{-$slug}'
-      path: '/blog/category/{-$category}/{-$slug}'
-      fullPath: '/blog/category/{-$category}/{-$slug}'
-      preLoaderRoute: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/blog/category/{-$category}/{-$slug}';
+      path: '/blog/category/{-$category}/{-$slug}';
+      fullPath: '/blog/category/{-$category}/{-$slug}';
+      preLoaderRoute: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/blog/archive/{-$year}/{-$month}/{-$day}': {
-      id: '/blog/archive/{-$year}/{-$month}/{-$day}'
-      path: '/blog/archive/{-$year}/{-$month}/{-$day}'
-      fullPath: '/blog/archive/{-$year}/{-$month}/{-$day}'
-      preLoaderRoute: typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/blog/archive/{-$year}/{-$month}/{-$day}';
+      path: '/blog/archive/{-$year}/{-$month}/{-$day}';
+      fullPath: '/blog/archive/{-$year}/{-$month}/{-$day}';
+      preLoaderRoute: typeof BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
 interface ListingsListingsRouteRouteChildren {
-  ListingsListingsIndexRoute: typeof ListingsListingsIndexRoute
+  ListingsListingsIndexRoute: typeof ListingsListingsIndexRoute;
 }
 
 const ListingsListingsRouteRouteChildren: ListingsListingsRouteRouteChildren = {
   ListingsListingsIndexRoute: ListingsListingsIndexRoute,
-}
+};
 
-const ListingsListingsRouteRouteWithChildren =
-  ListingsListingsRouteRoute._addFileChildren(
-    ListingsListingsRouteRouteChildren,
-  )
+const ListingsListingsRouteRouteWithChildren = ListingsListingsRouteRoute._addFileChildren(
+  ListingsListingsRouteRouteChildren,
+);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -448,20 +445,20 @@ const rootRouteChildren: RootRouteChildren = {
   ApiListingsIndexRoute: ApiListingsIndexRoute,
   BlogCategoryChar123CategoryChar125Char123SlugChar125Route:
     BlogCategoryChar123CategoryChar125Char123SlugChar125Route,
-  BlogTagChar123TagChar125Char123SlugChar125Route:
-    BlogTagChar123TagChar125Char123SlugChar125Route,
+  BlogTagChar123TagChar125Char123SlugChar125Route: BlogTagChar123TagChar125Char123SlugChar125Route,
   BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route:
     BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
 
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { createStart } from '@tanstack/react-start';
+
+import type { getRouter } from './router.tsx';
 declare module '@tanstack/react-start' {
   interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
+    ssr: true;
+    router: Awaited<ReturnType<typeof getRouter>>;
   }
 }

@@ -1,4 +1,4 @@
-import type { PropertySearchMarker } from '@kws/types';
+import type { PropertySearchMarker } from '@kws/schema';
 
 import { DEFAULT_POSITION } from '@kws/config/constants/properties';
 import L, { DivIcon, type LeafletEvent, type PopupEvent } from 'leaflet';

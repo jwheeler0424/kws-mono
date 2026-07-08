@@ -1,5 +1,6 @@
 import type { CheckboxRootState } from '@base-ui/react/checkbox';
-import type { TListingsSearch, TMapBounds, TPropertyCard } from '@kws/types';
+import type { TPropertyCard } from '@kws/schema';
+import type { TListingsSearch, TMapBounds } from '@kws/types';
 
 import {
   DEFAULT_POSITION,

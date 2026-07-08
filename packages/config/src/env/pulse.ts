@@ -12,12 +12,6 @@ const envSchema = z.object({
 
   // ── Pulse runtime ─────────────────────────────────────────────────────────
   EMAIL_TOKEN_TTL_DAYS: z.coerce.number().int().positive(),
-  PULSE_WEBHOOK_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
-
-  // ── Pulse GeoIP (ipwho.is) ───────────────────────────────────────────────
-  GEOIP_IPWHOIS_BASE_URL: z.url().default('https://ipwho.is/'),
-  GEOIP_IPWHOIS_TIMEOUT_MS: z.coerce.number().int().positive().default(2500),
-  GEOIP_IPWHOIS_CACHE_TTL_MS: z.coerce.number().int().positive().default(300000),
 });
 
 const parsed = envSchema.safeParse(process.env);
