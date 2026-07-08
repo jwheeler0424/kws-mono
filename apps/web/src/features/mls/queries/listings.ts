@@ -206,6 +206,7 @@ const LISTINGS_BASELINE_CACHE_TTL_SECONDS = Math.max(
   Math.floor(LISTINGS_BASELINE_CACHE_TTL_MS / 1000),
 );
 const LISTINGS_MARKERS_CACHE_KEY = 'mls:listings:markers';
+const LISTINGS_BASELINE_SESSION_POINTER_KEY = 'mls:listings:session:baseline:pointer';
 
 function parseCachedBaselineMarkers(raw: string): PropertySearchMarker[] | null {
   try {
@@ -214,7 +215,21 @@ function parseCachedBaselineMarkers(raw: string): PropertySearchMarker[] | null 
       return null;
     }
 
-    return parsed as PropertySearchMarker[];
+    const markers = parsed.filter(
+      (marker): marker is PropertySearchMarker =>
+        typeof marker === 'object' &&
+        marker !== null &&
+        typeof (marker as { id?: unknown }).id === 'string' &&
+        (marker as { id?: string }).id!.length > 0,
+    );
+
+    // Treat partially invalid caches as stale to avoid creating empty hydration pages
+    // with non-zero totals.
+    if (markers.length !== parsed.length) {
+      return null;
+    }
+
+    return markers;
   } catch {
     return null;
   }
@@ -358,7 +373,13 @@ async function createListingsSearchSession(
   markers: PropertySearchMarker[],
 ): Promise<{ sessionId: string; total: number }> {
   const now = Date.now();
-  const ids = markers.map((marker) => marker.id);
+  const ids = Array.from(
+    new Set(
+      markers
+        .map((marker) => marker.id)
+        .filter((id): id is PropertySearchMarker['id'] => typeof id === 'string' && id.length > 0),
+    ),
+  );
 
   const sessionId = randomUUID();
   const session: ListingsSearchSessionMeta = {
@@ -388,6 +409,49 @@ async function createListingsSearchSession(
     sessionId,
     total: session.total,
   };
+}
+
+async function getOrCreateBaselineListingsSearchSession(
+  markers: PropertySearchMarker[],
+): Promise<{ sessionId: string; total: number }> {
+  const client = await getRedisClient();
+  const existingSessionId = await client.get(LISTINGS_BASELINE_SESSION_POINTER_KEY);
+
+  if (existingSessionId) {
+    const sessionKey = getListingsSearchSessionKey(existingSessionId);
+    const sessionIdsKey = getListingsSearchSessionIdsKey(existingSessionId);
+    const [sessionRaw, idsLength] = await Promise.all([
+      client.get(sessionKey),
+      client.lLen(sessionIdsKey),
+    ]);
+
+    if (sessionRaw && idsLength > 0) {
+      const sessionMeta = parseListingsSearchSessionMeta(sessionRaw);
+      const total =
+        sessionMeta && sessionMeta.total > 0
+          ? sessionMeta.total
+          : Number.isFinite(idsLength)
+            ? idsLength
+            : markers.length;
+
+      await Promise.all([
+        client.expire(LISTINGS_BASELINE_SESSION_POINTER_KEY, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
+        touchListingsSearchSession(existingSessionId),
+      ]);
+
+      return {
+        sessionId: existingSessionId,
+        total,
+      };
+    }
+  }
+
+  const created = await createListingsSearchSession(markers);
+  await client.set(LISTINGS_BASELINE_SESSION_POINTER_KEY, created.sessionId, {
+    EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
+  });
+
+  return created;
 }
 
 async function getListingsSearchSessionPage(
@@ -595,6 +659,15 @@ const hasDynamicListingsFilters = (source: ListingsSearchInput): boolean => {
     hasProximityFilter
   );
 };
+
+function isBaselineListingsSearchInput(input?: ListingsSearchInput): boolean {
+  const source = input ?? {};
+  const query = source.query ?? null;
+  const hasExplicitSort = source.sortBy !== null && source.sortBy !== undefined;
+  const hasExplicitLimit = source.limit !== null && source.limit !== undefined;
+
+  return !query && !hasDynamicListingsFilters(source) && !hasExplicitSort && !hasExplicitLimit;
+}
 
 const buildPreparedListingsNoFilterQuery = ({
   name,
@@ -1175,8 +1248,10 @@ export async function getListingsForSearchAndFilter(
   input?: ListingsSearchInput,
 ): Promise<ListingsSearchWithSessionResult> {
   const markers = await getListingsForSearchAndFilterMarkers(input);
-
-  const { sessionId, total } = await createListingsSearchSession(markers);
+  const baselineSearch = isBaselineListingsSearchInput(input);
+  const { sessionId, total } = baselineSearch
+    ? await getOrCreateBaselineListingsSearchSession(markers)
+    : await createListingsSearchSession(markers);
 
   // Prime first hydration page without delaying the search response.
   void prefetchHydratedListingsPage(sessionId, 0, DEFAULT_HYDRATION_PAGE_SIZE).catch(
