@@ -21,7 +21,7 @@ import {
   parseTimestamp,
 } from '@/lib/utils';
 
-import { mapMedia, type MappedMedia } from './media.mapper';
+import { mapPropertyMedia, type MappedMedia } from './media.mapper';
 // ---------------------------------------------------------------------------
 // Output types
 // ---------------------------------------------------------------------------
@@ -102,7 +102,9 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
   const now = new Date();
 
   const media =
-    payload.Media?.map((mediaPayload) => mapMedia(mediaPayload, payload.ListingKey)) ?? [];
+    payload.Media
+      ?.map((mediaPayload) => mapPropertyMedia(mediaPayload, payload.ListingKey))
+      .filter((media): media is MappedMedia => media !== null) ?? [];
   const rooms =
     payload.Rooms?.map((roomPayload) => mapPropertyRoom(roomPayload, payload.ListingKey)) ?? [];
   const unitTypes =

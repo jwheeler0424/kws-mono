@@ -12,7 +12,7 @@ import {
 
 import type { MlsMemberPayload } from '../types';
 
-import { mapMedia, type MappedMedia } from './media.mapper';
+import { mapMemberMedia, type MappedMedia } from './media.mapper';
 
 type MemberInsert = typeof members.$inferInsert;
 
@@ -27,7 +27,9 @@ export function mapMember(payload: MlsMemberPayload): MappedMember {
   const now = new Date();
   const memberMlsId = payload.MemberMlsId;
   const media =
-    payload.Media?.map((mediaPayload) => mapMedia(mediaPayload, payload.MemberMlsId)) ?? [];
+    payload.Media
+      ?.map((mediaPayload) => mapMemberMedia(mediaPayload, payload.MemberMlsId))
+      .filter((item): item is MappedMedia => item !== null) ?? [];
 
   return {
     memberMlsId,

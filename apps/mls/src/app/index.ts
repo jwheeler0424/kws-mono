@@ -59,11 +59,20 @@ async function runSeedStep(input: {
   run: () => Promise<SyncSummary>;
   phaseLabel: string;
   errorFile: string;
+  failOnSummaryErrors?: boolean;
 }): Promise<boolean> {
-  const { run, phaseLabel, errorFile } = input;
+  const { run, phaseLabel, errorFile, failOnSummaryErrors = true } = input;
   try {
     const summary = await run();
     const hasErrors = await reportSyncSummary(summary, phaseLabel, errorFile);
+
+    if (hasErrors && !failOnSummaryErrors) {
+      logger.warn(`MLS ${phaseLabel} completed with recoverable errors; continuing startup`, {
+        errorFile,
+      });
+      return true;
+    }
+
     return !hasErrors;
   } catch (error) {
     logger.fatal(`MLS ${phaseLabel} action crashed`, {
@@ -112,11 +121,10 @@ export async function main() {
         run: runInitialMediaSeed,
         phaseLabel: 'initial media seed',
         errorFile: 'mls-media-seed-errors.json',
+        failOnSummaryErrors: false,
       });
       if (!mediaSeedSuccess) {
-        logger.error(
-          'MLS initial media seed completed with errors. Please check the logs for details.',
-        );
+        logger.error('MLS initial media seed crashed. Please check the logs for details.');
         process.exit(1);
       }
     } else {

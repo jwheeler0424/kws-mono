@@ -166,6 +166,40 @@ async function listLinkedNamespaceKeys(
   );
 }
 
+async function listNamespaceKeysBackedByMlsMediaRows(
+  entityType: MlsMediaStorageEntityType,
+): Promise<Set<string>> {
+  const entityPresenceClause =
+    entityType === 'properties'
+      ? isNotNull(properties.listingKey)
+      : entityType === 'members'
+        ? isNotNull(members.memberMlsId)
+        : isNotNull(offices.officeMlsId);
+
+  const namespaceRows = await db
+    .select({ resourceRecordKey: mlsMedia.resourceRecordKey })
+    .from(mlsMedia)
+    .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
+    .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberMlsId))
+    .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeMlsId))
+    .where(
+      and(
+        isNotNull(mlsMedia.resourceRecordKey),
+        entityPresenceClause,
+        or(
+          isNull(mlsMedia.deletedAt),
+          and(isNotNull(mlsMedia.deletedAt), isNull(mlsMedia.mediaId)),
+        ),
+      ),
+    );
+
+  return new Set(
+    namespaceRows
+      .map((row) => row.resourceRecordKey)
+      .filter((value): value is string => typeof value === 'string' && value.length > 0),
+  );
+}
+
 export async function pruneMlsMediaNamespacesWithoutLinkedMedia(
   entityTypes: readonly MlsMediaStorageEntityType[] = MLS_MEDIA_ENTITY_TYPES,
   options: PreSyncMlsMediaCleanupOptions = {},
@@ -179,6 +213,18 @@ export async function pruneMlsMediaNamespacesWithoutLinkedMedia(
 
   for (const entityType of uniqueEntityTypes) {
     const keepNamespaces = await listLinkedNamespaceKeys(entityType, options);
+    const keepNamespacesFromRows = await listNamespaceKeysBackedByMlsMediaRows(entityType);
+    for (const namespace of keepNamespacesFromRows) {
+      keepNamespaces.add(namespace);
+    }
+
+    // During DB resets or early bootstrap, there may be zero linked namespaces
+    // and no matching mls_media keys yet. In that state, avoid destructive
+    // pruning to protect local-first media reuse.
+    if (keepNamespaces.size === 0) {
+      continue;
+    }
+
     const rootPath = resolveMlsEntityRoot(entityType);
 
     let entries: Dirent<string>[];
@@ -513,15 +559,17 @@ export async function purgeScopedMlsMediaBeforeSync(
     ? and(isNotNull(properties.listingKey), propertyAssociationClause)
     : undefined;
 
-  const memberAssociatedAnyMediaClause =
-    memberKeys.length > 0
-      ? and(isNotNull(members.memberMlsId), inArray(members.memberMlsId, memberKeys))
-      : undefined;
+  const memberAssociatedAnyMediaClause = and(
+    isNotNull(members.memberMlsId),
+    isNull(members.deletedAt),
+    eq(members.mlgCanView, true),
+  );
 
-  const officeAssociatedAnyMediaClause =
-    officeKeys.length > 0
-      ? and(isNotNull(offices.officeMlsId), inArray(offices.officeMlsId, officeKeys))
-      : undefined;
+  const officeAssociatedAnyMediaClause = and(
+    isNotNull(offices.officeMlsId),
+    isNull(offices.deletedAt),
+    eq(offices.mlgCanView, true),
+  );
 
   const desiredScopeClauses = [
     propertyPrimaryActiveViewableClause,

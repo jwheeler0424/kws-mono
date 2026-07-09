@@ -423,9 +423,10 @@ export async function runMlsMediaSync(
   options: MlsMediaSyncOptions = {},
 ): Promise<MlsMediaSyncSummary> {
   const runStartedAt = Date.now();
-  const batchSize = options.batchSize ?? 50;
+  // Temporary throughput bump for recovery/backfill runs.
+  const batchSize = options.batchSize ?? 150;
   const maxBatches = options.maxBatches ?? 200;
-  const processConcurrency = Math.max(1, options.processConcurrency ?? 3);
+  const processConcurrency = Math.max(1, options.processConcurrency ?? 6);
   const prioritizeMemberKeys = options.prioritizeMemberKeys ?? [];
   const prioritizeOfficeKeys = options.prioritizeOfficeKeys ?? [];
   const primaryOnlyForNonPrioritizedProperties =

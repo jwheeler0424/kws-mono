@@ -4,7 +4,7 @@ import { parseBoolean, parseNullableString, parseStringArray, parseTimestamp } f
 
 import type { MlsOfficePayload } from '../types';
 
-import { mapMedia, type MappedMedia } from './media.mapper';
+import { mapOfficeMedia, type MappedMedia } from './media.mapper';
 
 type OfficeInsert = typeof offices.$inferInsert;
 
@@ -17,7 +17,9 @@ export function mapOffice(payload: MlsOfficePayload): MappedOffice {
   const now = new Date();
   const officeMlsId = payload.OfficeMlsId;
   const media =
-    payload.Media?.map((mediaPayload) => mapMedia(mediaPayload, payload.OfficeMlsId)) ?? [];
+    payload.Media
+      ?.map((mediaPayload) => mapOfficeMedia(mediaPayload, payload.OfficeMlsId))
+      .filter((item): item is MappedMedia => item !== null) ?? [];
 
   return {
     officeMlsId,

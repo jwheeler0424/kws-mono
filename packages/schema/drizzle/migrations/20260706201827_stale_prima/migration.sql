@@ -1,1 +1,0 @@
-ALTER TABLE "properties" ALTER COLUMN "listing_key" SET NOT NULL;

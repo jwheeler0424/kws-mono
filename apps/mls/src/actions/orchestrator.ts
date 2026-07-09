@@ -164,29 +164,21 @@ async function propertyMediaConfiguredAssociationSeedConfig(
   );
 }
 
-async function memberMediaSeedConfig(
-  osn: string,
-  memberKeys: readonly string[],
-): Promise<SyncResult> {
+async function memberMediaSeedConfig(osn: string): Promise<SyncResult> {
   const startedAt = new Date();
   return runInitialMlsMediaSync({
     filterEntityTypes: ['members'],
     associationMode: 'unprocessed-only',
     includeMissingFilesRepair: false,
-    restrictToMemberEntityKeys: [...memberKeys],
   }).then((summary) => mediaSummaryToSyncResult('Member:Media', osn, summary, startedAt));
 }
 
-async function officeMediaSeedConfig(
-  osn: string,
-  officeKeys: readonly string[],
-): Promise<SyncResult> {
+async function officeMediaSeedConfig(osn: string): Promise<SyncResult> {
   const startedAt = new Date();
   return runInitialMlsMediaSync({
     filterEntityTypes: ['offices'],
     associationMode: 'unprocessed-only',
     includeMissingFilesRepair: false,
-    restrictToOfficeEntityKeys: [...officeKeys],
   }).then((summary) => mediaSummaryToSyncResult('Office:Media', osn, summary, startedAt));
 }
 
@@ -385,21 +377,6 @@ async function runSeedInitialMedia(osn: string): Promise<SyncSummary> {
   const configuredMemberKeys = (env.MLS_MEMBER_ID ?? []).filter((key) => key.length > 0);
   const configuredOfficeKeys = (env.MLS_OFFICE_ID ?? []).filter((key) => key.length > 0);
 
-  const preSyncCleanup = await purgeScopedMlsMediaBeforeSync({
-    memberKeys: configuredMemberKeys,
-    officeKeys: configuredOfficeKeys,
-  });
-  const preSyncNamespacePrune = await pruneMlsMediaNamespacesWithoutLinkedMedia(undefined, {
-    memberKeys: configuredMemberKeys,
-    officeKeys: configuredOfficeKeys,
-  });
-
-  logger.info('initial media pre-sync cleanup completed', {
-    osn,
-    preSyncCleanup,
-    preSyncNamespacePrune,
-  });
-
   const phases: Array<readonly [string, () => Promise<SyncResult>]> = [
     ['Property:PrimaryMedia', () => propertyMediaSeedConfig(osn)],
   ];
@@ -414,12 +391,10 @@ async function runSeedInitialMedia(osn: string): Promise<SyncSummary> {
         ),
     ]);
   }
-  if (configuredMemberKeys.length > 0) {
-    phases.push(['Member:Media', () => memberMediaSeedConfig(osn, configuredMemberKeys)]);
-  }
-  if (configuredOfficeKeys.length > 0) {
-    phases.push(['Office:Media', () => officeMediaSeedConfig(osn, configuredOfficeKeys)]);
-  }
+  // Always run entity media phases. Restricting by configured IDs is reserved
+  // for property-association media scoping only.
+  phases.push(['Member:Media', () => memberMediaSeedConfig(osn)]);
+  phases.push(['Office:Media', () => officeMediaSeedConfig(osn)]);
 
   const results: SyncResult[] = [];
   for (const [phase, runPhase] of phases) {
@@ -435,6 +410,21 @@ async function runSeedInitialMedia(osn: string): Promise<SyncSummary> {
       resource: result.resource,
     });
   }
+
+  const postSyncCleanup = await purgeScopedMlsMediaBeforeSync({
+    memberKeys: configuredMemberKeys,
+    officeKeys: configuredOfficeKeys,
+  });
+  const postSyncNamespacePrune = await pruneMlsMediaNamespacesWithoutLinkedMedia(undefined, {
+    memberKeys: configuredMemberKeys,
+    officeKeys: configuredOfficeKeys,
+  });
+
+  logger.info('initial media post-sync cleanup completed', {
+    osn,
+    postSyncCleanup,
+    postSyncNamespacePrune,
+  });
 
   const completedAt = new Date();
   const summary: SyncSummary = {

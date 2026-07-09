@@ -53,8 +53,8 @@ export const mlsRelations = defineRelationsPart(
         from: r.mlsMedia.resourceRecordKey,
         to: r.properties.listingKey,
       }),
-      member: r.one.members({ from: r.mlsMedia.resourceRecordKey, to: r.members.memberKey }),
-      office: r.one.offices({ from: r.mlsMedia.resourceRecordKey, to: r.offices.officeKey }),
+      member: r.one.members({ from: r.mlsMedia.resourceRecordKey, to: r.members.memberMlsId }),
+      office: r.one.offices({ from: r.mlsMedia.resourceRecordKey, to: r.offices.officeMlsId }),
     },
 
     // ── Property sub-resources ─────────────────────────────────────────────────
@@ -75,14 +75,14 @@ export const mlsRelations = defineRelationsPart(
     // ── Members & Offices ──────────────────────────────────────────────────────
     members: {
       media: r.many.mlsMedia({
-        from: r.members.memberKey,
+        from: r.members.memberMlsId,
         to: r.mlsMedia.resourceRecordKey,
       }),
     },
 
     offices: {
       media: r.many.mlsMedia({
-        from: r.offices.officeKey,
+        from: r.offices.officeMlsId,
         to: r.mlsMedia.resourceRecordKey,
       }),
     },

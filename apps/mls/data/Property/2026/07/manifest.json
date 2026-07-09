@@ -3,7 +3,7 @@
   "resource": "Property",
   "year": "2026",
   "month": "07",
-  "updatedAt": "2026-07-08T20:52:37.240Z",
+  "updatedAt": "2026-07-09T20:07:51.697Z",
   "chunks": [
     {
       "file": "property-2026-07-06T18-28-08-277Z-jky6499x.jsonl.gz",
@@ -452,6 +452,134 @@
       "firstTimestamp": "2026-07-08T19:31:12.844Z",
       "lastTimestamp": "2026-07-08T20:52:12.155Z",
       "createdAt": "2026-07-08T20:52:37.240Z"
+    },
+    {
+      "file": "property-2026-07-09T14-59-04-047Z-oik75iyq.jsonl.gz",
+      "checksumSha256": "8f93f8233bc4457139b4b7e1da1f9ddd6d32e7f86c2dfd979779d3509055380c",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-07-08T20:53:11.984Z",
+      "lastTimestamp": "2026-07-08T23:43:11.300Z",
+      "createdAt": "2026-07-09T14:59:04.245Z"
+    },
+    {
+      "file": "property-2026-07-09T14-59-16-884Z-5dmzumrp.jsonl.gz",
+      "checksumSha256": "dc44497dc286f5a4513721fd21cab219b695b3eb429c17ba9b58c0bd1332d36b",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-07-08T23:43:11.767Z",
+      "lastTimestamp": "2026-07-09T09:06:11.220Z",
+      "createdAt": "2026-07-09T14:59:17.085Z"
+    },
+    {
+      "file": "property-2026-07-09T14-59-28-679Z-1ahmg351.jsonl.gz",
+      "checksumSha256": "36a7f08ff52ff8a7991a9c29d5e5d44f423935a01345e89777ea36f2174b3148",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-07-09T09:12:10.808Z",
+      "lastTimestamp": "2026-07-09T14:11:12.491Z",
+      "createdAt": "2026-07-09T14:59:28.869Z"
+    },
+    {
+      "file": "property-2026-07-09T14-59-36-815Z-xzan534m.jsonl.gz",
+      "checksumSha256": "4cd2e35153835e105099042651811d16e34cb20e2bcde24ac9d8e119c659de83",
+      "recordCount": 184,
+      "firstTimestamp": "2026-07-09T14:11:12.865Z",
+      "lastTimestamp": "2026-07-09T14:59:13.726Z",
+      "createdAt": "2026-07-09T14:59:36.852Z"
+    },
+    {
+      "file": "property-2026-07-09T15-19-01-700Z-xt11he6m.jsonl.gz",
+      "checksumSha256": "5660d04738ab2ae529829a3d90b602ac37fef3c1aaa361d79a2abad27731b159",
+      "recordCount": 100,
+      "firstTimestamp": "2026-07-09T14:59:11.795Z",
+      "lastTimestamp": "2026-07-09T15:18:12.688Z",
+      "createdAt": "2026-07-09T15:19:01.721Z"
+    },
+    {
+      "file": "property-2026-07-09T15-23-33-303Z-2gqtunup.jsonl.gz",
+      "checksumSha256": "5d8fe56e8fcde4d8b86034a2e0f6fa9f7bee23f6e1c38a0eefb7e431d9313392",
+      "recordCount": 37,
+      "firstTimestamp": "2026-07-09T15:18:11.986Z",
+      "lastTimestamp": "2026-07-09T15:23:13.260Z",
+      "createdAt": "2026-07-09T15:23:33.311Z"
+    },
+    {
+      "file": "property-2026-07-09T15-34-02-704Z-ir0jng2k.jsonl.gz",
+      "checksumSha256": "10c10e4065d4add9be81fef9889c0dd8d412ffc4d6fc93c78e1aa9b448ef0e00",
+      "recordCount": 185,
+      "firstTimestamp": "2026-07-09T15:23:11.500Z",
+      "lastTimestamp": "2026-07-09T15:33:16.232Z",
+      "createdAt": "2026-07-09T15:34:02.768Z"
+    },
+    {
+      "file": "property-2026-07-09T15-49-02-258Z-5kckdkdv.jsonl.gz",
+      "checksumSha256": "2de51e277035e115641acc218e2175f4a7a3953407eaf3510d5159bbfa8e862d",
+      "recordCount": 129,
+      "firstTimestamp": "2026-07-09T15:33:14.248Z",
+      "lastTimestamp": "2026-07-09T15:48:11.983Z",
+      "createdAt": "2026-07-09T15:49:02.295Z"
+    },
+    {
+      "file": "property-2026-07-09T15-56-28-635Z-08t7t95g.jsonl.gz",
+      "checksumSha256": "9eea5ca73beb588196439ed5675d37a897d059e36cd62fcc28c4fe4d10f7ae06",
+      "recordCount": 69,
+      "firstTimestamp": "2026-07-09T15:49:17.669Z",
+      "lastTimestamp": "2026-07-09T15:56:12.311Z",
+      "createdAt": "2026-07-09T15:56:28.653Z"
+    },
+    {
+      "file": "property-2026-07-09T16-52-09-564Z-b27kt5tb.jsonl.gz",
+      "checksumSha256": "8aa09807112845387fff86d39a7b20e21c7d6b6b08f98acee7b9338dbcba9abc",
+      "recordCount": 500,
+      "firstTimestamp": "2026-07-09T15:57:12.227Z",
+      "lastTimestamp": "2026-07-09T16:49:19.779Z",
+      "createdAt": "2026-07-09T16:52:09.712Z"
+    },
+    {
+      "file": "property-2026-07-09T16-52-12-404Z-75vf4p4b.jsonl.gz",
+      "checksumSha256": "5bd9d1e19833ae84126622666e2401b0b54042adc864722aa556ca975206a398",
+      "recordCount": 21,
+      "firstTimestamp": "2026-07-09T16:49:19.928Z",
+      "lastTimestamp": "2026-07-09T16:51:19.356Z",
+      "createdAt": "2026-07-09T16:52:12.409Z"
+    },
+    {
+      "file": "property-2026-07-09T17-26-19-700Z-7i3pf5ri.jsonl.gz",
+      "checksumSha256": "15f777d96af2a9af245d34d41e5f9af47031f510b8d418d02348cf2abb858753",
+      "recordCount": 365,
+      "firstTimestamp": "2026-07-09T16:53:11.530Z",
+      "lastTimestamp": "2026-07-09T17:26:13.811Z",
+      "createdAt": "2026-07-09T17:26:19.770Z"
+    },
+    {
+      "file": "property-2026-07-09T18-29-45-693Z-vs4p4m3u.jsonl.gz",
+      "checksumSha256": "c2ca9ce26a9517d06b17f72f830dede5d8577ba38844103676b590a295dd87ad",
+      "recordCount": 685,
+      "firstTimestamp": "2026-07-09T17:27:11.835Z",
+      "lastTimestamp": "2026-07-09T18:29:19.455Z",
+      "createdAt": "2026-07-09T18:29:45.829Z"
+    },
+    {
+      "file": "property-2026-07-09T19-58-09-312Z-1j55uy6p.jsonl.gz",
+      "checksumSha256": "a248a088855073f66cbbe23dc622b3405b2f941cf0a11821b0e46679e51f023e",
+      "recordCount": 807,
+      "firstTimestamp": "2026-07-09T18:29:17.944Z",
+      "lastTimestamp": "2026-07-09T19:57:25.124Z",
+      "createdAt": "2026-07-09T19:58:09.469Z"
+    },
+    {
+      "file": "property-2026-07-09T20-05-06-719Z-yqdc3v68.jsonl.gz",
+      "checksumSha256": "88438fbbce128c689410e52adadfbacc612a303e2b9591683cda06b50ffba2f0",
+      "recordCount": 83,
+      "firstTimestamp": "2026-07-09T19:57:23.222Z",
+      "lastTimestamp": "2026-07-09T20:04:12.245Z",
+      "createdAt": "2026-07-09T20:05:06.735Z"
+    },
+    {
+      "file": "property-2026-07-09T20-07-51-686Z-85sj760g.jsonl.gz",
+      "checksumSha256": "643bb8a3daea14a97667d6d07898805fc3ff20bedd8672ab9be2749cfe932584",
+      "recordCount": 52,
+      "firstTimestamp": "2026-07-09T20:04:12.245Z",
+      "lastTimestamp": "2026-07-09T20:07:17.450Z",
+      "createdAt": "2026-07-09T20:07:51.697Z"
     }
   ]
 }

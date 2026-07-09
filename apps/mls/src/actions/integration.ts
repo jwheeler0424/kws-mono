@@ -142,8 +142,8 @@ async function runScheduledMediaSyncAndCleanup(
 
   syncMlsLogger.info('scheduled MLS media sync + dead media purge completed', {
     scheduleId,
-    preSyncCleanup: mediaSummary.preSyncCleanup,
-    preSyncNamespacePrune: mediaSummary.preSyncNamespacePrune,
+    postSyncCleanup: mediaSummary.postSyncCleanup,
+    postSyncNamespacePrune: mediaSummary.postSyncNamespacePrune,
     property: mediaSummary.property,
     propertyConfiguredAssociations: mediaSummary.propertyConfiguredAssociations,
     memberTargets: mediaSummary.memberKeys.length,
@@ -173,8 +173,8 @@ async function runScheduledMediaReconcile(
 
   syncMlsLogger.info('scheduled MLS media reconcile completed', {
     scheduleId,
-    preSyncCleanup: mediaSummary.preSyncCleanup,
-    preSyncNamespacePrune: mediaSummary.preSyncNamespacePrune,
+    postSyncCleanup: mediaSummary.postSyncCleanup,
+    postSyncNamespacePrune: mediaSummary.postSyncNamespacePrune,
     property: mediaSummary.property,
     propertyConfiguredAssociations: mediaSummary.propertyConfiguredAssociations,
     memberTargets: mediaSummary.memberKeys.length,
@@ -200,18 +200,6 @@ async function runScheduledMediaPhases(
 ) {
   const memberKeys = (env.MLS_MEMBER_ID ?? []).filter((key) => key.length > 0);
   const officeKeys = (env.MLS_OFFICE_ID ?? []).filter((key) => key.length > 0);
-
-  const preSyncCleanup = await purgeScopedMlsMediaBeforeSync({
-    memberKeys,
-    officeKeys,
-  });
-  const preSyncNamespacePrune = await pruneMlsMediaNamespacesWithoutLinkedMedia(
-    undefined,
-    {
-      memberKeys,
-      officeKeys,
-    },
-  );
 
   const propertySummary = await runMlsMediaSync({
     batchSize: input.mediaSyncBatchSize,
@@ -270,9 +258,21 @@ async function runScheduledMediaPhases(
     });
   }
 
+  const postSyncCleanup = await purgeScopedMlsMediaBeforeSync({
+    memberKeys,
+    officeKeys,
+  });
+  const postSyncNamespacePrune = await pruneMlsMediaNamespacesWithoutLinkedMedia(
+    undefined,
+    {
+      memberKeys,
+      officeKeys,
+    },
+  );
+
   return {
-    preSyncCleanup,
-    preSyncNamespacePrune,
+    postSyncCleanup,
+    postSyncNamespacePrune,
     property: propertySummary,
     propertyConfiguredAssociations: configuredAssociationPropertySummary,
     member: memberSummary,
