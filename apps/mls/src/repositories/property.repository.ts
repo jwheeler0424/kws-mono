@@ -15,7 +15,7 @@ import type {
 
 import { upsertMlsMedia } from './media.repository';
 
-const PROPERTY_BATCH_SIZE = 100;
+const PROPERTY_BATCH_SIZE = MLS_PROPERTY_DEFAULTS.processBatchSize;
 const PROPERTY_UPSERT_BATCH_SIZE = MLS_PROPERTY_DEFAULTS.upsertBatchSize;
 const CHILD_UPSERT_BATCH_SIZE = MLS_PROPERTY_DEFAULTS.childUpsertBatchSize;
 const CHILD_UPSERT_CONCURRENCY = MLS_PROPERTY_DEFAULTS.childUpsertConcurrency;

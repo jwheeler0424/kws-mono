@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "resource": "Office",
+  "year": "2024",
+  "month": "06",
+  "updatedAt": "2026-07-10T17:01:09.667Z",
+  "chunks": [
+    {
+      "file": "office-2026-07-10T17-01-09-667Z-a1onvccl.jsonl.gz",
+      "checksumSha256": "58b3425899aa07ffd08127c975567450c0e46ceb900e30c6abb06a5352fc6b1a",
+      "recordCount": 17,
+      "firstTimestamp": "2024-06-03T23:11:08.274Z",
+      "lastTimestamp": "2024-06-24T19:26:08.196Z",
+      "createdAt": "2026-07-10T17:01:09.667Z"
+    }
+  ]
+}

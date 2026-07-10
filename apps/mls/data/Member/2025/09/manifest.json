@@ -3,7 +3,7 @@
   "resource": "Member",
   "year": "2025",
   "month": "09",
-  "updatedAt": "2026-07-06T17:36:06.238Z",
+  "updatedAt": "2026-07-10T17:02:03.275Z",
   "chunks": [
     {
       "file": "member-2026-07-06T17-36-06-235Z-hbytrmcb.jsonl.gz",
@@ -12,6 +12,14 @@
       "firstTimestamp": "2025-09-02T16:43:08.570Z",
       "lastTimestamp": "2025-09-30T23:28:08.588Z",
       "createdAt": "2026-07-06T17:36:06.238Z"
+    },
+    {
+      "file": "member-2026-07-10T17-02-03-271Z-03wftdly.jsonl.gz",
+      "checksumSha256": "b91600da5ceed4c59d41804472862831627461af8a6711ef042023e49d42ec40",
+      "recordCount": 220,
+      "firstTimestamp": "2025-09-02T16:43:08.586Z",
+      "lastTimestamp": "2025-09-30T23:28:08.588Z",
+      "createdAt": "2026-07-10T17:02:03.275Z"
     }
   ]
 }

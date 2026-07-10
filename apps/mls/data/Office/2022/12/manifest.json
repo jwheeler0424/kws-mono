@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "resource": "Office",
+  "year": "2022",
+  "month": "12",
+  "updatedAt": "2026-07-10T17:01:02.347Z",
+  "chunks": [
+    {
+      "file": "office-2026-07-10T17-01-02-346Z-llg31x6h.jsonl.gz",
+      "checksumSha256": "1099d3a3d48d877baef76f548e1c6208fbd15aabc37fa50291e2de88f8fff002",
+      "recordCount": 11,
+      "firstTimestamp": "2022-12-01T20:41:08.487Z",
+      "lastTimestamp": "2022-12-29T19:41:08.624Z",
+      "createdAt": "2026-07-10T17:01:02.347Z"
+    }
+  ]
+}

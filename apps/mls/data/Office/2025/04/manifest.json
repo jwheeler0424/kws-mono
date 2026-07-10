@@ -3,7 +3,7 @@
   "resource": "Office",
   "year": "2025",
   "month": "04",
-  "updatedAt": "2026-07-06T17:35:57.556Z",
+  "updatedAt": "2026-07-10T17:01:09.687Z",
   "chunks": [
     {
       "file": "office-2026-07-06T17-35-57-556Z-1hghz1nw.jsonl.gz",
@@ -12,6 +12,14 @@
       "firstTimestamp": "2025-04-01T00:11:08.573Z",
       "lastTimestamp": "2025-04-30T17:11:08.517Z",
       "createdAt": "2026-07-06T17:35:57.556Z"
+    },
+    {
+      "file": "office-2026-07-10T17-01-09-686Z-ypv9d6h4.jsonl.gz",
+      "checksumSha256": "de00e03acca1d63f09e06f96e466f1eccb48d4c49ef2316b5f40d3df03d676a5",
+      "recordCount": 26,
+      "firstTimestamp": "2025-04-01T00:11:08.573Z",
+      "lastTimestamp": "2025-04-30T17:11:08.517Z",
+      "createdAt": "2026-07-10T17:01:09.687Z"
     }
   ]
 }

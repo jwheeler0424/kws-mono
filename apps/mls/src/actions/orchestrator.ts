@@ -125,6 +125,7 @@ function propertySeedConfig(osn: string) {
     afterTimestamp: baseStart,
     beforeTimestamp: undefined,
     startUrl: undefined,
+    replayBatchSize: MLS_PROPERTY_DEFAULTS.replayBatchSize,
     fetchFn: fetchPropertiesForInitialSeed,
     getLatestTimestamp: getLatestPropertyTimestamp,
     getTimestamp: (record) => record.ModificationTimestamp,

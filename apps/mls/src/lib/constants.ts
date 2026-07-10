@@ -33,7 +33,7 @@ export const MLS_QUOTA_DEFAULTS = {
 export const MLS_HISTORY_DEFAULTS = {
   storeEnabled: true,
   storePath: 'data',
-  replayBatchSize: 500,
+  replayBatchSize: 1000,
   lockTimeoutMs: 30_000,
   lockStaleMs: 300_000,
   compactMaxBytes: 256 * 1024 * 1024,
@@ -43,6 +43,8 @@ export const MLS_HISTORY_DEFAULTS = {
 } as const;
 
 export const MLS_PROPERTY_DEFAULTS = {
+  processBatchSize: 500,
+  replayBatchSize: 1000,
   upsertBatchSize: 150,
   childUpsertBatchSize: 750,
   childUpsertConcurrency: 2,

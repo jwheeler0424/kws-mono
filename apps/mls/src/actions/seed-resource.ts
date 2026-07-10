@@ -74,6 +74,8 @@ export interface SeedResourceConfig<TPayload extends Record<string, unknown>> {
   getKey: (record: TPayload) => string;
   /** Upsert a visible record */
   upsert: (records: TPayload[]) => Promise<Date>;
+  /** Optional history replay batch size override for this resource */
+  replayBatchSize?: number;
 }
 
 function normalizeTimestamp(input: Date | string | null | undefined): Date | undefined {
@@ -119,6 +121,7 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
     getLatestTimestamp,
     getTimestamp,
     getKey,
+    replayBatchSize,
   } = config;
   const startedAt = Date.now();
 
@@ -161,6 +164,7 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
     // replay watermark so restarts do not reprocess stale chunks.
     for await (const replayBatch of replayHistoryResource<TPayload>({
       resource,
+      batchSize: replayBatchSize,
       afterTimestamp: activeAfterTimestamp,
       getTimestamp,
     })) {

@@ -3,7 +3,7 @@
   "resource": "Office",
   "year": "2026",
   "month": "07",
-  "updatedAt": "2026-07-09T21:52:01.303Z",
+  "updatedAt": "2026-07-10T17:01:53.957Z",
   "chunks": [
     {
       "file": "office-2026-07-06T17-36-00-230Z-lt1o4t7c.jsonl.gz",
@@ -364,6 +364,38 @@
       "firstTimestamp": "2026-07-09T21:26:14.160Z",
       "lastTimestamp": "2026-07-09T21:41:15.205Z",
       "createdAt": "2026-07-09T21:52:01.303Z"
+    },
+    {
+      "file": "office-2026-07-10T16-57-11-840Z-9h6ansxr.jsonl.gz",
+      "checksumSha256": "d5b21be5a67861ebf7fda83ab50e0af565a09043843eac5ffdf9ae2bb336d946",
+      "recordCount": 369,
+      "firstTimestamp": "2026-07-09T21:56:09.181Z",
+      "lastTimestamp": "2026-07-10T16:56:09.381Z",
+      "createdAt": "2026-07-10T16:57:11.845Z"
+    },
+    {
+      "file": "office-2026-07-10T17-01-20-571Z-ev5vmxce.jsonl.gz",
+      "checksumSha256": "fb2b78d86f5e3517b33930073791c14ceca62a584189aed2ce972cd44c3e4fb1",
+      "recordCount": 835,
+      "firstTimestamp": "2026-07-01T14:56:08.946Z",
+      "lastTimestamp": "2026-07-08T05:11:09.718Z",
+      "createdAt": "2026-07-10T17:01:20.578Z"
+    },
+    {
+      "file": "office-2026-07-10T17-01-51-957Z-8k88tsnv.jsonl.gz",
+      "checksumSha256": "91796dc8ec9de55b1097732af8f5d45d6780889e749706fb144c6802919bee99",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-07-08T05:11:09.356Z",
+      "lastTimestamp": "2026-07-09T21:11:13.363Z",
+      "createdAt": "2026-07-10T17:01:51.966Z"
+    },
+    {
+      "file": "office-2026-07-10T17-01-53-953Z-swr83y5z.jsonl.gz",
+      "checksumSha256": "9a0740bb4248f5f4da3a68b23988ebe2e86f699fe94507349b8646d34ec14f20",
+      "recordCount": 460,
+      "firstTimestamp": "2026-07-09T21:11:13.490Z",
+      "lastTimestamp": "2026-07-10T16:56:09.381Z",
+      "createdAt": "2026-07-10T17:01:53.957Z"
     }
   ]
 }
