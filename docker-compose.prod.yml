@@ -7,7 +7,7 @@
 #   printf "mypassword" | docker secret create postgres_password -
 #
 # Deploy:
-#   docker stack deploy -c docker-compose.prod.yml kw-seattle
+#   docker compose --env-file ./packages/config/.env -f docker-compose.prod.yml config | docker stack deploy -c - kw-seattle
 #
 # Update (rolling, zero-downtime):
 #   docker service update --image kw-seattle/app:latest kw-seattle_app
@@ -22,6 +22,8 @@ services:
       dockerfile: Dockerfile
       target: db
     image: ${DB_IMAGE:-dbpg:18.3}
+    env_file:
+      - ./packages/config/.env
     command:
       - postgres
       - -c
@@ -49,6 +51,8 @@ services:
   # ── Redis ──────────────────────────────────────────────────────────────────
   redis:
     image: ${REDIS_IMAGE:-redis:alpine}
+    env_file:
+      - ./packages/config/.env
     container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-redis
     restart: unless-stopped
     command: ['redis-server', '--appendonly', '${REDIS_APPENDONLY:-yes}']
@@ -70,6 +74,8 @@ services:
       dockerfile: Dockerfile
       target: prod
     image: ${APP_IMAGE:-kw-seattle/app:latest}
+    env_file:
+      - ./packages/config/.env
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       HOST: ${APP_HOST:-0.0.0.0}
@@ -113,6 +119,8 @@ services:
       dockerfile: Dockerfile
       target: prod
     image: ${APP_IMAGE:-kw-seattle/app:latest}
+    env_file:
+      - ./packages/config/.env
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: db
@@ -155,6 +163,8 @@ services:
       dockerfile: Dockerfile
       target: prod
     image: ${APP_IMAGE:-kw-seattle/app:latest}
+    env_file:
+      - ./packages/config/.env
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: db
@@ -196,7 +206,7 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-nginx
     restart: unless-stopped
     env_file:
-      - .env
+      - ./packages/config/.env
     environment:
       CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
     ports:
@@ -218,7 +228,7 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-certbot
     restart: unless-stopped
     env_file:
-      - .env
+      - ./packages/config/.env
     environment:
       CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
       CERTBOT_EMAIL: ${CERTBOT_EMAIL:-admin@kyleweberseattle.com}

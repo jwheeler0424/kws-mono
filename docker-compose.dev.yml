@@ -8,6 +8,8 @@ services:
       dockerfile: Dockerfile
       target: db
     image: ${DB_IMAGE:-dbpg:18.3}
+    env_file:
+      - ./packages/config/.env
     command:
       - postgres
       - -c
@@ -38,6 +40,8 @@ services:
   # ── Redis ──────────────────────────────────────────────────────────────────
   redis:
     image: ${REDIS_IMAGE:-redis:alpine}
+    env_file:
+      - ./packages/config/.env
     container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-redis
     restart: unless-stopped
     mem_limit: ${REDIS_MEMORY_LIMIT:-256m}
