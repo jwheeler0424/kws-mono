@@ -3,7 +3,7 @@
   "resource": "OpenHouse",
   "year": "2026",
   "month": "07",
-  "updatedAt": "2026-07-09T20:07:52.753Z",
+  "updatedAt": "2026-07-09T21:43:01.139Z",
   "chunks": [
     {
       "file": "openhouse-2026-07-06T18-29-35-748Z-ujeyue9b.jsonl.gz",
@@ -484,6 +484,22 @@
       "firstTimestamp": "2026-07-09T19:55:31.329Z",
       "lastTimestamp": "2026-07-09T19:55:33.050Z",
       "createdAt": "2026-07-09T20:07:52.753Z"
+    },
+    {
+      "file": "openhouse-2026-07-09T21-28-01-447Z-e90cdvpe.jsonl.gz",
+      "checksumSha256": "5c73be61179ab6543988860a1904e3bf816267f764911d388acd43a2c8e5b862",
+      "recordCount": 560,
+      "firstTimestamp": "2026-07-09T19:55:31.606Z",
+      "lastTimestamp": "2026-07-09T21:25:29.355Z",
+      "createdAt": "2026-07-09T21:28:01.451Z"
+    },
+    {
+      "file": "openhouse-2026-07-09T21-43-01-136Z-0rd18ntj.jsonl.gz",
+      "checksumSha256": "c099eabff53b693efc42359ab3e4b27b988afbc5e4177361e01e6724b31f7dbb",
+      "recordCount": 114,
+      "firstTimestamp": "2026-07-09T21:25:27.724Z",
+      "lastTimestamp": "2026-07-09T21:40:27.321Z",
+      "createdAt": "2026-07-09T21:43:01.139Z"
     }
   ]
 }

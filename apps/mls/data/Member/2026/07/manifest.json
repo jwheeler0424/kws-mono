@@ -3,7 +3,7 @@
   "resource": "Member",
   "year": "2026",
   "month": "07",
-  "updatedAt": "2026-07-09T20:07:50.139Z",
+  "updatedAt": "2026-07-09T21:40:01.434Z",
   "chunks": [
     {
       "file": "member-2026-07-06T17-36-34-501Z-h9dbshq7.jsonl.gz",
@@ -508,6 +508,22 @@
       "firstTimestamp": "2026-07-09T19:58:11.517Z",
       "lastTimestamp": "2026-07-09T19:58:13.413Z",
       "createdAt": "2026-07-09T20:07:50.139Z"
+    },
+    {
+      "file": "member-2026-07-09T21-25-01-335Z-4wntkk99.jsonl.gz",
+      "checksumSha256": "875359fab132a8929008d0eb456e1f8127331be6b0278ed233bafab7a64aab27",
+      "recordCount": 69,
+      "firstTimestamp": "2026-07-09T19:58:12.302Z",
+      "lastTimestamp": "2026-07-09T21:13:23.576Z",
+      "createdAt": "2026-07-09T21:25:01.339Z"
+    },
+    {
+      "file": "member-2026-07-09T21-40-01-431Z-ofglrmlv.jsonl.gz",
+      "checksumSha256": "756fe3497c7c6b5974fd518c2ee0315b0bf940a47a36b7855cf3535ed98c0b38",
+      "recordCount": 49,
+      "firstTimestamp": "2026-07-09T21:13:22.328Z",
+      "lastTimestamp": "2026-07-09T21:28:16.320Z",
+      "createdAt": "2026-07-09T21:40:01.433Z"
     }
   ]
 }
