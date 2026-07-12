@@ -487,6 +487,13 @@ async function initializeServer() {
     port: SERVER_PORT,
 
     routes: {
+      '/health': () => {
+        return new Response('ok', {
+          status: 200,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        });
+      },
+
       // Serve static assets (preloaded or on-demand)
       ...routes,
 

@@ -1,0 +1,25 @@
+name: kws-mono-ci
+
+services:
+  db:
+    image: ${DB_IMAGE}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: db
+
+  app:
+    image: ${APP_IMAGE}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        SKIP_WEB_BUILD: ${SKIP_WEB_BUILD:-0}
+
+  mls:
+    image: ${MLS_IMAGE}
+    build:
+      context: .
+      dockerfile: apps/mls/Dockerfile
+      args:
+        SKIP_MLS_BUILD: ${SKIP_MLS_BUILD:-1}

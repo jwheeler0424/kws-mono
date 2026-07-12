@@ -15,6 +15,8 @@ resolve_domain() {
 
 DOMAIN="$(resolve_domain)"
 export DOMAIN
+APP_PORT="${APP_PORT:-3443}"
+export APP_PORT
 
 echo "[nginx] Using domain: ${DOMAIN}"
 
@@ -28,7 +30,7 @@ if [ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ] || [ ! -f "/etc/lets
     -subj "/CN=${DOMAIN}" >/dev/null 2>&1
 fi
 
-envsubst '$DOMAIN' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
+envsubst '$DOMAIN $APP_PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
 
 (
   while :; do

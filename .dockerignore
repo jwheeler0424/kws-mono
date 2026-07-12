@@ -1,0 +1,16 @@
+.git
+.github
+.vscode
+.turbo
+node_modules
+**/node_modules
+dist
+**/dist
+.output
+**/.output
+coverage
+**/coverage
+tmp
+**/*.log
+store
+apps/web/public/media

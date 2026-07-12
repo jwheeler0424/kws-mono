@@ -9,8 +9,11 @@
   "scripts": {
     "dev:up": "docker compose --env-file packages/config/.env -f docker-compose.dev.yml up -d --build --remove-orphans",
     "dev:down": "docker compose --env-file packages/config/.env -f docker-compose.dev.yml down --remove-orphans --volumes --rmi local",
-    "prod:up": "docker compose --env-file packages/config/.env -f docker-compose.prod.yml up -d --build --remove-orphans",
+    "prod:up": "docker compose --env-file packages/config/.env -f docker-compose.prod.yml up -d --remove-orphans db redis mls nginx certbot app_blue",
     "prod:down": "docker compose --env-file packages/config/.env -f docker-compose.prod.yml down --remove-orphans --volumes --rmi local",
+    "prod:deploy": "bash scripts/prod-deploy.sh",
+    "prod:switch:blue": "bash scripts/prod-switch-color.sh blue",
+    "prod:switch:green": "bash scripts/prod-switch-color.sh green",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "oxlint",
