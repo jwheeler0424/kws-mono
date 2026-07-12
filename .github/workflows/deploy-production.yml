@@ -105,7 +105,10 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            cd "${{ env.DEPLOY_PATH }}"
+            DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
+            DEPLOY_PATH="${DEPLOY_PATH/#\~/$HOME}"
+            mkdir -p "$DEPLOY_PATH"
+            cd "$DEPLOY_PATH"
             [ -f "docker-compose.prod.yml" ] || { echo "Missing docker-compose.prod.yml in ${PWD}"; exit 1; }
             [ -f "scripts/prod-deploy.sh" ] || { echo "Missing scripts/prod-deploy.sh in ${PWD}"; exit 1; }
             echo "${{ secrets.REPO_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
