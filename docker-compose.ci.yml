@@ -2,14 +2,14 @@ name: kws-mono-ci
 
 services:
   db:
-    image: ${DB_IMAGE}
+    image: ${DB_IMAGE:-ghcr.io/placeholder/db:ci}
     build:
       context: .
       dockerfile: Dockerfile
       target: db
 
   app:
-    image: ${APP_IMAGE}
+    image: ${APP_IMAGE:-ghcr.io/placeholder/app:ci}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -17,7 +17,7 @@ services:
         SKIP_WEB_BUILD: ${SKIP_WEB_BUILD:-0}
 
   mls:
-    image: ${MLS_IMAGE}
+    image: ${MLS_IMAGE:-ghcr.io/placeholder/mls:ci}
     build:
       context: .
       dockerfile: apps/mls/Dockerfile

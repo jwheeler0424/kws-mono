@@ -11,7 +11,7 @@ RUN turbo prune web --docker
 
 FROM base AS builder
 COPY --from=prepare /app/out/json/ .
-RUN bun install --frozen-lockfile
+RUN bun install
 COPY --from=prepare /app/out/full/ .
 
 # Optional remote cache args for CI/VPS builds
