@@ -7,8 +7,16 @@ cd "$ROOT_DIR"
 ENV_FILE="${ENV_FILE:-packages/config/.env}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 
+MEDIA_STORE_PATH_DEFAULT="$HOME/store/media"
+MEDIA_STORE_PATH="${MEDIA_STORE_PATH:-$MEDIA_STORE_PATH_DEFAULT}"
+export MEDIA_STORE_PATH
+
 compose() {
 	docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
+ensure_media_store_path() {
+	mkdir -p "$MEDIA_STORE_PATH"
 }
 
 is_running() {
@@ -78,6 +86,8 @@ else
 fi
 
 echo "[deploy] Active target: ${TARGET}; old slot: ${OLD}"
+
+ensure_media_store_path
 
 echo "[deploy] Pulling latest app image..."
 compose pull "$TARGET"

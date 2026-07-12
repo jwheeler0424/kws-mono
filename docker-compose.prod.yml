@@ -71,7 +71,7 @@ services:
       WEB_MEDIA_SOURCE: /srv/media
       WEB_MEDIA_TARGET: /app/apps/web/dist/client/media
     volumes:
-      - ./store/media:/srv/media
+      - ${MEDIA_STORE_PATH:-./store/media}:/srv/media
     expose:
       - '${APP_PORT:-3443}'
     healthcheck:
@@ -105,7 +105,7 @@ services:
       WEB_MEDIA_SOURCE: /srv/media
       WEB_MEDIA_TARGET: /app/apps/web/dist/client/media
     volumes:
-      - ./store/media:/srv/media
+      - ${MEDIA_STORE_PATH:-./store/media}:/srv/media
     expose:
       - '${APP_PORT:-3443}'
     healthcheck:
@@ -136,7 +136,7 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
     volumes:
-      - ./store/media:/srv/media
+      - ${MEDIA_STORE_PATH:-./store/media}:/srv/media
 
   nginx:
     image: nginx:1.27-alpine
