@@ -107,7 +107,7 @@ jobs:
             set -euo pipefail
             DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
             DEPLOY_PATH="${DEPLOY_PATH/#\~/$HOME}"
-            mkdir -p "$DEPLOY_PATH"
+            [ -d "$DEPLOY_PATH" ] || { echo "DEPLOY_PATH does not exist or is not accessible: $DEPLOY_PATH"; echo "Ensure this directory exists and is writable by $USER"; exit 1; }
             cd "$DEPLOY_PATH"
             [ -f "docker-compose.prod.yml" ] || { echo "Missing docker-compose.prod.yml in ${PWD}"; exit 1; }
             [ -f "scripts/prod-deploy.sh" ] || { echo "Missing scripts/prod-deploy.sh in ${PWD}"; exit 1; }
