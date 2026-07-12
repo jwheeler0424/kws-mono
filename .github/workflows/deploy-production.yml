@@ -78,14 +78,25 @@ jobs:
   deploy-to-vps:
     runs-on: ubuntu-latest
     needs: build-and-push
+    env:
+      SSH_HOST: ${{ secrets.VPS_HOST || vars.VPS_HOST }}
+      SSH_USER: ${{ secrets.VPS_USER || vars.VPS_USER }}
+      SSH_KEY: ${{ secrets.VPS_SSH_KEY || vars.VPS_SSH_KEY }}
 
     steps:
+      - name: Validate SSH configuration
+        run: |
+          set -euo pipefail
+          [ -n "${SSH_HOST}" ] || { echo "Missing VPS host: set secret VPS_HOST or variable VPS_HOST"; exit 1; }
+          [ -n "${SSH_USER}" ] || { echo "Missing VPS user: set secret VPS_USER or variable VPS_USER"; exit 1; }
+          [ -n "${SSH_KEY}" ] || { echo "Missing VPS SSH key: set secret VPS_SSH_KEY or variable VPS_SSH_KEY"; exit 1; }
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
           script_stop: true
           script: |
             set -euo pipefail
