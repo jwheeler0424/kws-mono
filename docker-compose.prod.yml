@@ -47,6 +47,23 @@ services:
       retries: 10
       start_period: 5s
 
+  migrate:
+    image: ${APP_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com:latest}
+    pull_policy: always
+    env_file:
+      - ./packages/config/.env
+    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-migrate
+    restart: 'no'
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DB_HOST: db
+      DB_PORT: ${DB_PORT:-5432}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
+    command: ['bun', 'run', 'db:migrate']
+
   app_blue:
     image: ${APP_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com:latest}
     pull_policy: always
@@ -59,6 +76,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: production
       PORT: ${APP_PORT:-3443}
@@ -69,9 +88,9 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
       WEB_MEDIA_SOURCE: /srv/media
-      WEB_MEDIA_TARGET: /app/apps/web/dist/client/media
+      WEB_MEDIA_TARGET: /app/apps/web/public/media
     volumes:
-      - ${MEDIA_STORE_PATH:-./store/media}:/srv/media
+      - ${MEDIA_STORE_PATH:-$HOME/store/kyleweberseattle.com}:/srv/media
     expose:
       - '${APP_PORT:-3443}'
     healthcheck:
@@ -93,6 +112,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: production
       PORT: ${APP_PORT:-3443}
@@ -103,9 +124,9 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
       WEB_MEDIA_SOURCE: /srv/media
-      WEB_MEDIA_TARGET: /app/apps/web/dist/client/media
+      WEB_MEDIA_TARGET: /app/apps/web/public/media
     volumes:
-      - ${MEDIA_STORE_PATH:-./store/media}:/srv/media
+      - ${MEDIA_STORE_PATH:-$HOME/store/kyleweberseattle.com}:/srv/media
     expose:
       - '${APP_PORT:-3443}'
     healthcheck:
@@ -127,6 +148,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: production
       DB_HOST: db
@@ -136,12 +159,14 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
     volumes:
-      - ${MEDIA_STORE_PATH:-./store/media}:/srv/media
+      - ${MEDIA_STORE_PATH:-$HOME/store/kyleweberseattle.com}:/srv/media
 
   nginx:
     image: nginx:1.27-alpine
     env_file:
       - ./packages/config/.env
+    environment:
+      CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
     container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-nginx
     restart: unless-stopped
     ports:
@@ -150,6 +175,7 @@ services:
     volumes:
       - letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
+      - ${MEDIA_STORE_PATH:-$HOME/store/kyleweberseattle.com}:/srv/media:ro
       - ./docker/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./docker/nginx-entrypoint.sh:/usr/local/bin/nginx-entrypoint.sh:ro
     entrypoint: ['sh', '/usr/local/bin/nginx-entrypoint.sh']
@@ -158,6 +184,9 @@ services:
     image: certbot/certbot:latest
     env_file:
       - ./packages/config/.env
+    environment:
+      CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
+      CERTBOT_EMAIL: ${CERTBOT_EMAIL:-admin@kyleweberseattle.com}
     container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-certbot
     restart: unless-stopped
     depends_on:

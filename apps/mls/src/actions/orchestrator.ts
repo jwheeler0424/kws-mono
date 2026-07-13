@@ -118,6 +118,31 @@ function memberSeedConfig(osn: string) {
 
 function propertySeedConfig(osn: string) {
   const baseStart = env.MLS_START_DATE ?? startOfYear(Date.now());
+  const officeScope = new Set((env.MLS_OFFICE_ID ?? []).map((id) => id.trim()).filter(Boolean));
+  const memberScope = new Set((env.MLS_MEMBER_ID ?? []).map((id) => id.trim()).filter(Boolean));
+  const activeStatuses = new Set(['Active', 'ActiveUnderContract', 'ComingSoon']);
+
+  const shouldRetainProperty = (record: MlsPropertyPayload): boolean => {
+    const normalizedStatus = record.StandardStatus?.trim();
+    const isViewable = record.MlgCanView === true;
+
+    const officeCandidates = [record.ListOfficeMlsId, record.CoListOfficeMlsId]
+      .map((value) => value?.trim())
+      .filter((value): value is string => Boolean(value));
+    const memberCandidates = [record.ListAgentMlsId, record.CoListAgentMlsId]
+      .map((value) => value?.trim())
+      .filter((value): value is string => Boolean(value));
+
+    const inConfiguredScope =
+      officeCandidates.some((candidate) => officeScope.has(candidate)) ||
+      memberCandidates.some((candidate) => memberScope.has(candidate));
+
+    if (inConfiguredScope) {
+      return true;
+    }
+
+    return isViewable && normalizedStatus !== undefined && activeStatuses.has(normalizedStatus);
+  };
 
   return seedResource({
     resource: 'Property',
@@ -130,6 +155,7 @@ function propertySeedConfig(osn: string) {
     getLatestTimestamp: getLatestPropertyTimestamp,
     getTimestamp: (record) => record.ModificationTimestamp,
     getKey: (record) => record.ListingKey,
+    filterRecord: shouldRetainProperty,
     upsert: async (payload) =>
       processMlsPropertiesPayload(payload.map(mapProperty), {
         useSeedStaging: MLS_PROPERTY_DEFAULTS.seedUseStaging,

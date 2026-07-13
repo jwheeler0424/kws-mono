@@ -2,7 +2,8 @@
 set -eu
 
 SOURCE_DIR="${WEB_MEDIA_SOURCE:-/srv/media}"
-TARGET_LINK="${WEB_MEDIA_TARGET:-/app/apps/web/dist/client/media}"
+TARGET_LINK="${WEB_MEDIA_TARGET:-/app/apps/web/public/media}"
+COMPAT_LINK="${WEB_MEDIA_COMPAT_TARGET:-/app/apps/web/dist/client/media}"
 
 TARGET_PARENT="$(dirname "$TARGET_LINK")"
 mkdir -p "$TARGET_PARENT"
@@ -26,5 +27,21 @@ if [ ! -L "$TARGET_LINK" ]; then
 fi
 
 echo "[web-entrypoint] Media symlink ready: $TARGET_LINK -> $SOURCE_DIR"
+
+# Keep compatibility with runtime static serving rooted at dist/client.
+if [ -L "$COMPAT_LINK" ]; then
+  CURRENT_COMPAT_TARGET="$(readlink "$COMPAT_LINK" || true)"
+  if [ "$CURRENT_COMPAT_TARGET" != "$TARGET_LINK" ]; then
+    rm -f "$COMPAT_LINK"
+  fi
+elif [ -e "$COMPAT_LINK" ]; then
+  rm -rf "$COMPAT_LINK"
+fi
+
+if [ ! -L "$COMPAT_LINK" ]; then
+  ln -s "$TARGET_LINK" "$COMPAT_LINK"
+fi
+
+echo "[web-entrypoint] Media compatibility symlink ready: $COMPAT_LINK -> $TARGET_LINK"
 
 exec "$@"

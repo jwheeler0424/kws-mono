@@ -1,4 +1,4 @@
-name: kws-mono-ci
+name: kws
 
 services:
   db:
@@ -23,3 +23,15 @@ services:
       dockerfile: apps/mls/Dockerfile
       args:
         SKIP_MLS_BUILD: ${SKIP_MLS_BUILD:-1}
+
+  redis:
+    image: ${REDIS_IMAGE:-ghcr.io/placeholder/redis:ci}
+    build:
+      context: .
+      dockerfile: docker/redis/Dockerfile
+
+  nginx:
+    image: ${NGINX_IMAGE:-ghcr.io/placeholder/nginx:ci}
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile

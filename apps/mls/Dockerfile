@@ -11,7 +11,7 @@ RUN turbo prune mls --docker
 
 FROM base AS builder
 COPY --from=prepare /app/out/json/ .
-RUN bun install
+RUN bun install --linker=isolated
 COPY --from=prepare /app/out/full/ .
 ARG SKIP_MLS_BUILD=1
 RUN if [ "$SKIP_MLS_BUILD" = "1" ]; then \
@@ -24,5 +24,8 @@ FROM base AS runner
 ENV NODE_ENV=production
 
 COPY --from=builder /app /app
+
+# Ensure runtime config package env files are present in the final image.
+RUN test -f /app/packages/config/.env && test -f /app/packages/config/.env.example
 
 CMD ["bun", "--bun", "run", "apps/mls/src/index.ts"]

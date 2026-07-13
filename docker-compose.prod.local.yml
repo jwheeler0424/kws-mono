@@ -1,0 +1,12 @@
+services:
+  migrate:
+    pull_policy: never
+
+  app_blue:
+    pull_policy: never
+
+  app_green:
+    pull_policy: never
+
+  mls:
+    pull_policy: never

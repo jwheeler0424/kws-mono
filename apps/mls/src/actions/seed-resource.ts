@@ -74,6 +74,8 @@ export interface SeedResourceConfig<TPayload extends Record<string, unknown>> {
   getKey: (record: TPayload) => string;
   /** Upsert a visible record */
   upsert: (records: TPayload[]) => Promise<Date>;
+  /** Optional record scope filter applied to replay and API pages before upsert */
+  filterRecord?: (record: TPayload) => boolean;
   /** Optional history replay batch size override for this resource */
   replayBatchSize?: number;
 }
@@ -121,6 +123,7 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
     getLatestTimestamp,
     getTimestamp,
     getKey,
+    filterRecord,
     replayBatchSize,
   } = config;
   const startedAt = Date.now();
@@ -156,12 +159,21 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
 
   try {
     let page = 0;
+    let replayBatches = 0;
+    let replayRecords = 0;
+    let scopeFilteredOut = 0;
 
     const pipelinePrefetchEnabled = MLS_SYNC_DEFAULTS.seedFetchIngestOverlapEnabled;
     const pipelineQueueDepth = Math.max(1, MLS_SYNC_DEFAULTS.seedFetchIngestQueueDepth);
 
     // Local-first replay: only process history records newer than the current
     // replay watermark so restarts do not reprocess stale chunks.
+    logger.info('history replay phase started', {
+      resource,
+      osn,
+      ...(activeAfterTimestamp ? { afterTimestamp: activeAfterTimestamp.toISOString() } : {}),
+    });
+
     for await (const replayBatch of replayHistoryResource<TPayload>({
       resource,
       batchSize: replayBatchSize,
@@ -180,7 +192,18 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
       });
       quarantined += replaySanitized.summary.quarantinedCount;
 
-      const deduped = replaySanitized.validRecords.filter((record) => getKey(record).length > 0);
+      const inScopeReplay = replaySanitized.validRecords.filter((record) => {
+        if (!filterRecord) {
+          return true;
+        }
+        const keep = filterRecord(record);
+        if (!keep) {
+          scopeFilteredOut++;
+        }
+        return keep;
+      });
+
+      const deduped = inScopeReplay.filter((record) => getKey(record).length > 0);
 
       if (deduped.length === 0) {
         continue;
@@ -193,6 +216,8 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
       }
 
       upserted += deduped.length;
+      replayRecords += deduped.length;
+      replayBatches++;
       page++;
 
       logger.trace('history replay batch complete', {
@@ -212,6 +237,15 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
       });
     }
 
+    logger.info('history replay phase complete', {
+      resource,
+      osn,
+      replayBatches,
+      replayRecords,
+      scopeFilteredOut,
+      ...(activeAfterTimestamp ? { afterTimestamp: activeAfterTimestamp.toISOString() } : {}),
+    });
+
     const processPageBatch = async (pageBatch: ODataPageBatch<TPayload>): Promise<void> => {
       try {
         const pageStartedAt = Date.now();
@@ -229,14 +263,24 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
         });
         quarantined += pageSanitized.summary.quarantinedCount;
 
-        const batch = pageSanitized.validRecords;
+        const batch = pageSanitized.validRecords.filter((record) => {
+          if (!filterRecord) {
+            return true;
+          }
+          const keep = filterRecord(record);
+          if (!keep) {
+            scopeFilteredOut++;
+          }
+          return keep;
+        });
         if (batch.length === 0) {
-          logger.warn('seed page skipped after timestamp quarantine', {
+          logger.warn('seed page skipped after timestamp quarantine/scope filter', {
             resource,
             osn,
             page: page + 1,
             requestUrl: pageBatch.requestUrl,
             quarantinedInPage: pageSanitized.summary.quarantinedCount,
+            scopeFilteredOut,
           });
           return;
         }
@@ -346,7 +390,7 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
         upserted,
         errors,
         durationMs: Date.now() - startedAt,
-        error: `${message}; quarantined=${quarantined}`,
+        error: `${message}; quarantined=${quarantined}; scopeFilteredOut=${scopeFilteredOut}`,
         errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
       };
     }

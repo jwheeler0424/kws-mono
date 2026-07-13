@@ -295,13 +295,13 @@ export function fetchLookups(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsLookupPayload>(
     startUrl ??
-      buildResourceUrl({
-        resource: 'Lookup',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(MLS_SYNC_DEFAULTS.pageSize, 5000),
-      }),
+    buildResourceUrl({
+      resource: 'Lookup',
+      osn,
+      afterTimestamp,
+      beforeTimestamp,
+      top: Math.min(MLS_SYNC_DEFAULTS.pageSize, 5000),
+    }),
   );
 }
 
@@ -313,13 +313,13 @@ export function fetchMembers(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsMemberPayload>(
     startUrl ??
-      buildResourceUrl({
-        resource: 'Member',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
-      }),
+    buildResourceUrl({
+      resource: 'Member',
+      osn,
+      afterTimestamp,
+      beforeTimestamp,
+      top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
+    }),
   );
 }
 
@@ -331,13 +331,13 @@ export function fetchOffices(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsOfficePayload>(
     startUrl ??
-      buildResourceUrl({
-        resource: 'Office',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
-      }),
+    buildResourceUrl({
+      resource: 'Office',
+      osn,
+      afterTimestamp,
+      beforeTimestamp,
+      top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
+    }),
   );
 }
 
@@ -348,13 +348,13 @@ export function fetchOpenHouses(
   const { afterTimestamp, beforeTimestamp, startUrl } = options ?? {};
   return paginate<MlsOpenHousePayload>(
     startUrl ??
-      buildResourceUrl({
-        resource: 'OpenHouse',
-        osn,
-        afterTimestamp,
-        beforeTimestamp,
-        top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
-      }),
+    buildResourceUrl({
+      resource: 'OpenHouse',
+      osn,
+      afterTimestamp,
+      beforeTimestamp,
+      top: Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, 1000),
+    }),
   );
 }
 
@@ -362,6 +362,7 @@ function buildPropertySeedFilter(
   osn: string,
   options?: {
     officeMlsId?: string;
+    memberMlsId?: string;
     standardStatuses?: string[];
     propertyTypes?: string[];
     afterTimestamp?: Date;
@@ -396,7 +397,15 @@ function buildPropertySeedFilter(
   }
 
   if (options?.officeMlsId) {
-    parts.push(`ListOfficeMlsId eq '${escapeODataString(options.officeMlsId)}'`);
+    parts.push(
+      `(ListOfficeMlsId eq '${escapeODataString(options.officeMlsId)}' or CoListOfficeMlsId eq '${escapeODataString(options.officeMlsId)}')`,
+    );
+  }
+
+  if (options?.memberMlsId) {
+    parts.push(
+      `(ListAgentMlsId eq '${escapeODataString(options.memberMlsId)}' or CoListAgentMlsId eq '${escapeODataString(options.memberMlsId)}')`,
+    );
   }
 
   if (options?.afterTimestamp) {
@@ -414,6 +423,7 @@ export function buildPropertySeedUrl(
   top: number,
   options?: {
     officeMlsId?: string;
+    memberMlsId?: string;
     standardStatuses?: string[];
     propertyTypes?: string[];
     afterTimestamp?: Date;
@@ -441,9 +451,23 @@ export function fetchPropertiesByOffice(
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
   return paginate<MlsPropertyPayload>(
     options?.startUrl ??
-      buildPropertySeedUrl(osn, getPropertySeedTop(), {
-        officeMlsId,
-      }),
+    buildPropertySeedUrl(osn, getPropertySeedTop(), {
+      officeMlsId,
+    }),
+  );
+}
+
+/** Fetch Property records scoped to a single ListAgent/CoListAgent MLS Id for initial seed passes. */
+export function fetchPropertiesByMember(
+  osn: string,
+  memberMlsId: string,
+  options?: FetchResourceOptions,
+): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
+  return paginate<MlsPropertyPayload>(
+    options?.startUrl ??
+    buildPropertySeedUrl(osn, getPropertySeedTop(), {
+      memberMlsId,
+    }),
   );
 }
 
@@ -514,12 +538,12 @@ export async function* fetchViewablePropertiesByTypesAndStatuses(
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
   yield* paginate<MlsPropertyPayload>(
     options?.startUrl ??
-      buildPropertySeedUrl(osn, getPropertySeedTop(), {
-        propertyTypes: propertyTypes ? [...propertyTypes] : undefined,
-        standardStatuses: standardStatuses ? [...standardStatuses] : undefined,
-        afterTimestamp: options?.afterTimestamp,
-        beforeTimestamp: options?.beforeTimestamp,
-      }),
+    buildPropertySeedUrl(osn, getPropertySeedTop(), {
+      propertyTypes: propertyTypes ? [...propertyTypes] : undefined,
+      standardStatuses: standardStatuses ? [...standardStatuses] : undefined,
+      afterTimestamp: options?.afterTimestamp,
+      beforeTimestamp: options?.beforeTimestamp,
+    }),
   );
 }
 
@@ -533,14 +557,28 @@ export async function* fetchPropertiesForInitialSeed(
     startUrl?: string;
   },
 ): AsyncGenerator<ODataPageBatch<MlsPropertyPayload>> {
+  const officeScope = (env.MLS_OFFICE_ID ?? []).map((id) => id.trim()).filter(Boolean);
+  const memberScope = (env.MLS_MEMBER_ID ?? []).map((id) => id.trim()).filter(Boolean);
+
   let resumeStartUrl = options?.startUrl;
 
   // These loops are intentionally sequential: each segment consumes a paged
   // generator and may carry forward checkpoint URL state into the next segment.
   // Running them in parallel would break deterministic resume ordering.
   /* eslint-disable no-await-in-loop */
-  for (const officeMlsId of env.MLS_OFFICE_ID ?? []) {
+  for (const officeMlsId of officeScope) {
     for await (const pageBatch of fetchPropertiesByOffice(osn, officeMlsId, {
+      afterTimestamp: options?.afterTimestamp,
+      beforeTimestamp: options?.beforeTimestamp,
+      startUrl: resumeStartUrl,
+    })) {
+      yield pageBatch;
+    }
+    resumeStartUrl = undefined;
+  }
+
+  for (const memberMlsId of memberScope) {
+    for await (const pageBatch of fetchPropertiesByMember(osn, memberMlsId, {
       afterTimestamp: options?.afterTimestamp,
       beforeTimestamp: options?.beforeTimestamp,
       startUrl: resumeStartUrl,

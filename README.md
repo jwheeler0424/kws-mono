@@ -69,11 +69,95 @@ Stop production stack:
 bun run prod:down
 ```
 
+## Local Production Rehearsal (minimal root env)
+
+Use the root `.env.local.prod` for minimal compose-only variables (images, DB/Redis/app ports, host/media path).
+Keep full runtime app configuration in `packages/config/.env`.
+
+Start local production rehearsal:
+
+```terminal
+bun run prod:local:up
+```
+
+Check service status:
+
+```terminal
+bun run prod:local:ps
+```
+
+Stop local production rehearsal:
+
+```terminal
+bun run prod:local:down
+```
+
+## Local Swarm Rehearsal (rolling updates)
+
+Use Docker Swarm locally to validate production-like rolling updates.
+
+Start/deploy stack:
+
+```terminal
+bun run swarm:local:up
+```
+
+Update stack after pushing new images:
+
+```terminal
+bun run swarm:local:update
+```
+
+View services:
+
+```terminal
+bun run swarm:local:ps
+```
+
+Remove stack:
+
+```terminal
+bun run swarm:local:down
+```
+
+Update semantics in Swarm stack:
+
+1. `web` runs with `WEB_REPLICAS` (default `2`) and `start-first` rolling updates.
+2. `mls` runs single-replica by default and updates with `stop-first`.
+
+Optional overrides:
+
+```terminal
+WEB_REPLICAS=3 MLS_REPLICAS=1 STACK_NAME=kws bun run swarm:local:up
+```
+
+Migration behavior:
+
+```terminal
+# Default is RUN_MIGRATIONS=0 for local rollout validation
+bun run swarm:local:up
+
+# Enable one-time migration stage when needed
+RUN_MIGRATIONS=1 bun run swarm:local:up
+```
+
 ### Media symlink behavior in production
 
 `apps/web/public/media` is intentionally excluded from Docker build context. At container startup, the app entrypoint creates a symlink:
 
 - source: `/srv/media`
-- target: `/app/apps/web/dist/client/media`
+- target: `/app/apps/web/public/media`
 
 For production compose, media mount path is configurable with `MEDIA_STORE_PATH`.
+
+For VPS production, set:
+
+```terminal
+MEDIA_STORE_PATH=$HOME/store/kyleweberseattle.com
+```
+
+For local production rehearsal, set in `.env.local.prod`:
+
+```terminal
+MEDIA_STORE_PATH=./store/media
+```

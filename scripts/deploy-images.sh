@@ -12,12 +12,16 @@ IMAGE_NAME="${IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseat
 MLS_IMAGE_NAME="${MLS_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-mls}"
 DB_IMAGE_NAME="${DB_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-db}"
 
+# Optional local GHCR auth for PAT-based publishing.
+GHCR_USERNAME="${GHCR_USERNAME:-${GITHUB_REPOSITORY_OWNER:-}}"
+GHCR_TOKEN="${GHCR_TOKEN:-${REPO_TOKEN:-${GITHUB_TOKEN:-}}}"
+
 APP_IMAGE="${APP_IMAGE:-${REGISTRY}/${IMAGE_NAME}:latest}"
 MLS_IMAGE="${MLS_IMAGE:-${REGISTRY}/${MLS_IMAGE_NAME}:latest}"
 DB_IMAGE="${DB_IMAGE:-${REGISTRY}/${DB_IMAGE_NAME}:latest}"
 
-SKIP_WEB_BUILD="${SKIP_WEB_BUILD:-1}"
-SKIP_MLS_BUILD="${SKIP_MLS_BUILD:-1}"
+SKIP_WEB_BUILD="${SKIP_WEB_BUILD:-0}"
+SKIP_MLS_BUILD="${SKIP_MLS_BUILD:-0}"
 
 compose_ci() {
   APP_IMAGE="$APP_IMAGE" \
@@ -28,8 +32,19 @@ compose_ci() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
+if [[ "$REGISTRY" == "ghcr.io" && -n "$GHCR_TOKEN" ]]; then
+  if [[ -z "$GHCR_USERNAME" ]]; then
+    echo "[deploy-images] GHCR token provided but GHCR_USERNAME is empty."
+    echo "[deploy-images] Set GHCR_USERNAME (typically your GitHub username or org)."
+    exit 1
+  fi
+
+  echo "[deploy-images] Logging in to GHCR as $GHCR_USERNAME"
+  echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+fi
+
 echo "[deploy-images] Running turbo build..."
-bunx turbo run build
+bun run build
 
 echo "[deploy-images] Building app image: $APP_IMAGE"
 compose_ci build app

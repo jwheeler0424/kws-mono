@@ -1,5 +1,6 @@
 import { env } from '@kws/config';
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
@@ -9,7 +10,28 @@ import type { MlsResource } from '@/types';
 import { MLS_HISTORY_DEFAULTS } from './constants';
 import { logger } from './logger';
 
-const HISTORY_ROOT = path.resolve(process.cwd(), MLS_HISTORY_DEFAULTS.storePath);
+function resolveHistoryRoot(): string {
+  const configuredPath = MLS_HISTORY_DEFAULTS.storePath;
+
+  if (path.isAbsolute(configuredPath)) {
+    return configuredPath;
+  }
+
+  const cwdCandidate = path.resolve(process.cwd(), configuredPath);
+  const moduleCandidate = path.resolve(import.meta.dir, '../../', configuredPath);
+
+  if (existsSync(cwdCandidate)) {
+    return cwdCandidate;
+  }
+
+  if (existsSync(moduleCandidate)) {
+    return moduleCandidate;
+  }
+
+  return cwdCandidate;
+}
+
+const HISTORY_ROOT = resolveHistoryRoot();
 const HISTORY_LOCK_FILE = path.join(HISTORY_ROOT, '.history-writer.lock');
 const HISTORY_QUARANTINE_ROOT = path.join(HISTORY_ROOT, '.quarantine');
 const HISTORY_QUARANTINE_RECORDS_ROOT = path.join(HISTORY_QUARANTINE_ROOT, 'records');
@@ -231,10 +253,10 @@ function toIsoMaybe(date: Date | undefined): string | undefined {
 
 function parsePartitionFromDirectory(partitionDir: string):
   | {
-      resource: MlsResource;
-      year: string;
-      month: string;
-    }
+    resource: MlsResource;
+    year: string;
+    month: string;
+  }
   | undefined {
   const relative = path.relative(HISTORY_ROOT, partitionDir);
   if (!relative || relative.startsWith('..')) {
@@ -817,9 +839,9 @@ export async function* replayHistoryResource<T extends Record<string, unknown>>(
         const candidateRecords =
           afterTimestamp && getTimestamp
             ? payload.records.filter((record) => {
-                const recordTimestamp = normalizeTimestamp(getTimestamp(record));
-                return Boolean(recordTimestamp && recordTimestamp > afterTimestamp);
-              })
+              const recordTimestamp = normalizeTimestamp(getTimestamp(record));
+              return Boolean(recordTimestamp && recordTimestamp > afterTimestamp);
+            })
             : payload.records;
 
         for (const record of candidateRecords) {

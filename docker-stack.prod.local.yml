@@ -1,0 +1,161 @@
+services:
+  db:
+    image: ${DB_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com-db:latest}
+    env_file:
+      - ./packages/config/.env
+    command:
+      - postgres
+      - -c
+      - wal_level=${PG_WAL_LEVEL:-logical}
+      - -c
+      - max_replication_slots=${PG_MAX_REPLICATION_SLOTS:-10}
+      - -c
+      - max_wal_senders=${PG_MAX_WAL_SENDERS:-10}
+    environment:
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-postgres}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql
+      - ${DB_INIT_PATH}:/docker-entrypoint-initdb.d
+    ports:
+      - target: 5432
+        published: ${SWARM_DB_PORT:-5432}
+        protocol: tcp
+        mode: host
+    networks:
+      - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  redis:
+    image: ${REDIS_IMAGE:-kws-local/redis:swarm}
+    env_file:
+      - ./packages/config/.env
+    command:
+      - redis-server
+      - --appendonly
+      - ${REDIS_APPENDONLY:-yes}
+    volumes:
+      - redisdata_prod:/data
+    networks:
+      - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  web:
+    image: ${APP_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com:latest}
+    environment:
+      NODE_ENV: production
+      HOST: ${HOST:-localhost}
+      PORT: ${APP_PORT:-3443}
+      DB_HOST: db
+      DB_PORT: ${DB_PORT:-5432}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_URL: redis://redis:${REDIS_PORT:-6379}
+      WEB_MEDIA_SOURCE: /srv/media
+      WEB_MEDIA_TARGET: /app/apps/web/public/media
+    volumes:
+      - ${MEDIA_STORE_PATH}:/srv/media
+    networks:
+      - backend
+    deploy:
+      replicas: ${WEB_REPLICAS:-2}
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 2
+        window: 30s
+
+  nginx:
+    image: ${NGINX_IMAGE:-kws-local/nginx:swarm}
+    env_file:
+      - ./packages/config/.env
+    environment:
+      HOST: ${HOST:-localhost}
+      CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-localhost}
+      APP_PORT: ${APP_PORT:-3443}
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - ${MEDIA_STORE_PATH}:/srv/media:ro
+    networks:
+      - backend
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  mls:
+    image: ${MLS_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com-mls:latest}
+    environment:
+      NODE_ENV: production
+      HOST: ${HOST:-localhost}
+      DB_HOST: db
+      DB_PORT: ${DB_PORT:-5432}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_URL: redis://redis:${REDIS_PORT:-6379}
+    volumes:
+      - ${MEDIA_STORE_PATH}:/srv/media
+    networks:
+      - backend
+    deploy:
+      replicas: ${MLS_REPLICAS:-1}
+      update_config:
+        parallelism: 1
+        delay: 5s
+        order: stop-first
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 2
+        window: 30s
+
+volumes:
+  pgdata_prod:
+  redisdata_prod:
+  letsencrypt:
+
+networks:
+  backend:
+    driver: overlay
+    attachable: true

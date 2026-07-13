@@ -105,7 +105,9 @@ export async function main() {
           hasExistingMlsRecords
             ? runDeltaSync(env.MLS_ORIGINATING_SYSTEM_NAME)
             : runInitialDataSeed(env.MLS_ORIGINATING_SYSTEM_NAME),
-        phaseLabel: hasExistingMlsRecords ? 'delta sync' : 'initial data seed',
+        phaseLabel: hasExistingMlsRecords
+          ? 'delta sync'
+          : 'initial data seed',
         errorFile: 'mls-seed-errors.json',
       });
       if (!dataSeedSuccess) {

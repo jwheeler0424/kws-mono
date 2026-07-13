@@ -64,11 +64,12 @@
  */
 
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 // Configuration
 const SERVER_PORT = Number(process.env.PORT ?? 3000);
-const CLIENT_DIRECTORY = './dist/client';
-const SERVER_ENTRY_POINT = './dist/server/server.js';
+const CLIENT_DIRECTORY = path.resolve(import.meta.dir, 'dist/client');
+const SERVER_ENTRY_POINT = path.resolve(import.meta.dir, 'dist/server/server.js');
 
 // Logging utilities for professional output
 const log = {
@@ -469,7 +470,7 @@ async function initializeServer() {
   // Load TanStack Start server handler
   let handler: { fetch: (request: Request) => Response | Promise<Response> };
   try {
-    const serverModule = (await import(SERVER_ENTRY_POINT)) as {
+    const serverModule = (await import(pathToFileURL(SERVER_ENTRY_POINT).href)) as {
       default: { fetch: (request: Request) => Response | Promise<Response> };
     };
     handler = serverModule.default;

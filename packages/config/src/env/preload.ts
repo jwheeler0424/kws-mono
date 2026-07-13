@@ -5,20 +5,39 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ENV_FILES = ['.env.local', '.env'] as const;
-const ENV_FALLBACK_FILES = ['.env.example'] as const;
 
 const resolvePackageRootFromFile = () => {
   const currentFile = fileURLToPath(import.meta.url);
   return resolve(dirname(currentFile), '../../');
 };
 
-const collectEnvPaths = () => {
-  const packageRoot = resolvePackageRootFromFile();
-  const candidateFiles = [...ENV_FILES, ...ENV_FALLBACK_FILES];
+const resolvePackageRootCandidates = () => {
+  const candidates = [
+    // Standard container/runtime location in this monorepo.
+    resolve(process.cwd(), 'packages/config'),
+    // Explicit absolute fallback for container runtime.
+    '/app/packages/config',
+    // Works for non-bundled execution from package source.
+    resolvePackageRootFromFile(),
+  ];
 
-  return candidateFiles
-    .map((envFile) => join(packageRoot, envFile))
-    .filter((envPath) => existsSync(envPath));
+  return [...new Set(candidates.map((candidate) => resolve(candidate)))];
+};
+
+const collectEnvPaths = () => {
+  const candidateFiles = [...ENV_FILES];
+
+  for (const packageRoot of resolvePackageRootCandidates()) {
+    const resolvedPaths = candidateFiles
+      .map((envFile) => join(packageRoot, envFile))
+      .filter((envPath) => existsSync(envPath));
+
+    if (resolvedPaths.length > 0) {
+      return resolvedPaths;
+    }
+  }
+
+  throw new Error('No runtime env file found in packages/config. Expected .env.local or .env.');
 };
 
 const envConfig = dotenv.config({ path: collectEnvPaths() });

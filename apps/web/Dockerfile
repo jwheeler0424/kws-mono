@@ -11,7 +11,7 @@ RUN turbo prune web --docker
 
 FROM base AS builder
 COPY --from=prepare /app/out/json/ .
-RUN bun install
+RUN bun install --linker=isolated --backend=copyfile
 COPY --from=prepare /app/out/full/ .
 
 # Optional remote cache args for CI/VPS builds
@@ -33,9 +33,13 @@ ENV PORT=3443
 
 # Runtime media symlink configuration
 ENV WEB_MEDIA_SOURCE=/srv/media
-ENV WEB_MEDIA_TARGET=/app/apps/web/dist/client/media
+ENV WEB_MEDIA_TARGET=/app/apps/web/public/media
 
 COPY --from=builder /app /app
+
+# Ensure runtime config package env files are present in the final image.
+RUN test -f /app/packages/config/.env && test -f /app/packages/config/.env.example
+
 COPY docker/web-entrypoint.sh /usr/local/bin/web-entrypoint.sh
 RUN sed -i 's/\r$//' /usr/local/bin/web-entrypoint.sh \
     && chmod +x /usr/local/bin/web-entrypoint.sh
