@@ -19,7 +19,6 @@
     "swarm:local:down": "bash scripts/swarm-local-down.sh",
     "swarm:local:ps": "docker service ls --filter label=com.docker.stack.namespace=${STACK_NAME:-kws}",
     "build": "turbo run build",
-    // GHCR_USERNAME=jwheeler0424 GHCR_TOKEN=SAMPLE_TOKEN bun run deploy:images
     "deploy:images": "bash scripts/deploy-images.sh",
     "dev": "turbo run dev",
     "lint": "oxlint",

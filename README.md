@@ -7,17 +7,26 @@
   ```terminal
   mklink /D "C:\Projects\kws-mono\apps\web\public\media" "C:\Projects\kws-mono\store\media"
   ```
+  ```terminal
+  mklink /D "C:\Projects\kws-mono\apps\mls\data" "C:\Projects\kws-mono\store\data"
+  ```
 
   **Linux Terminal**
 
   ```terminal
   ln -s ~/Projects/kws-mono/apps/web/public/media ~/Projects/kws-mono/store/media
   ```
+  ```terminal
+  ln -s ~/Projects/kws-mono/apps/mls/data ~/Projects/kws-mono/store/data
+  ```
 
   **MacOS Terminal**
 
   ```terminal
   ln -s ~/Projects/kws-mono/apps/web/public/media ~/Projects/kws-mono/store/media
+  ```
+  ```terminal
+  ln -s ~/Projects/kws-mono/apps/mls/data ~/Projects/kws-mono/store/data
   ```
 
 ## Build

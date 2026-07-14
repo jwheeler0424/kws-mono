@@ -16,8 +16,6 @@ MEDIA_STORE_PATH="${MEDIA_STORE_PATH:-$ROOT_DIR/store/media}"
 SWARM_DB_PORT="${SWARM_DB_PORT:-${DB_PORT:-5432}}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-0}"
 DB_INIT_PATH="${DB_INIT_PATH:-$ROOT_DIR/docker/database}"
-MIGRATION_DKIM_PRIVATE_KEY="${MIGRATION_DKIM_PRIVATE_KEY:-$'-----BEGIN PRIVATE KEY-----\nQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFB\n-----END PRIVATE KEY-----'}"
-MIGRATION_MLS_START_DATE="${MIGRATION_MLS_START_DATE:-2024-01-01T00:00:00Z}"
 
 APP_IMAGE="${APP_IMAGE:-kws-local/web:swarm}"
 MLS_IMAGE="${MLS_IMAGE:-kws-local/mls:swarm}"
@@ -77,6 +75,13 @@ require_cmd bun
 if [[ -f "$ENV_FILE" ]]; then
   echo "[swarm-local] Loading environment from $ENV_FILE"
   load_env_file "$ENV_FILE"
+fi
+
+if [[ "$RUN_MIGRATIONS" == "1" ]]; then
+  if [[ -z "${DKIM_PRIVATE_KEY:-}" || -z "${MLS_START_DATE:-}" ]]; then
+    echo "[swarm-local] RUN_MIGRATIONS=1 requires DKIM_PRIVATE_KEY and MLS_START_DATE in $ENV_FILE"
+    exit 1
+  fi
 fi
 
 mkdir -p "$MEDIA_STORE_PATH"
@@ -162,8 +167,8 @@ if [[ "$RUN_MIGRATIONS" == "1" ]]; then
       DB_USER="${DB_USER:-postgres}" \
       DB_PASSWORD="${DB_PASSWORD:-postgres}" \
       DB_NAME="${DB_NAME:-postgres}" \
-      DKIM_PRIVATE_KEY="$MIGRATION_DKIM_PRIVATE_KEY" \
-      MLS_START_DATE="$MIGRATION_MLS_START_DATE" \
+      DKIM_PRIVATE_KEY="$DKIM_PRIVATE_KEY" \
+      MLS_START_DATE="$MLS_START_DATE" \
       DATABASE_URL="postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@localhost:${SWARM_DB_PORT}/${DB_NAME:-postgres}" \
       bun run db:migrate; then
       MIGRATED=1
