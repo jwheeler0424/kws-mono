@@ -3,7 +3,7 @@
   "resource": "Lookup",
   "year": "2026",
   "month": "07",
-  "updatedAt": "2026-07-13T16:31:01.454Z",
+  "updatedAt": "2026-07-14T20:04:08.050Z",
   "chunks": [
     {
       "file": "lookup-2026-07-08T15-47-04-513Z-d0xfr0hw.jsonl.gz",
@@ -2380,6 +2380,46 @@
       "firstTimestamp": "2026-07-08T15:29:58.157Z",
       "lastTimestamp": "2026-07-08T15:29:58.157Z",
       "createdAt": "2026-07-13T16:31:01.453Z"
+    },
+    {
+      "file": "lookup-2026-07-14T19-03-04-186Z-8uv58vtc.jsonl.gz",
+      "checksumSha256": "377d1997fca408d62189be86ca4ab6d9693ce2a7d265b603f7f0014e373220f9",
+      "recordCount": 1,
+      "firstTimestamp": "2026-07-08T15:29:58.157Z",
+      "lastTimestamp": "2026-07-08T15:29:58.157Z",
+      "createdAt": "2026-07-14T19:03:04.191Z"
+    },
+    {
+      "file": "lookup-2026-07-14T19-28-34-112Z-mh5y99s2.jsonl.gz",
+      "checksumSha256": "377d1997fca408d62189be86ca4ab6d9693ce2a7d265b603f7f0014e373220f9",
+      "recordCount": 1,
+      "firstTimestamp": "2026-07-08T15:29:58.157Z",
+      "lastTimestamp": "2026-07-08T15:29:58.157Z",
+      "createdAt": "2026-07-14T19:28:34.117Z"
+    },
+    {
+      "file": "lookup-2026-07-14T19-35-25-974Z-tgxwzrd9.jsonl.gz",
+      "checksumSha256": "377d1997fca408d62189be86ca4ab6d9693ce2a7d265b603f7f0014e373220f9",
+      "recordCount": 1,
+      "firstTimestamp": "2026-07-08T15:29:58.157Z",
+      "lastTimestamp": "2026-07-08T15:29:58.157Z",
+      "createdAt": "2026-07-14T19:35:25.983Z"
+    },
+    {
+      "file": "lookup-2026-07-14T19-46-01-441Z-kshptg5z.jsonl.gz",
+      "checksumSha256": "377d1997fca408d62189be86ca4ab6d9693ce2a7d265b603f7f0014e373220f9",
+      "recordCount": 1,
+      "firstTimestamp": "2026-07-08T15:29:58.157Z",
+      "lastTimestamp": "2026-07-08T15:29:58.157Z",
+      "createdAt": "2026-07-14T19:46:01.483Z"
+    },
+    {
+      "file": "lookup-2026-07-14T20-04-08-036Z-ikzesyw8.jsonl.gz",
+      "checksumSha256": "377d1997fca408d62189be86ca4ab6d9693ce2a7d265b603f7f0014e373220f9",
+      "recordCount": 1,
+      "firstTimestamp": "2026-07-08T15:29:58.157Z",
+      "lastTimestamp": "2026-07-08T15:29:58.157Z",
+      "createdAt": "2026-07-14T20:04:08.046Z"
     }
   ]
 }

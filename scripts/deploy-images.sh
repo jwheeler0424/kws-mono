@@ -5,41 +5,70 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 ENV_FILE="${ENV_FILE:-packages/config/.env}"
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.ci.yml}"
 
 REGISTRY="${REGISTRY:-ghcr.io}"
 IMAGE_NAME="${IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com}"
 MLS_IMAGE_NAME="${MLS_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-mls}"
 DB_IMAGE_NAME="${DB_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-db}"
-MIGRATE_IMAGE_NAME="${MIGRATE_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-migrate}"
-REDIS_IMAGE_NAME="${REDIS_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-redis}"
 NGINX_IMAGE_NAME="${NGINX_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-nginx}"
 
-# Optional local GHCR auth for PAT-based publishing.
-GHCR_USERNAME="${GHCR_USERNAME:-${GITHUB_REPOSITORY_OWNER:-}}"
-GHCR_TOKEN="${GHCR_TOKEN:-${REPO_TOKEN:-${GITHUB_TOKEN:-}}}"
+read_env_value() {
+  local key="$1"
+  local value=""
+
+  if [[ ! -f "$ENV_FILE" ]]; then
+    return 0
+  fi
+
+  value="$(awk -F= -v key="$key" '
+    $0 !~ /^[[:space:]]*#/ && $1 == key {
+      sub(/^[^=]*=/, "", $0)
+      print $0
+    }
+  ' "$ENV_FILE" | tail -n1)"
+
+  value="${value%$'\r'}"
+
+  if [[ "$value" == \"*\" && "$value" == *\" ]]; then
+    value="${value#\"}"
+    value="${value%\"}"
+  elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
+    value="${value#\'}"
+    value="${value%\'}"
+  fi
+
+  printf '%s' "$value"
+}
+
+GHCR_USERNAME="${GHCR_USERNAME:-}"
+if [[ -z "$GHCR_USERNAME" ]]; then
+  GHCR_USERNAME="$(read_env_value GHCR_USERNAME)"
+fi
+if [[ -z "$GHCR_USERNAME" ]]; then
+  GHCR_USERNAME="$(read_env_value GITHUB_REPOSITORY_OWNER)"
+fi
+if [[ -z "$GHCR_USERNAME" ]]; then
+  GHCR_USERNAME="${GITHUB_REPOSITORY_OWNER:-}"
+fi
+
+GHCR_TOKEN="${GHCR_TOKEN:-}"
+if [[ -z "$GHCR_TOKEN" ]]; then
+  GHCR_TOKEN="$(read_env_value GHCR_TOKEN)"
+fi
+if [[ -z "$GHCR_TOKEN" ]]; then
+  GHCR_TOKEN="$(read_env_value REPO_TOKEN)"
+fi
+if [[ -z "$GHCR_TOKEN" ]]; then
+  GHCR_TOKEN="$(read_env_value GITHUB_TOKEN)"
+fi
+if [[ -z "$GHCR_TOKEN" ]]; then
+  GHCR_TOKEN="${REPO_TOKEN:-${GITHUB_TOKEN:-}}"
+fi
 
 APP_IMAGE="${APP_IMAGE:-${REGISTRY}/${IMAGE_NAME}:latest}"
 MLS_IMAGE="${MLS_IMAGE:-${REGISTRY}/${MLS_IMAGE_NAME}:latest}"
 DB_IMAGE="${DB_IMAGE:-${REGISTRY}/${DB_IMAGE_NAME}:latest}"
-MIGRATE_IMAGE="${MIGRATE_IMAGE:-${REGISTRY}/${MIGRATE_IMAGE_NAME}:latest}"
-REDIS_IMAGE="${REDIS_IMAGE:-${REGISTRY}/${REDIS_IMAGE_NAME}:latest}"
 NGINX_IMAGE="${NGINX_IMAGE:-${REGISTRY}/${NGINX_IMAGE_NAME}:latest}"
-
-SKIP_WEB_BUILD="${SKIP_WEB_BUILD:-1}"
-SKIP_MLS_BUILD="${SKIP_MLS_BUILD:-1}"
-
-compose_ci() {
-  APP_IMAGE="$APP_IMAGE" \
-  MLS_IMAGE="$MLS_IMAGE" \
-  DB_IMAGE="$DB_IMAGE" \
-  MIGRATE_IMAGE="$MIGRATE_IMAGE" \
-  REDIS_IMAGE="$REDIS_IMAGE" \
-  NGINX_IMAGE="$NGINX_IMAGE" \
-  SKIP_WEB_BUILD="$SKIP_WEB_BUILD" \
-  SKIP_MLS_BUILD="$SKIP_MLS_BUILD" \
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
-}
 
 if [[ "$REGISTRY" == "ghcr.io" && -n "$GHCR_TOKEN" ]]; then
   if [[ -z "$GHCR_USERNAME" ]]; then
@@ -52,26 +81,17 @@ if [[ "$REGISTRY" == "ghcr.io" && -n "$GHCR_TOKEN" ]]; then
   echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 fi
 
-echo "[deploy-images] Running turbo build..."
-bun run build
-
 echo "[deploy-images] Building app image: $APP_IMAGE"
-compose_ci build app
+docker build -f apps/web/Dockerfile -t "$APP_IMAGE" .
 
 echo "[deploy-images] Building mls image: $MLS_IMAGE"
-compose_ci build mls
+docker build -f apps/mls/Dockerfile -t "$MLS_IMAGE" .
 
 echo "[deploy-images] Building db image: $DB_IMAGE"
-compose_ci build db
-
-echo "[deploy-images] Building migrate image: $MIGRATE_IMAGE"
-compose_ci build migrate
-
-echo "[deploy-images] Building redis image: $REDIS_IMAGE"
-compose_ci build redis
+docker build -f Dockerfile --target db -t "$DB_IMAGE" .
 
 echo "[deploy-images] Building nginx image: $NGINX_IMAGE"
-compose_ci build nginx
+docker build -f docker/nginx/Dockerfile -t "$NGINX_IMAGE" .
 
 echo "[deploy-images] Pushing app image..."
 docker push "$APP_IMAGE"
@@ -81,12 +101,6 @@ docker push "$MLS_IMAGE"
 
 echo "[deploy-images] Pushing db image..."
 docker push "$DB_IMAGE"
-
-echo "[deploy-images] Pushing migrate image..."
-docker push "$MIGRATE_IMAGE"
-
-echo "[deploy-images] Pushing redis image..."
-docker push "$REDIS_IMAGE"
 
 echo "[deploy-images] Pushing nginx image..."
 docker push "$NGINX_IMAGE"

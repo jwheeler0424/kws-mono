@@ -6,6 +6,7 @@
 FROM postgres:18.3 AS db
 
 COPY docker/db-entrypoint.sh /usr/local/bin/db-entrypoint.sh
+COPY packages/schema/drizzle/migrations /docker-entrypoint-migrations
 RUN apt-get update && apt-get install -y \
     postgresql-18-postgis-3 \
     postgresql-18-postgis-3-scripts \

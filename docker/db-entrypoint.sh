@@ -49,6 +49,67 @@ WHERE EXISTS (
 SQL
 }
 
+ensure_schema_migrations_table() {
+	gosu postgres psql --dbname "$DB_NAME" --set ON_ERROR_STOP=1 <<'SQL'
+CREATE TABLE IF NOT EXISTS public.schema_migrations (
+	id text PRIMARY KEY,
+	applied_at timestamptz NOT NULL DEFAULT now()
+);
+SQL
+}
+
+apply_pending_migrations() {
+	if [ ! -d /docker-entrypoint-migrations ]; then
+		echo "[db-entrypoint] No bundled migrations directory found; skipping"
+		return
+	fi
+
+	ensure_schema_migrations_table
+
+	# If this database already has user tables but no local migration markers,
+	# assume schema was provisioned previously and avoid replaying full init SQL.
+	existing_table_count="$(gosu postgres psql --dbname "$DB_NAME" -Atq <<'SQL'
+SELECT count(*)
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_type = 'BASE TABLE'
+  AND table_name <> 'schema_migrations';
+SQL
+)"
+
+	marked_migration_count="$(gosu postgres psql --dbname "$DB_NAME" -Atq <<'SQL'
+SELECT count(*) FROM public.schema_migrations;
+SQL
+)"
+
+	if [ "${existing_table_count:-0}" -gt 0 ] && [ "${marked_migration_count:-0}" -eq 0 ]; then
+		echo "[db-entrypoint] Existing schema detected; bootstrapping migration markers"
+		for migration_sql in $(find /docker-entrypoint-migrations -mindepth 2 -maxdepth 2 -type f -name migration.sql | sort); do
+			migration_dir="$(dirname "$migration_sql")"
+			migration_id="$(basename "$migration_dir")"
+			gosu postgres psql --dbname "$DB_NAME" --set ON_ERROR_STOP=1 \
+				-c "INSERT INTO public.schema_migrations (id) VALUES ('$migration_id') ON CONFLICT (id) DO NOTHING;"
+		done
+		return
+	fi
+
+	for migration_sql in $(find /docker-entrypoint-migrations -mindepth 2 -maxdepth 2 -type f -name migration.sql | sort); do
+		migration_dir="$(dirname "$migration_sql")"
+		migration_id="$(basename "$migration_dir")"
+
+		if gosu postgres psql --dbname "$DB_NAME" -Atq \
+			-c "SELECT 1 FROM public.schema_migrations WHERE id = '$migration_id' LIMIT 1;" \
+			| grep -qx '1'; then
+			continue
+		fi
+
+		echo "[db-entrypoint] Applying migration: $migration_id"
+		gosu postgres psql --dbname "$DB_NAME" --set ON_ERROR_STOP=1 -f "$migration_sql"
+		gosu postgres psql --dbname "$DB_NAME" --set ON_ERROR_STOP=1 \
+			-c "INSERT INTO public.schema_migrations (id) VALUES ('$migration_id');"
+	done
+}
+
 ensure_network_hba_rules() {
 	hba_file="$PGDATA/pg_hba.conf"
 
@@ -87,6 +148,8 @@ if [ ! -s "$PGDATA/PG_VERSION" ]; then
 		done
 	fi
 
+	apply_pending_migrations
+
 	# Init scripts can create/replace helper functions as postgres; normalize ownership for app migrations.
 	ensure_migration_function_ownership
 
@@ -97,6 +160,7 @@ else
 	ensure_network_hba_rules
 	gosu postgres pg_ctl -D "$PGDATA" -o "-c listen_addresses='' -c unix_socket_directories=/var/run/postgresql" -w start
 	ensure_role_and_database
+	apply_pending_migrations
 	ensure_migration_function_ownership
 	gosu postgres pg_ctl -D "$PGDATA" -m fast -w stop
 fi

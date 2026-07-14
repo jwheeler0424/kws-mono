@@ -13,32 +13,23 @@ FROM base AS builder
 COPY --from=prepare /app/out/json/ .
 RUN bun install --linker=isolated --backend=copyfile
 COPY --from=prepare /app/out/full/ .
+RUN bunx turbo run build --filter=web...
+RUN test -f /app/apps/web/dist/server/server.js && test -d /app/apps/web/dist/client
 
-# Optional remote cache args for CI/VPS builds
-ARG TURBO_TEAM
-ENV TURBO_TEAM=$TURBO_TEAM
-ARG TURBO_TOKEN
-ENV TURBO_TOKEN=$TURBO_TOKEN
-ARG SKIP_WEB_BUILD=0
-
-RUN if [ "$SKIP_WEB_BUILD" = "1" ]; then \
-            echo "Skipping web build; expecting prebuilt dist artifacts"; \
-        else \
-            bunx turbo run build --filter=web...; \
-        fi
 
 FROM base AS runner
 ENV NODE_ENV=production
 ENV PORT=3443
+WORKDIR /app/apps/web
 
 # Runtime media symlink configuration
-ENV WEB_MEDIA_SOURCE=/app/apps/web/public/media
+ENV WEB_MEDIA_SOURCE=/store/media
 ENV WEB_MEDIA_TARGET=/app/apps/web/public/media
 
 COPY --from=builder /app /app
 
-# Ensure runtime config package env files are present in the final image.
-RUN test -f /app/packages/config/.env && test -f /app/packages/config/.env.example
+# Ensure runtime config package env file is present in the final image.
+RUN test -f /app/packages/config/.env
 
 COPY docker/web-entrypoint.sh /usr/local/bin/web-entrypoint.sh
 RUN sed -i 's/\r$//' /usr/local/bin/web-entrypoint.sh \
@@ -47,4 +38,4 @@ RUN sed -i 's/\r$//' /usr/local/bin/web-entrypoint.sh \
 EXPOSE 3443
 
 ENTRYPOINT ["sh", "/usr/local/bin/web-entrypoint.sh"]
-CMD ["bun", "--bun", "run", "apps/web/server.ts"]
+CMD ["bun", "--bun", "run", "server.ts"]

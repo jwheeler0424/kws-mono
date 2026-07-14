@@ -16,6 +16,10 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@kws/config": "*",
+    "@kws/logger": "*",
+    "@kws/media": "*",
+    "@kws/schema": "*",
     "@tanstack/pacer": "^0.21.1",
     "date-fns": "^4.4.0",
     "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
@@ -24,10 +28,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@kws/config": "*",
-    "@kws/logger": "*",
-    "@kws/media": "*",
-    "@kws/schema": "*",
     "@kws/types": "*",
     "@kws/typescript": "*",
     "@kws/utils": "*",

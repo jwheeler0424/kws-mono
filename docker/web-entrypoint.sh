@@ -6,7 +6,9 @@ TARGET_LINK="${WEB_MEDIA_TARGET:-/app/apps/web/public/media}"
 COMPAT_LINK="${WEB_MEDIA_COMPAT_TARGET:-/app/apps/web/dist/client/media}"
 
 TARGET_PARENT="$(dirname "$TARGET_LINK")"
+COMPAT_PARENT="$(dirname "$COMPAT_LINK")"
 mkdir -p "$TARGET_PARENT"
+mkdir -p "$COMPAT_PARENT"
 
 if [ ! -d "$SOURCE_DIR" ]; then
   echo "[web-entrypoint] Media source directory not found: $SOURCE_DIR"

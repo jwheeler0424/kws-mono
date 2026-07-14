@@ -63,12 +63,16 @@
  *   bun run server.ts
  */
 
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 // Configuration
 const SERVER_PORT = Number(process.env.PORT ?? 3000);
-const CLIENT_DIRECTORY = path.resolve(import.meta.dir, 'dist/client');
+const STATIC_DIRECTORIES = [
+  path.resolve(import.meta.dir, 'dist/client'),
+  path.resolve(import.meta.dir, 'dist/server'),
+].filter((directory, index, all) => existsSync(directory) && all.indexOf(directory) === index);
 const SERVER_ENTRY_POINT = path.resolve(import.meta.dir, 'dist/server/server.js');
 
 // Logging utilities for professional output
@@ -271,12 +275,17 @@ function createCompositeGlobPattern(): Bun.Glob {
  * Initialize static routes with intelligent preloading strategy
  * Small files are loaded into memory, large files are served on-demand
  */
-async function initializeStaticRoutes(clientDirectory: string): Promise<PreloadResult> {
+async function initializeStaticRoutes(directories: string[]): Promise<PreloadResult> {
   const routes: Record<string, (req: Request) => Response | Promise<Response>> = {};
   const loaded: AssetMetadata[] = [];
   const skipped: AssetMetadata[] = [];
 
-  log.info(`Loading static assets from ${clientDirectory}...`);
+  if (directories.length === 0) {
+    log.warning('No static asset directories found');
+    return { routes, loaded, skipped };
+  }
+
+  log.info(`Loading static assets from: ${directories.join(', ')}`);
   if (VERBOSE) {
     console.log(`Max preload size: ${(MAX_PRELOAD_BYTES / 1024 / 1024).toFixed(2)} MB`);
     if (INCLUDE_PATTERNS.length > 0) {
@@ -291,63 +300,70 @@ async function initializeStaticRoutes(clientDirectory: string): Promise<PreloadR
 
   try {
     const glob = createCompositeGlobPattern();
-    for await (const relativePath of glob.scan({ cwd: clientDirectory })) {
-      const filepath = path.join(clientDirectory, relativePath);
-      const route = `/${relativePath.split(path.sep).join(path.posix.sep)}`;
+    for (const directory of directories) {
+      for await (const relativePath of glob.scan({ cwd: directory })) {
+        const filepath = path.join(directory, relativePath);
+        const route = `/${relativePath.split(path.sep).join(path.posix.sep)}`;
 
-      try {
-        // Get file metadata
-        const file = Bun.file(filepath);
-
-        // Skip if file doesn't exist or is empty
-        if (!(await file.exists()) || file.size === 0) {
+        // Keep the first provider of each route (dist/client has priority over dist/server).
+        if (routes[route]) {
           continue;
         }
 
-        const metadata: AssetMetadata = {
-          route,
-          size: file.size,
-          type: file.type || 'application/octet-stream',
-        };
+        try {
+          // Get file metadata
+          const file = Bun.file(filepath);
 
-        // Determine if file should be preloaded
-        const matchesPattern = isFileEligibleForPreloading(relativePath);
-        const withinSizeLimit = file.size <= MAX_PRELOAD_BYTES;
+          // Skip if file doesn't exist or is empty
+          if (!(await file.exists()) || file.size === 0) {
+            continue;
+          }
 
-        if (matchesPattern && withinSizeLimit) {
-          // Preload small files into memory with ETag and Gzip support
-          const bytes = new Uint8Array(await file.arrayBuffer());
-          const gz = compressDataIfAppropriate(bytes, metadata.type);
-          const etag = ENABLE_ETAG ? computeEtag(bytes) : undefined;
-          const asset: InMemoryAsset = {
-            raw: bytes,
-            gz,
-            etag,
-            type: metadata.type,
-            immutable: true,
-            size: bytes.byteLength,
-          };
-          routes[route] = createResponseHandler(asset);
-
-          loaded.push({ ...metadata, size: bytes.byteLength });
-          totalPreloadedBytes += bytes.byteLength;
-        } else {
-          // Serve large or filtered files on-demand
-          routes[route] = () => {
-            const fileOnDemand = Bun.file(filepath);
-            return new Response(fileOnDemand, {
-              headers: {
-                'Content-Type': metadata.type,
-                'Cache-Control': 'public, max-age=3600',
-              },
-            });
+          const metadata: AssetMetadata = {
+            route,
+            size: file.size,
+            type: file.type || 'application/octet-stream',
           };
 
-          skipped.push(metadata);
-        }
-      } catch (error: unknown) {
-        if (error instanceof Error && error.name !== 'EISDIR') {
-          log.error(`Failed to load ${filepath}: ${error.message}`);
+          // Determine if file should be preloaded
+          const matchesPattern = isFileEligibleForPreloading(relativePath);
+          const withinSizeLimit = file.size <= MAX_PRELOAD_BYTES;
+
+          if (matchesPattern && withinSizeLimit) {
+            // Preload small files into memory with ETag and Gzip support
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            const gz = compressDataIfAppropriate(bytes, metadata.type);
+            const etag = ENABLE_ETAG ? computeEtag(bytes) : undefined;
+            const asset: InMemoryAsset = {
+              raw: bytes,
+              gz,
+              etag,
+              type: metadata.type,
+              immutable: true,
+              size: bytes.byteLength,
+            };
+            routes[route] = createResponseHandler(asset);
+
+            loaded.push({ ...metadata, size: bytes.byteLength });
+            totalPreloadedBytes += bytes.byteLength;
+          } else {
+            // Serve large or filtered files on-demand
+            routes[route] = () => {
+              const fileOnDemand = Bun.file(filepath);
+              return new Response(fileOnDemand, {
+                headers: {
+                  'Content-Type': metadata.type,
+                  'Cache-Control': 'public, max-age=3600',
+                },
+              });
+            };
+
+            skipped.push(metadata);
+          }
+        } catch (error: unknown) {
+          if (error instanceof Error && error.name !== 'EISDIR') {
+            log.error(`Failed to load ${filepath}: ${error.message}`);
+          }
         }
       }
     }
@@ -455,7 +471,7 @@ async function initializeStaticRoutes(clientDirectory: string): Promise<PreloadR
       );
     }
   } catch (error) {
-    log.error(`Failed to load static files from ${clientDirectory}: ${String(error)}`);
+    log.error(`Failed to load static files: ${String(error)}`);
   }
 
   return { routes, loaded, skipped };
@@ -481,7 +497,7 @@ async function initializeServer() {
   }
 
   // Build static routes with intelligent preloading
-  const { routes } = await initializeStaticRoutes(CLIENT_DIRECTORY);
+  const { routes } = await initializeStaticRoutes(STATIC_DIRECTORIES);
 
   // Create Bun server
   const server = Bun.serve({
