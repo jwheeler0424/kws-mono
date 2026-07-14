@@ -4,7 +4,7 @@ node_modules
 # output
 out
 dist
-
+data
 *.tgz
 .mls-quota-state.json
 .mls-sync-errors.json

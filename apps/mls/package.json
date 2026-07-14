@@ -5,7 +5,8 @@
   "module": "src/index.ts",
   "scripts": {
     "dev": "bun --bun run src/index.ts",
-    "start": "bun --bun run src/index.ts",
+    "build": "bun --bun build src/index.ts --outdir dist --target bun",
+    "start": "bun --bun run dist/index.js",
     "history:verify": "bun --bun run src/index.ts history:verify",
     "history:compact": "bun --bun run src/index.ts history:compact",
     "history:recover": "bun --bun run src/index.ts history:recover",
@@ -32,9 +33,10 @@
     "@kws/utils": "*",
     "@types/bun": "latest",
     "@types/pg": "^8.20.0",
-    "drizzle-kit": "^1.0.0-rc.4-ca0f029"
+    "drizzle-kit": "^1.0.0-rc.4-ca0f029",
+    "esbuild": "^0.28.1"
   },
   "peerDependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^7"
   }
 }

@@ -14,8 +14,8 @@
     "prod:local:up": "docker compose --env-file .env.local.prod -f docker-compose.prod.yml -f docker-compose.prod.local.yml up -d --remove-orphans db redis app_blue app_green mls nginx && docker compose --env-file .env.local.prod -f docker-compose.prod.yml -f docker-compose.prod.local.yml rm -f migrate || true",
     "prod:local:down": "docker compose --env-file .env.local.prod -f docker-compose.prod.yml -f docker-compose.prod.local.yml down --remove-orphans",
     "prod:local:ps": "docker compose --env-file .env.local.prod -f docker-compose.prod.yml -f docker-compose.prod.local.yml ps",
-    "swarm:local:up": "bash scripts/swarm-local-deploy.sh",
-    "swarm:local:update": "bash scripts/swarm-local-deploy.sh",
+    "swarm:local:up": "RUN_MIGRATIONS=${RUN_MIGRATIONS:-1} bash scripts/swarm-local-deploy.sh",
+    "swarm:local:update": "RUN_MIGRATIONS=${RUN_MIGRATIONS:-1} bash scripts/swarm-local-deploy.sh",
     "swarm:local:down": "bash scripts/swarm-local-down.sh",
     "swarm:local:ps": "docker service ls --filter label=com.docker.stack.namespace=${STACK_NAME:-kws}",
     "build": "turbo run build",
@@ -41,8 +41,8 @@
     "oxfmt": "^0.58.0",
     "oxlint": "^1.73.0",
     "oxlint-tsgolint": "^0.24.0",
-    "turbo": "^2.10.4",
-    "typescript": "^6.0.3"
+    "turbo": "2.10.5",
+    "typescript": "^7.0.2"
   },
   "engines": {
     "bun": ">=1.3.14",

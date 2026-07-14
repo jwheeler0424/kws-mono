@@ -6,10 +6,10 @@
   "scripts": {
     "dev:generate": "tsr generate",
     "dev:watch": "tsr watch",
-    "dev": "bun --bun vite dev --port 3443",
-    "build": "bun --bun vite build",
-    "start": "bun --bun run server.ts",
-    "preview": "bun --bun vite preview",
+    "dev": "vite dev --port 3443",
+    "build": "vite build",
+    "start": "bun run server.ts",
+    "preview": "vite preview",
     "test": "vitest run",
     "check-types": "tsc --noEmit"
   },
@@ -106,6 +106,6 @@
     "vitest": "^4.1.9"
   },
   "peerDependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^7"
   }
 }

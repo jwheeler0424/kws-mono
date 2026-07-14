@@ -14,7 +14,7 @@ TASK_HISTORY_LIMIT="${TASK_HISTORY_LIMIT:-0}"
 RESET_STACK="${RESET_STACK:-0}"
 STORE_PATH="${STORE_PATH:-$ROOT_DIR/store}"
 SWARM_DB_PORT="${SWARM_DB_PORT:-${DB_PORT:-5432}}"
-RUN_MIGRATIONS="${RUN_MIGRATIONS:-0}"
+RUN_MIGRATIONS="${RUN_MIGRATIONS:-1}"
 DB_INIT_PATH="${DB_INIT_PATH:-$ROOT_DIR/docker/database}"
 
 APP_IMAGE="${APP_IMAGE:-kws-local/web:swarm}"
@@ -26,14 +26,28 @@ NGINX_IMAGE="${NGINX_IMAGE:-kws-local/nginx:swarm}"
 SKIP_WEB_BUILD="${SKIP_WEB_BUILD:-0}"
 SKIP_MLS_BUILD="${SKIP_MLS_BUILD:-0}"
 
-export STORE_PATH
-export SWARM_DB_PORT
-export DB_INIT_PATH
-export APP_IMAGE
-export MLS_IMAGE
-export DB_IMAGE
-export REDIS_IMAGE
-export NGINX_IMAGE
+expand_home_tokens() {
+  local value="$1"
+  local home_dir="${HOME:-}"
+
+  if [[ -n "$home_dir" ]]; then
+    value="${value//\$HOME/$home_dir}"
+    value="${value//\$\{HOME\}/$home_dir}"
+  fi
+
+  printf '%s\n' "$value"
+}
+
+normalize_path_var() {
+  local value
+  value="$(expand_home_tokens "$1")"
+
+  if [[ -n "$value" && "$value" != /* ]]; then
+    value="$ROOT_DIR/$value"
+  fi
+
+  printf '%s\n' "$value"
+}
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -83,6 +97,28 @@ if [[ "$RUN_MIGRATIONS" == "1" ]]; then
     exit 1
   fi
 fi
+
+STORE_PATH="$(normalize_path_var "$STORE_PATH")"
+DB_INIT_PATH="$(normalize_path_var "$DB_INIT_PATH")"
+
+if [[ "$STORE_PATH" == *'\$HOME'* || "$STORE_PATH" == *'\${HOME}'* ]]; then
+  echo "[swarm-local] STORE_PATH contains unresolved HOME token: $STORE_PATH"
+  exit 1
+fi
+
+if [[ "$DB_INIT_PATH" == *'\$HOME'* || "$DB_INIT_PATH" == *'\${HOME}'* ]]; then
+  echo "[swarm-local] DB_INIT_PATH contains unresolved HOME token: $DB_INIT_PATH"
+  exit 1
+fi
+
+export STORE_PATH
+export SWARM_DB_PORT
+export DB_INIT_PATH
+export APP_IMAGE
+export MLS_IMAGE
+export DB_IMAGE
+export REDIS_IMAGE
+export NGINX_IMAGE
 
 mkdir -p "$STORE_PATH/media"
 mkdir -p "$STORE_PATH/data"
