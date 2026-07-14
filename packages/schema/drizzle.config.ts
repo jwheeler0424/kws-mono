@@ -19,6 +19,6 @@ export default defineConfig({
     port: DB_PORT,
     user: DB_USER,
     password: DB_PASSWORD,
-    ssl: env.NODE_ENV === 'production',
+    ssl: false,
   },
 });

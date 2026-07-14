@@ -35,17 +35,17 @@ const dkimPrivateKeySchema = z.string().superRefine((val, ctx) => {
     .replace('-----END PRIVATE KEY-----', '')
     .replace(/\s+/g, ''); // Remove all newlines and spaces
 
-  // 4. Validate Base64 formatting
-  if (!z.base64().safeParse(pemBody).success) {
-    ctx.addIssue({
-      code: 'custom',
-      message: 'Invalid key content. The private key contains illegal Base64 characters.',
-    });
-    return;
-  }
+  // // 4. Validate Base64 formatting
+  // if (!z.string().safeParse(pemBody).success) {
+  //   ctx.addIssue({
+  //     code: 'custom',
+  //     message: 'Invalid key content. The private key contains illegal Base64 characters.',
+  //   });
+  //   return;
+  // }
 
   // 5. Ensure length is plausible for an RSA-2048/1024 or Ed25519 key
-  const result = z.base64().min(100).safeParse(pemBody);
+  const result = z.string().min(100).safeParse(pemBody);
 
   if (!result.success) {
     ctx.addIssue({

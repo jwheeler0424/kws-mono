@@ -8,6 +8,7 @@ STACK_NAME="${STACK_NAME:-kws}"
 ENV_FILE="${ENV_FILE:-packages/config/.env}"
 STACK_FILE="${STACK_FILE:-docker-stack.prod.local.yml}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.ci.yml}"
+PULL_IMAGES="${PULL_IMAGES:-1}"
 WEB_REPLICAS="${WEB_REPLICAS:-2}"
 MLS_REPLICAS="${MLS_REPLICAS:-1}"
 TASK_HISTORY_LIMIT="${TASK_HISTORY_LIMIT:-0}"
@@ -15,13 +16,25 @@ RESET_STACK="${RESET_STACK:-0}"
 STORE_PATH="${STORE_PATH:-$ROOT_DIR/store}"
 SWARM_DB_PORT="${SWARM_DB_PORT:-${DB_PORT:-5432}}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-1}"
+MIGRATE_REPLICAS="${MIGRATE_REPLICAS:-0}"
 DB_INIT_PATH="${DB_INIT_PATH:-$ROOT_DIR/docker/database}"
 
-APP_IMAGE="${APP_IMAGE:-kws-local/web:swarm}"
-MLS_IMAGE="${MLS_IMAGE:-kws-local/mls:swarm}"
-DB_IMAGE="${DB_IMAGE:-kws-local/db:swarm}"
-REDIS_IMAGE="${REDIS_IMAGE:-kws-local/redis:swarm}"
-NGINX_IMAGE="${NGINX_IMAGE:-kws-local/nginx:swarm}"
+REGISTRY="${REGISTRY:-ghcr.io}"
+IMAGE_NAME="${IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com}"
+MLS_IMAGE_NAME="${MLS_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-mls}"
+DB_IMAGE_NAME="${DB_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-db}"
+MIGRATE_IMAGE_NAME="${MIGRATE_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-migrate}"
+REDIS_IMAGE_NAME="${REDIS_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-redis}"
+NGINX_IMAGE_NAME="${NGINX_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-nginx}"
+GHCR_USERNAME="${GHCR_USERNAME:-${GITHUB_REPOSITORY_OWNER:-}}"
+GHCR_TOKEN="${GHCR_TOKEN:-${REPO_TOKEN:-${GITHUB_TOKEN:-}}}"
+
+APP_IMAGE="${APP_IMAGE:-}"
+MLS_IMAGE="${MLS_IMAGE:-}"
+DB_IMAGE="${DB_IMAGE:-}"
+MIGRATE_IMAGE="${MIGRATE_IMAGE:-}"
+REDIS_IMAGE="${REDIS_IMAGE:-}"
+NGINX_IMAGE="${NGINX_IMAGE:-}"
 
 SKIP_WEB_BUILD="${SKIP_WEB_BUILD:-0}"
 SKIP_MLS_BUILD="${SKIP_MLS_BUILD:-0}"
@@ -84,12 +97,31 @@ load_env_file() {
 }
 
 require_cmd docker
-require_cmd bun
 
 if [[ -f "$ENV_FILE" ]]; then
   echo "[swarm-local] Loading environment from $ENV_FILE"
   load_env_file "$ENV_FILE"
 fi
+
+if [[ "$PULL_IMAGES" == "1" ]]; then
+  APP_IMAGE="${APP_IMAGE:-${REGISTRY}/${IMAGE_NAME}:latest}"
+  MLS_IMAGE="${MLS_IMAGE:-${REGISTRY}/${MLS_IMAGE_NAME}:latest}"
+  DB_IMAGE="${DB_IMAGE:-${REGISTRY}/${DB_IMAGE_NAME}:latest}"
+  MIGRATE_IMAGE="${MIGRATE_IMAGE:-${REGISTRY}/${MIGRATE_IMAGE_NAME}:latest}"
+  REDIS_IMAGE="${REDIS_IMAGE:-${REGISTRY}/${REDIS_IMAGE_NAME}:latest}"
+  NGINX_IMAGE="${NGINX_IMAGE:-${REGISTRY}/${NGINX_IMAGE_NAME}:latest}"
+else
+  APP_IMAGE="${APP_IMAGE:-kws-local/web:swarm}"
+  MLS_IMAGE="${MLS_IMAGE:-kws-local/mls:swarm}"
+  DB_IMAGE="${DB_IMAGE:-kws-local/db:swarm}"
+  MIGRATE_IMAGE="${MIGRATE_IMAGE:-kws-local/migrate:swarm}"
+  REDIS_IMAGE="${REDIS_IMAGE:-kws-local/redis:swarm}"
+  NGINX_IMAGE="${NGINX_IMAGE:-kws-local/nginx:swarm}"
+  require_cmd bun
+fi
+
+echo "[swarm-local] RUN_MIGRATIONS=$RUN_MIGRATIONS"
+echo "[swarm-local] PULL_IMAGES=$PULL_IMAGES"
 
 if [[ "$RUN_MIGRATIONS" == "1" ]]; then
   if [[ -z "${DKIM_PRIVATE_KEY:-}" || -z "${MLS_START_DATE:-}" ]]; then
@@ -114,9 +146,11 @@ fi
 export STORE_PATH
 export SWARM_DB_PORT
 export DB_INIT_PATH
+export MIGRATE_REPLICAS
 export APP_IMAGE
 export MLS_IMAGE
 export DB_IMAGE
+export MIGRATE_IMAGE
 export REDIS_IMAGE
 export NGINX_IMAGE
 
@@ -150,29 +184,51 @@ if [[ -n "$STACK_EXITED_CONTAINERS" ]]; then
   docker rm $STACK_EXITED_CONTAINERS >/dev/null
 fi
 
-echo "[swarm-local] Building monorepo artifacts..."
-bun run build
+if [[ "$PULL_IMAGES" == "1" ]]; then
+  if [[ "$REGISTRY" == "ghcr.io" && -n "$GHCR_TOKEN" ]]; then
+    if [[ -z "$GHCR_USERNAME" ]]; then
+      echo "[swarm-local] GHCR token provided but GHCR_USERNAME is empty."
+      exit 1
+    fi
 
-echo "[swarm-local] Building local Docker images..."
-APP_IMAGE="$APP_IMAGE" \
-MLS_IMAGE="$MLS_IMAGE" \
-DB_IMAGE="$DB_IMAGE" \
-REDIS_IMAGE="$REDIS_IMAGE" \
-NGINX_IMAGE="$NGINX_IMAGE" \
-SKIP_WEB_BUILD="$SKIP_WEB_BUILD" \
-SKIP_MLS_BUILD="$SKIP_MLS_BUILD" \
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build app mls db redis nginx
+    echo "[swarm-local] Logging in to GHCR as $GHCR_USERNAME"
+    echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+  fi
 
-echo "[swarm-local] Validating web image contains built server artifact"
-docker run --rm --entrypoint sh "$APP_IMAGE" -lc 'test -f /app/apps/web/dist/server/server.js'
+  echo "[swarm-local] Pulling deployment images from registry"
+  docker pull "$APP_IMAGE"
+  docker pull "$MLS_IMAGE"
+  docker pull "$DB_IMAGE"
+  docker pull "$MIGRATE_IMAGE"
+  docker pull "$REDIS_IMAGE"
+  docker pull "$NGINX_IMAGE"
+else
+  echo "[swarm-local] Building monorepo artifacts..."
+  bun run build
+
+  echo "[swarm-local] Building local Docker images..."
+  APP_IMAGE="$APP_IMAGE" \
+  MLS_IMAGE="$MLS_IMAGE" \
+  DB_IMAGE="$DB_IMAGE" \
+  MIGRATE_IMAGE="$MIGRATE_IMAGE" \
+  REDIS_IMAGE="$REDIS_IMAGE" \
+  NGINX_IMAGE="$NGINX_IMAGE" \
+  SKIP_WEB_BUILD="$SKIP_WEB_BUILD" \
+  SKIP_MLS_BUILD="$SKIP_MLS_BUILD" \
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build app mls db migrate redis nginx
+fi
+
+echo "[swarm-local] Validating web image contains runtime entrypoint"
+docker run --rm --entrypoint sh "$APP_IMAGE" -lc 'test -f /app/apps/web/dist/server/server.js || test -f /app/apps/web/server.ts'
 
 echo "[swarm-local] Validating mls image contains runtime entrypoint"
-docker run --rm --entrypoint sh "$MLS_IMAGE" -lc 'test -f /app/apps/mls/src/index.ts'
+docker run --rm --entrypoint sh "$MLS_IMAGE" -lc 'test -f /app/apps/mls/dist/index.js || test -f /app/apps/mls/src/index.ts'
 
 echo "[swarm-local] Deploying stack (STACK_NAME=$STACK_NAME)..."
 echo "[swarm-local] Using APP_IMAGE=$APP_IMAGE"
 echo "[swarm-local] Using MLS_IMAGE=$MLS_IMAGE"
 echo "[swarm-local] Using DB_IMAGE=$DB_IMAGE"
+echo "[swarm-local] Using MIGRATE_IMAGE=$MIGRATE_IMAGE"
 echo "[swarm-local] Using REDIS_IMAGE=$REDIS_IMAGE"
 echo "[swarm-local] Using NGINX_IMAGE=$NGINX_IMAGE"
 echo "[swarm-local] Using STORE_PATH=$STORE_PATH"
@@ -193,33 +249,38 @@ else
 fi
 
 NETWORK_NAME="${STACK_NAME}_backend"
+MIGRATE_SERVICE_NAME="${STACK_NAME}_migrate"
 
 if [[ "$RUN_MIGRATIONS" == "1" ]]; then
-  echo "[swarm-local] Running db migrations from local workspace against localhost:$SWARM_DB_PORT"
-  MIGRATED=0
-  for attempt in $(seq 1 20); do
-    if NODE_ENV=development \
-      DB_HOST=localhost \
-      DB_PORT="$SWARM_DB_PORT" \
-      DB_USER="${DB_USER:-postgres}" \
-      DB_PASSWORD="${DB_PASSWORD:-postgres}" \
-      DB_NAME="${DB_NAME:-postgres}" \
-      DKIM_PRIVATE_KEY="$DKIM_PRIVATE_KEY" \
-      MLS_START_DATE="$MLS_START_DATE" \
-      DATABASE_URL="postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@localhost:${SWARM_DB_PORT}/${DB_NAME:-postgres}" \
-      bun run db:migrate; then
-      MIGRATED=1
+  echo "[swarm-local] Running one-off migrate service ($MIGRATE_SERVICE_NAME)..."
+  docker service scale "${MIGRATE_SERVICE_NAME}=1" >/dev/null
+
+  MIGRATION_DONE=0
+  for attempt in $(seq 1 180); do
+    TASK_STATE="$(docker service ps --no-trunc --format '{{.CurrentState}}|{{.Error}}' "$MIGRATE_SERVICE_NAME" | head -n 1 || true)"
+
+    if [[ "$TASK_STATE" == Complete* ]]; then
+      MIGRATION_DONE=1
       break
     fi
 
-    echo "[swarm-local] Migration attempt $attempt/20 failed; retrying..."
-    sleep 3
+    if [[ "$TASK_STATE" == Failed* || "$TASK_STATE" == Rejected* ]]; then
+      echo "[swarm-local] Migrate service failed: $TASK_STATE"
+      docker service logs --tail 200 "$MIGRATE_SERVICE_NAME" || true
+      exit 1
+    fi
+
+    sleep 2
   done
 
-  if [[ "$MIGRATED" != "1" ]]; then
-    echo "[swarm-local] Migration failed after 20 attempts."
+  if [[ "$MIGRATION_DONE" != "1" ]]; then
+    echo "[swarm-local] Migrate service did not complete in time."
+    docker service logs --tail 200 "$MIGRATE_SERVICE_NAME" || true
     exit 1
   fi
+
+  echo "[swarm-local] Removing completed migrate service from namespace"
+  docker service rm "$MIGRATE_SERVICE_NAME" >/dev/null || true
 
   echo "[swarm-local] Scaling services to target replicas (web=$WEB_REPLICAS, mls=$MLS_REPLICAS)..."
   docker service scale \

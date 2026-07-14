@@ -24,6 +24,12 @@ services:
       args:
         SKIP_MLS_BUILD: ${SKIP_MLS_BUILD:-1}
 
+  migrate:
+    image: ${MIGRATE_IMAGE:-ghcr.io/placeholder/migrate:ci}
+    build:
+      context: .
+      dockerfile: docker/migrate/Dockerfile
+
   redis:
     image: ${REDIS_IMAGE:-ghcr.io/placeholder/redis:ci}
     build:

@@ -8,7 +8,7 @@
     "dev:watch": "tsr watch",
     "dev": "vite dev --port 3443",
     "build": "vite build",
-    "start": "bun run server.ts",
+    "start": "bun run dist/server/server.js",
     "preview": "vite preview",
     "test": "vitest run",
     "check-types": "tsc --noEmit"

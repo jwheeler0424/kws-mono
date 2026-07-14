@@ -11,6 +11,9 @@ REGISTRY="${REGISTRY:-ghcr.io}"
 IMAGE_NAME="${IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com}"
 MLS_IMAGE_NAME="${MLS_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-mls}"
 DB_IMAGE_NAME="${DB_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-db}"
+MIGRATE_IMAGE_NAME="${MIGRATE_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-migrate}"
+REDIS_IMAGE_NAME="${REDIS_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-redis}"
+NGINX_IMAGE_NAME="${NGINX_IMAGE_NAME:-${GITHUB_REPOSITORY_OWNER:-jwheeler0424}/kyleweberseattle.com-nginx}"
 
 # Optional local GHCR auth for PAT-based publishing.
 GHCR_USERNAME="${GHCR_USERNAME:-${GITHUB_REPOSITORY_OWNER:-}}"
@@ -19,14 +22,20 @@ GHCR_TOKEN="${GHCR_TOKEN:-${REPO_TOKEN:-${GITHUB_TOKEN:-}}}"
 APP_IMAGE="${APP_IMAGE:-${REGISTRY}/${IMAGE_NAME}:latest}"
 MLS_IMAGE="${MLS_IMAGE:-${REGISTRY}/${MLS_IMAGE_NAME}:latest}"
 DB_IMAGE="${DB_IMAGE:-${REGISTRY}/${DB_IMAGE_NAME}:latest}"
+MIGRATE_IMAGE="${MIGRATE_IMAGE:-${REGISTRY}/${MIGRATE_IMAGE_NAME}:latest}"
+REDIS_IMAGE="${REDIS_IMAGE:-${REGISTRY}/${REDIS_IMAGE_NAME}:latest}"
+NGINX_IMAGE="${NGINX_IMAGE:-${REGISTRY}/${NGINX_IMAGE_NAME}:latest}"
 
-SKIP_WEB_BUILD="${SKIP_WEB_BUILD:-0}"
-SKIP_MLS_BUILD="${SKIP_MLS_BUILD:-0}"
+SKIP_WEB_BUILD="${SKIP_WEB_BUILD:-1}"
+SKIP_MLS_BUILD="${SKIP_MLS_BUILD:-1}"
 
 compose_ci() {
   APP_IMAGE="$APP_IMAGE" \
   MLS_IMAGE="$MLS_IMAGE" \
   DB_IMAGE="$DB_IMAGE" \
+  MIGRATE_IMAGE="$MIGRATE_IMAGE" \
+  REDIS_IMAGE="$REDIS_IMAGE" \
+  NGINX_IMAGE="$NGINX_IMAGE" \
   SKIP_WEB_BUILD="$SKIP_WEB_BUILD" \
   SKIP_MLS_BUILD="$SKIP_MLS_BUILD" \
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
@@ -55,6 +64,15 @@ compose_ci build mls
 echo "[deploy-images] Building db image: $DB_IMAGE"
 compose_ci build db
 
+echo "[deploy-images] Building migrate image: $MIGRATE_IMAGE"
+compose_ci build migrate
+
+echo "[deploy-images] Building redis image: $REDIS_IMAGE"
+compose_ci build redis
+
+echo "[deploy-images] Building nginx image: $NGINX_IMAGE"
+compose_ci build nginx
+
 echo "[deploy-images] Pushing app image..."
 docker push "$APP_IMAGE"
 
@@ -63,5 +81,14 @@ docker push "$MLS_IMAGE"
 
 echo "[deploy-images] Pushing db image..."
 docker push "$DB_IMAGE"
+
+echo "[deploy-images] Pushing migrate image..."
+docker push "$MIGRATE_IMAGE"
+
+echo "[deploy-images] Pushing redis image..."
+docker push "$REDIS_IMAGE"
+
+echo "[deploy-images] Pushing nginx image..."
+docker push "$NGINX_IMAGE"
 
 echo "[deploy-images] Done."

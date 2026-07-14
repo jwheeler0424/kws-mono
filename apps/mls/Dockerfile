@@ -11,7 +11,7 @@ RUN turbo prune mls --docker
 
 FROM base AS builder
 COPY --from=prepare /app/out/json/ .
-RUN bun install --linker=isolated
+RUN bun install --linker=isolated --backend=copyfile
 COPY --from=prepare /app/out/full/ .
 ARG SKIP_MLS_BUILD=1
 RUN if [ "$SKIP_MLS_BUILD" = "1" ]; then \

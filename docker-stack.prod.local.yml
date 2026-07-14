@@ -53,6 +53,49 @@ services:
         constraints:
           - node.role == manager
 
+  migrate:
+    image: ${MIGRATE_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com-migrate:latest}
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-postgres}
+      DKIM_PRIVATE_KEY: ${DKIM_PRIVATE_KEY:-placeholder-dkim-key}
+      MLS_START_DATE: ${MLS_START_DATE:-2025-01-01T00:00:00.000Z}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
+    command:
+      - sh
+      - -lc
+      - |
+        echo "[migrate] Running db:migrate with retries until database is ready"
+        for attempt in $$(seq 1 60); do
+          if bun run db:migrate; then
+            break
+          fi
+
+          if [ "$$attempt" -eq 60 ]; then
+            echo "[migrate] db:migrate failed after 60 attempts"
+            exit 1
+          fi
+
+          echo "[migrate] db:migrate attempt $$attempt/60 failed; retrying..."
+          sleep 2
+        done
+        echo "[migrate] Running db:push"
+        bun run db:push
+        echo "[migrate] Complete"
+    networks:
+      - backend
+    deploy:
+      replicas: ${MIGRATE_REPLICAS:-0}
+      restart_policy:
+        condition: none
+      placement:
+        constraints:
+          - node.role == manager
+
   web:
     image: ${APP_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com:latest}
     environment:
