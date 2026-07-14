@@ -14,8 +14,10 @@ server {
   listen [::]:80;
   server_name ${DOMAIN} www.${DOMAIN};
 
-  location /.well-known/acme-challenge/ {
+  location ^~ /.well-known/acme-challenge/ {
     root /var/www/certbot;
+    default_type text/plain;
+    try_files $uri =404;
   }
 
   location / {
@@ -29,8 +31,8 @@ server {
   http2 on;
   server_name ${DOMAIN} www.${DOMAIN};
 
-  ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  ssl_certificate ${CERT_FULLCHAIN_PATH};
+  ssl_certificate_key ${CERT_PRIVKEY_PATH};
   ssl_session_timeout 1d;
   ssl_session_cache shared:SSL:10m;
   ssl_session_tickets off;
@@ -41,6 +43,12 @@ server {
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
   client_max_body_size 25m;
+
+  location ^~ /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+    default_type text/plain;
+    try_files $uri =404;
+  }
 
   location /media/ {
     alias /store/media/;

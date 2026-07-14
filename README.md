@@ -64,7 +64,7 @@ DB_IMAGE_NAME=<owner>/kyleweberseattle.com-db \
 bun run deploy:images
 ```
 
-## Production Runtime Compose
+## Production Runtime (Swarm)
 
 Start production stack:
 
@@ -77,6 +77,63 @@ Stop production stack:
 ```terminal
 bun run prod:down
 ```
+
+### VPS/Production Server (No package.json commands)
+
+Use the root `.env` on the server and run bash scripts directly.
+
+1. Prepare your root `.env` (project root) with at least:
+
+```terminal
+HOST=kyleweberseattle.com
+CERTBOT_DOMAIN_FALLBACK=kyleweberseattle.com
+STORE_PATH=$HOME/store/kyleweberseattle.com
+```
+
+2. Initialize persistent store folders and optional local `./store` symlink:
+
+```terminal
+bash scripts/prod-init-store.sh
+```
+
+3. Start/update production swarm stack:
+
+```terminal
+bash scripts/prod-up.sh
+```
+
+4. Inspect service status:
+
+```terminal
+bash scripts/prod-ps.sh
+```
+
+5. Stream logs (defaults to `web` service):
+
+```terminal
+bash scripts/prod-logs.sh
+# or a single service
+bash scripts/prod-logs.sh nginx
+```
+
+6. Stop services:
+
+```terminal
+bash scripts/prod-down.sh
+```
+
+Optional teardown with volume deletion:
+
+```terminal
+WIPE_DATA=1 bash scripts/prod-down.sh
+```
+
+Notes:
+
+- Production scripts default to `.env` via `COMPOSE_ENV_FILE=.env`.
+- Compose files now support `COMPOSE_ENV_FILE` for service `env_file` resolution.
+- `prod-up` defaults `STORE_PATH` to `$HOME/store/kyleweberseattle.com` and `HOST`/certbot domain to `kyleweberseattle.com` when unset.
+- `prod-up` deploys swarm stack `kws` by default; override with `STACK_NAME=...`.
 
 ## Local Production Rehearsal (minimal root env)
 

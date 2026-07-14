@@ -1,10 +1,8 @@
-name: ${COMPOSE_PROJECT_NAME:-kw-seattle}
-
 services:
   db:
     image: ${DB_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com-db:latest}
     env_file:
-      - ./packages/config/.env
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     command:
       - postgres
       - -c
@@ -13,16 +11,19 @@ services:
       - max_replication_slots=${PG_MAX_REPLICATION_SLOTS:-10}
       - -c
       - max_wal_senders=${PG_MAX_WAL_SENDERS:-10}
-    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-db
-    restart: unless-stopped
-    mem_limit: ${DB_MEMORY_LIMIT:-1g}
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY_LIMIT:-1g}
+      restart_policy:
+        condition: any
     environment:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-postgres}
     volumes:
       - pgdata_prod:/var/lib/postgresql
-      - ./docker/database:/docker-entrypoint-initdb.d
+      - ${PROJECT_ROOT:-.}/docker/database:/docker-entrypoint-initdb.d
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}']
       interval: 5s
@@ -33,10 +34,13 @@ services:
   redis:
     image: ${REDIS_IMAGE:-redis:alpine}
     env_file:
-      - ./packages/config/.env
-    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-redis
-    restart: unless-stopped
-    mem_limit: ${REDIS_MEMORY_LIMIT:-256m}
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
+    deploy:
+      resources:
+        limits:
+          memory: ${REDIS_MEMORY_LIMIT:-256m}
+      restart_policy:
+        condition: any
     command: ['redis-server', '--appendonly', '${REDIS_APPENDONLY:-yes}']
     volumes:
       - redisdata_prod:/data
@@ -47,21 +51,13 @@ services:
       retries: 10
       start_period: 5s
 
-  app_blue:
+  web:
     image: ${APP_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com:latest}
-    pull_policy: always
-    env_file:
-      - ./packages/config/.env
-    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-app-blue
-    restart: unless-stopped
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - db
+      - redis
     environment:
       NODE_ENV: production
-      PORT: ${APP_PORT:-3443}
       DB_HOST: db
       DB_PORT: ${DB_PORT:-5432}
       DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
@@ -71,62 +67,33 @@ services:
       WEB_MEDIA_SOURCE: /store/media
       WEB_MEDIA_TARGET: /app/apps/web/public/media
     volumes:
-      - ${STORE_PATH:-${HOME}/store/kyleweberseattle.com}/media:/store/media
-    expose:
-      - '${APP_PORT:-3443}'
+      - ${STORE_PATH}/media:/store/media
+    stop_grace_period: 30s
     healthcheck:
-      test: ['CMD', 'wget', '-q', '-O', '-', 'http://127.0.0.1:${APP_PORT:-3443}/health']
+      test: ['CMD', 'wget', '-q', '-O', '-', 'http://127.0.0.1:${APP_PORT:-3443}/sitemap.xml']
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 20s
-
-  app_green:
-    image: ${APP_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com:latest}
-    pull_policy: always
-    env_file:
-      - ./packages/config/.env
-    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-app-green
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      PORT: ${APP_PORT:-3443}
-      DB_HOST: db
-      DB_PORT: ${DB_PORT:-5432}
-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
-      REDIS_HOST: redis
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_URL: redis://redis:${REDIS_PORT:-6379}
-      WEB_MEDIA_SOURCE: /store/media
-      WEB_MEDIA_TARGET: /app/apps/web/public/media
-    volumes:
-      - ${STORE_PATH:-${HOME}/store/kyleweberseattle.com}/media:/store/media
-    expose:
-      - '${APP_PORT:-3443}'
-    healthcheck:
-      test: ['CMD', 'wget', '-q', '-O', '-', 'http://127.0.0.1:${APP_PORT:-3443}/health']
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
+    deploy:
+      replicas: ${WEB_REPLICAS:-3}
+      update_config:
+        parallelism: ${WEB_UPDATE_PARALLELISM:-1}
+        delay: ${WEB_UPDATE_DELAY:-10s}
+        monitor: ${WEB_UPDATE_MONITOR:-30s}
+        failure_action: ${WEB_UPDATE_FAILURE_ACTION:-pause}
+        max_failure_ratio: ${WEB_UPDATE_MAX_FAILURE_RATIO:-0.25}
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
 
   mls:
     image: ${MLS_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com-mls:latest}
-    pull_policy: always
-    env_file:
-      - ./packages/config/.env
-    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-mls
-    restart: unless-stopped
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - db
+      - redis
     environment:
       NODE_ENV: production
       LOG_PRETTY: 'false'
@@ -138,47 +105,59 @@ services:
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
       MLS_MEDIA_STORE_PATH: /store/media
     volumes:
-      - ${STORE_PATH:-${HOME}/store/kyleweberseattle.com}/media:/store/media
-      - ${STORE_PATH:-${HOME}/store/kyleweberseattle.com}/data:/store/data
+      - ${STORE_PATH}/media:/store/media
+      - ${STORE_PATH}/data:/store/data
+    deploy:
+      replicas: ${MLS_REPLICAS:-1}
+      restart_policy:
+        condition: any
 
   nginx:
     image: nginx:1.27-alpine
     env_file:
-      - ./packages/config/.env
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     environment:
       CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
-    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-nginx
-    restart: unless-stopped
+      APP_PORT: ${WEB_INTERNAL_PORT:-3443}
     ports:
       - '80:80'
       - '443:443'
     volumes:
       - letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-      - ${STORE_PATH:-${HOME}/store/kyleweberseattle.com}/media:/store/media:ro
-      - ./docker/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - ./docker/nginx-entrypoint.sh:/usr/local/bin/nginx-entrypoint.sh:ro
+      - ${STORE_PATH}/media:/store/media:ro
+      - ${PROJECT_ROOT:-.}/docker/nginx.swarm.local.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${PROJECT_ROOT:-.}/docker/nginx-entrypoint.sh:/usr/local/bin/nginx-entrypoint.sh:ro
     entrypoint: ['sh', '/usr/local/bin/nginx-entrypoint.sh']
+    deploy:
+      restart_policy:
+        condition: any
 
   certbot:
     image: certbot/certbot:latest
     env_file:
-      - ./packages/config/.env
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     environment:
       CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
       CERTBOT_EMAIL: ${CERTBOT_EMAIL:-admin@kyleweberseattle.com}
-    container_name: ${COMPOSE_PROJECT_NAME:-kw-seattle}-certbot
-    restart: unless-stopped
     depends_on:
       - nginx
     volumes:
       - letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-      - ./docker/certbot-init.sh:/usr/local/bin/certbot-init.sh:ro
+      - ${PROJECT_ROOT:-.}/docker/certbot-init.sh:/usr/local/bin/certbot-init.sh:ro
     entrypoint: ['sh', '/usr/local/bin/certbot-init.sh']
+    deploy:
+      restart_policy:
+        condition: any
 
 volumes:
   pgdata_prod:
   redisdata_prod:
   letsencrypt:
   certbot_www:
+
+networks:
+  default:
+    driver: overlay
+    attachable: true

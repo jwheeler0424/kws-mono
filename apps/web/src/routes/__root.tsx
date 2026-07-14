@@ -31,7 +31,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       defaultDescription:
         'KyleWeberSeattle.com is your guide to navigating the housing market with confidence.',
       defaultImage: {
-        url: 'http://localhost:5173/assets/images/blog-page.jpb',
+        url: 'https://kyleweberseattle.com/assets/images/blog-page.jpg',
         width: 2048,
         height: 1080,
       },

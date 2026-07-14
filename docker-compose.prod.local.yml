@@ -2,7 +2,7 @@ services:
   db:
     image: ${DB_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com-db:latest}
     env_file:
-      - ./packages/config/.env
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     command:
       - postgres
       - -c
@@ -23,7 +23,7 @@ services:
       DB_NAME: ${DB_NAME:-postgres}
     volumes:
       - pgdata_prod:/var/lib/postgresql
-      - ./docker/database:/docker-entrypoint-initdb.d
+      - ${PROJECT_ROOT:-.}/docker/database:/docker-entrypoint-initdb.d
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}']
       interval: 5s
@@ -34,7 +34,7 @@ services:
   redis:
     image: ${REDIS_IMAGE:-redis:alpine}
     env_file:
-      - ./packages/config/.env
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     deploy:
       resources:
         limits:
@@ -115,7 +115,7 @@ services:
   nginx:
     image: nginx:1.27-alpine
     env_file:
-      - ./packages/config/.env
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     environment:
       CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
       APP_PORT: ${WEB_INTERNAL_PORT:-3443}
@@ -126,8 +126,8 @@ services:
       - letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
       - ${STORE_PATH:-./store}/media:/store/media:ro
-      - ./docker/nginx.swarm.local.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - ./docker/nginx-entrypoint.sh:/usr/local/bin/nginx-entrypoint.sh:ro
+      - ${PROJECT_ROOT:-.}/docker/nginx.swarm.local.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${PROJECT_ROOT:-.}/docker/nginx-entrypoint.sh:/usr/local/bin/nginx-entrypoint.sh:ro
     entrypoint: ['sh', '/usr/local/bin/nginx-entrypoint.sh']
     deploy:
       restart_policy:
@@ -136,7 +136,7 @@ services:
   certbot:
     image: certbot/certbot:latest
     env_file:
-      - ./packages/config/.env
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     environment:
       CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
       CERTBOT_EMAIL: ${CERTBOT_EMAIL:-admin@kyleweberseattle.com}
@@ -145,7 +145,7 @@ services:
     volumes:
       - letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-      - ./docker/certbot-init.sh:/usr/local/bin/certbot-init.sh:ro
+      - ${PROJECT_ROOT:-.}/docker/certbot-init.sh:/usr/local/bin/certbot-init.sh:ro
     entrypoint: ['sh', '/usr/local/bin/certbot-init.sh']
     deploy:
       restart_policy:
