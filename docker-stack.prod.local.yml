@@ -65,10 +65,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
-      WEB_MEDIA_SOURCE: /srv/media
+      WEB_MEDIA_SOURCE: /app/apps/web/public/media
       WEB_MEDIA_TARGET: /app/apps/web/public/media
     volumes:
-      - ${MEDIA_STORE_PATH}:/srv/media
+      - ${STORE_PATH}/media:/app/apps/web/public/media
     networks:
       - backend
     deploy:
@@ -99,7 +99,7 @@ services:
       APP_PORT: ${APP_PORT:-3443}
     volumes:
       - letsencrypt:/etc/letsencrypt
-      - ${MEDIA_STORE_PATH}:/srv/media:ro
+      - ${STORE_PATH}/media:/app/apps/web/public/media:ro
     networks:
       - backend
     ports:
@@ -131,7 +131,8 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
     volumes:
-      - ${MEDIA_STORE_PATH}:/srv/media
+      - ${STORE_PATH}/media:/app/apps/web/public/media
+      - ${STORE_PATH}/data:/app/apps/mls/data
     networks:
       - backend
     deploy:

@@ -32,7 +32,7 @@ ENV NODE_ENV=production
 ENV PORT=3443
 
 # Runtime media symlink configuration
-ENV WEB_MEDIA_SOURCE=/srv/media
+ENV WEB_MEDIA_SOURCE=/app/apps/web/public/media
 ENV WEB_MEDIA_TARGET=/app/apps/web/public/media
 
 COPY --from=builder /app /app

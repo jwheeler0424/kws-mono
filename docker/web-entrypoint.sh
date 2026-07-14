@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-SOURCE_DIR="${WEB_MEDIA_SOURCE:-/srv/media}"
+SOURCE_DIR="${WEB_MEDIA_SOURCE:-/app/apps/web/public/media}"
 TARGET_LINK="${WEB_MEDIA_TARGET:-/app/apps/web/public/media}"
 COMPAT_LINK="${WEB_MEDIA_COMPAT_TARGET:-/app/apps/web/dist/client/media}"
 
@@ -13,17 +13,19 @@ if [ ! -d "$SOURCE_DIR" ]; then
   echo "[web-entrypoint] Create or mount it to persist uploads/media."
 fi
 
-if [ -L "$TARGET_LINK" ]; then
-  CURRENT_TARGET="$(readlink "$TARGET_LINK" || true)"
-  if [ "$CURRENT_TARGET" != "$SOURCE_DIR" ]; then
-    rm -f "$TARGET_LINK"
+if [ "$SOURCE_DIR" != "$TARGET_LINK" ]; then
+  if [ -L "$TARGET_LINK" ]; then
+    CURRENT_TARGET="$(readlink "$TARGET_LINK" || true)"
+    if [ "$CURRENT_TARGET" != "$SOURCE_DIR" ]; then
+      rm -f "$TARGET_LINK"
+    fi
+  elif [ -e "$TARGET_LINK" ]; then
+    rm -rf "$TARGET_LINK"
   fi
-elif [ -e "$TARGET_LINK" ]; then
-  rm -rf "$TARGET_LINK"
-fi
 
-if [ ! -L "$TARGET_LINK" ]; then
-  ln -s "$SOURCE_DIR" "$TARGET_LINK"
+  if [ ! -L "$TARGET_LINK" ]; then
+    ln -s "$SOURCE_DIR" "$TARGET_LINK"
+  fi
 fi
 
 echo "[web-entrypoint] Media symlink ready: $TARGET_LINK -> $SOURCE_DIR"

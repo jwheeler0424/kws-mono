@@ -12,7 +12,7 @@ WEB_REPLICAS="${WEB_REPLICAS:-2}"
 MLS_REPLICAS="${MLS_REPLICAS:-1}"
 TASK_HISTORY_LIMIT="${TASK_HISTORY_LIMIT:-0}"
 RESET_STACK="${RESET_STACK:-0}"
-MEDIA_STORE_PATH="${MEDIA_STORE_PATH:-$ROOT_DIR/store/media}"
+STORE_PATH="${STORE_PATH:-$ROOT_DIR/store}"
 SWARM_DB_PORT="${SWARM_DB_PORT:-${DB_PORT:-5432}}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-0}"
 DB_INIT_PATH="${DB_INIT_PATH:-$ROOT_DIR/docker/database}"
@@ -26,7 +26,7 @@ NGINX_IMAGE="${NGINX_IMAGE:-kws-local/nginx:swarm}"
 SKIP_WEB_BUILD="${SKIP_WEB_BUILD:-0}"
 SKIP_MLS_BUILD="${SKIP_MLS_BUILD:-0}"
 
-export MEDIA_STORE_PATH
+export STORE_PATH
 export SWARM_DB_PORT
 export DB_INIT_PATH
 export APP_IMAGE
@@ -84,7 +84,8 @@ if [[ "$RUN_MIGRATIONS" == "1" ]]; then
   fi
 fi
 
-mkdir -p "$MEDIA_STORE_PATH"
+mkdir -p "$STORE_PATH/media"
+mkdir -p "$STORE_PATH/data"
 mkdir -p "$DB_INIT_PATH"
 
 SWARM_STATE="$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || true)"
@@ -138,7 +139,7 @@ echo "[swarm-local] Using MLS_IMAGE=$MLS_IMAGE"
 echo "[swarm-local] Using DB_IMAGE=$DB_IMAGE"
 echo "[swarm-local] Using REDIS_IMAGE=$REDIS_IMAGE"
 echo "[swarm-local] Using NGINX_IMAGE=$NGINX_IMAGE"
-echo "[swarm-local] Using MEDIA_STORE_PATH=$MEDIA_STORE_PATH"
+echo "[swarm-local] Using STORE_PATH=$STORE_PATH"
 echo "[swarm-local] Using DB_INIT_PATH=$DB_INIT_PATH"
 
 if [[ "$RUN_MIGRATIONS" == "1" ]]; then

@@ -87,10 +87,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
-      WEB_MEDIA_SOURCE: /srv/media
+      WEB_MEDIA_SOURCE: /app/apps/web/public/media
       WEB_MEDIA_TARGET: /app/apps/web/public/media
     volumes:
-      - ${MEDIA_STORE_PATH:-$HOME/store/kyleweberseattle.com}:/srv/media
+      - ${STORE_PATH:-$HOME/store/kyleweberseattle.com}/media:/app/apps/web/public/media
     expose:
       - '${APP_PORT:-3443}'
     healthcheck:
@@ -123,10 +123,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
-      WEB_MEDIA_SOURCE: /srv/media
+      WEB_MEDIA_SOURCE: /app/apps/web/public/media
       WEB_MEDIA_TARGET: /app/apps/web/public/media
     volumes:
-      - ${MEDIA_STORE_PATH:-$HOME/store/kyleweberseattle.com}:/srv/media
+      - ${STORE_PATH:-$HOME/store/kyleweberseattle.com}/media:/app/apps/web/public/media
     expose:
       - '${APP_PORT:-3443}'
     healthcheck:
@@ -159,7 +159,8 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
     volumes:
-      - ${MEDIA_STORE_PATH:-$HOME/store/kyleweberseattle.com}:/srv/media
+      - ${STORE_PATH:-$HOME/store/kyleweberseattle.com}/media:/app/apps/web/public/media
+      - ${STORE_PATH:-$HOME/store/kyleweberseattle.com}/data:/app/apps/mls/data
 
   nginx:
     image: nginx:1.27-alpine
@@ -175,7 +176,7 @@ services:
     volumes:
       - letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-      - ${MEDIA_STORE_PATH:-$HOME/store/kyleweberseattle.com}:/srv/media:ro
+      - ${STORE_PATH:-$HOME/store/kyleweberseattle.com}/media:/app/apps/web/public/media:ro
       - ./docker/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./docker/nginx-entrypoint.sh:/usr/local/bin/nginx-entrypoint.sh:ro
     entrypoint: ['sh', '/usr/local/bin/nginx-entrypoint.sh']

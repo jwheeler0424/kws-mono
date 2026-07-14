@@ -157,16 +157,16 @@ RUN_MIGRATIONS=1 bun run swarm:local:up
 - source: `/srv/media`
 - target: `/app/apps/web/public/media`
 
-For production compose, media mount path is configurable with `MEDIA_STORE_PATH`.
+For production compose, media/data mount root is configurable with `STORE_PATH`.
 
 For VPS production, set:
 
 ```terminal
-MEDIA_STORE_PATH=$HOME/store/kyleweberseattle.com
+STORE_PATH=$HOME/store/kyleweberseattle.com
 ```
 
 For local production rehearsal, set in `.env.local.prod`:
 
 ```terminal
-MEDIA_STORE_PATH=./store/media
+STORE_PATH=./store
 ```
