@@ -42,6 +42,25 @@ export const Route = createFileRoute('/listings/$listingKey')({
   component: RouteComponent,
 });
 
+function parseNwmBooleanFlag(value: unknown): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value === 1;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return (
+      normalized === 'true' || normalized === '1' || normalized === 't' || normalized === 'yes'
+    );
+  }
+
+  return false;
+}
+
 function RouteComponent() {
   const { listingKey } = Route.useParams();
   const { data: property } = useSuspenseQuery(listingDetailOptions({ listingKey }));
@@ -51,16 +70,14 @@ function RouteComponent() {
   }
 
   const propertyStatus = getPropertyStatus(property.standardStatus ?? 'Coming Soon');
+  const shouldHidePhotos =
+    parseNwmBooleanFlag(property.NWM?.NWM_IDXMustRemovePhotosYN) ||
+    parseNwmBooleanFlag(property.NWM?.NWM_IDXMustRemovePrimaryPhotoYN);
 
   return (
     <main className='w-full'>
       <section className='relative w-full'>
-        {property.NWM?.NWM_IDXMustRemovePhotosYN !== null &&
-        property.NWM?.NWM_IDXMustRemovePhotosYN !== undefined &&
-        Boolean(property.NWM?.NWM_IDXMustRemovePhotosYN) !== false &&
-        property.NWM?.NWM_IDXMustRemovePrimaryPhotoYN !== null &&
-        property.NWM?.NWM_IDXMustRemovePrimaryPhotoYN !== undefined &&
-        Boolean(property.NWM?.NWM_IDXMustRemovePrimaryPhotoYN) !== false ? (
+        {!shouldHidePhotos ? (
           <PropertySlideshow
             media={property.media}
             className='relative h-full w-full bg-gray-700 object-center'

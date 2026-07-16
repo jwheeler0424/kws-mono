@@ -57,7 +57,7 @@ export const MLS_PROPERTY_DEFAULTS = {
 } as const;
 
 export const MLS_SCHEDULER_DEFAULTS = {
-  maxConcurrentScheduledJobs: 1,
+  maxConcurrentScheduledJobs: 2,
   mediaSyncBatchSize: 64,
   mediaSyncMaxBatches: 24,
   mediaSyncProcessConcurrency: 6,

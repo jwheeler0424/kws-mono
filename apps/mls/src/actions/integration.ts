@@ -132,7 +132,7 @@ async function runScheduledMediaSyncAndCleanup(
   },
 ) {
   const mediaSummary = await runScheduledMediaPhases(input, {
-    associationMode: 'unprocessed-only',
+    associationMode: 'stale-or-unprocessed',
     includeMissingFilesRepair: false,
     repairMaxBatches: 1,
   });
@@ -193,7 +193,7 @@ async function runScheduledMediaPhases(
     mediaSyncRepairMaxBatches: number;
   },
   options: {
-    associationMode: 'unprocessed-only' | 'stale-only';
+    associationMode: 'stale-or-unprocessed' | 'unprocessed-only' | 'stale-only';
     includeMissingFilesRepair: boolean;
     repairMaxBatches: number;
   },
