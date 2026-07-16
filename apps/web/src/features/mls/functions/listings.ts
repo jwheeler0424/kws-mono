@@ -1,9 +1,10 @@
 import { env } from '@kws/config';
+import { createLogger } from '@kws/logger';
 import { processImage } from '@kws/media';
 import { media, mediaVariants, mlsMedia } from '@kws/schema';
 import { listingsSearchShapeSchema, type UUIDv7 } from '@kws/types';
 import { createServerFn } from '@tanstack/react-start';
-import { and, asc, eq, isNotNull, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
@@ -52,14 +53,17 @@ interface EnsureListingMediaSummary {
   failed: number;
 }
 
-const inFlightListingEnsures = new Map<string, number>();
+const listingMediaLogger = createLogger('mls').child('listings-media');
+
+const inFlightListingEnsures = new Map<string, Promise<EnsureListingMediaSummary>>();
+const recentListingEnsureCompletions = new Map<string, number>();
 
 const ENSURE_LISTING_DEDUPE_WINDOW_MS = 30_000;
 
 function cleanupStaleEnsureEntries(now: number): void {
-  for (const [key, expiresAt] of inFlightListingEnsures) {
+  for (const [key, expiresAt] of recentListingEnsureCompletions) {
     if (expiresAt <= now) {
-      inFlightListingEnsures.delete(key);
+      recentListingEnsureCompletions.delete(key);
     }
   }
 }
@@ -157,6 +161,41 @@ function isPermanentImageProcessingError(error: unknown): boolean {
     message.includes('decode failed') ||
     message.includes('unsupported image format')
   );
+}
+
+function isTransientImageProcessingError(error: unknown): boolean {
+  const message = toErrorMessage(error).toLowerCase();
+  return (
+    message.includes('timed out') ||
+    message.includes('timeout') ||
+    message.includes('socket hang up') ||
+    message.includes('econnreset') ||
+    message.includes('enotfound') ||
+    message.includes('eai_again') ||
+    message.includes('503') ||
+    message.includes('502') ||
+    message.includes('429')
+  );
+}
+
+async function upsertProcessedMediaWithRetry(
+  row: ListingMediaSyncRow,
+  maxAttempts = 2,
+): Promise<'created' | 'updated'> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await upsertProcessedMedia(row);
+    } catch (error) {
+      lastError = error;
+      if (!isTransientImageProcessingError(error) || attempt === maxAttempts) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 function isMlsNewerThanLinkedMedia(
@@ -339,11 +378,10 @@ async function listListingMediaRows(listingKey: string): Promise<ListingMediaSyn
     .where(
       and(
         eq(mlsMedia.resourceRecordKey, listingKey),
-        or(
-          isNull(mlsMedia.deletedAt),
-          and(isNotNull(mlsMedia.deletedAt), isNull(mlsMedia.mediaId)),
-        ),
+        isNull(mlsMedia.deletedAt),
         isNotNull(mlsMedia.mediaURL),
+        sql`NULLIF(BTRIM(${mlsMedia.mediaURL}), '') IS NOT NULL`,
+        isNotNull(mlsMedia.mediaKey),
         isNotNull(mlsMedia.resourceRecordKey),
       ),
     )
@@ -378,6 +416,11 @@ async function ensureListingMedia(listingKey: string): Promise<EnsureListingMedi
   const rows = await listListingMediaRows(listingKey);
   summary.scanned = rows.length;
 
+  listingMediaLogger.info('ensure listing media rows loaded', {
+    listingKey,
+    scanned: summary.scanned,
+  });
+
   for (const row of rows) {
     const hasActiveLinkedMedia = row.linkedMediaId !== null && row.linkedMediaDeletedAt === null;
     const missingAssociation = row.mediaId === null || row.linkedMediaId === null;
@@ -393,27 +436,65 @@ async function ensureListingMedia(listingKey: string): Promise<EnsureListingMedi
     const shouldProcess = missingAssociation || staleLinkedMedia || missingFiles;
     if (!shouldProcess) {
       summary.skipped += 1;
+      listingMediaLogger.info('listing media skipped: already up to date', {
+        listingKey,
+        mediaKey: row.mediaKey,
+        resourceRecordKey: row.resourceRecordKey,
+      });
       continue;
     }
 
+    listingMediaLogger.info('listing media processing started', {
+      listingKey,
+      mediaKey: row.mediaKey,
+      resourceRecordKey: row.resourceRecordKey,
+      missingAssociation,
+      staleLinkedMedia,
+      missingFiles,
+    });
+
     try {
-      const mode = await upsertProcessedMedia(row);
+      const mode = await upsertProcessedMediaWithRetry(row);
       summary.processed += 1;
       if (mode === 'created') {
         summary.created += 1;
       } else {
         summary.updated += 1;
       }
+
+      listingMediaLogger.info('listing media processed successfully', {
+        listingKey,
+        mediaKey: row.mediaKey,
+        resourceRecordKey: row.resourceRecordKey,
+        mode,
+      });
     } catch (error) {
       if (isPermanentImageProcessingError(error)) {
         await markMlsMediaRowAsUnprocessable(row).catch(() => undefined);
         summary.skipped += 1;
+        listingMediaLogger.warn('listing media marked unprocessable', {
+          listingKey,
+          mediaKey: row.mediaKey,
+          resourceRecordKey: row.resourceRecordKey,
+          error: toErrorMessage(error),
+        });
         continue;
       }
 
       summary.failed += 1;
+      listingMediaLogger.error('listing media processing failed', {
+        listingKey,
+        mediaKey: row.mediaKey,
+        resourceRecordKey: row.resourceRecordKey,
+        error: toErrorMessage(error),
+      });
     }
   }
+
+  listingMediaLogger.info('ensure listing media completed', {
+    listingKey,
+    summary,
+  });
 
   return summary;
 }
@@ -439,11 +520,30 @@ export const getHydratedListingsPaginatedServerFn = createServerFn({ method: 'PO
 export const ensureListingMediaServerFn = createServerFn({ method: 'POST' })
   .validator(listingDetailsParamsSchema)
   .handler(async ({ data }) => {
+    listingMediaLogger.info('ensureListingMediaServerFn called', {
+      listingKey: data.listingKey,
+    });
+
     const now = Date.now();
     cleanupStaleEnsureEntries(now);
 
-    const currentExpiry = inFlightListingEnsures.get(data.listingKey);
-    if (currentExpiry && currentExpiry > now) {
+    const inFlight = inFlightListingEnsures.get(data.listingKey);
+    if (inFlight) {
+      const sharedResult = await inFlight;
+      listingMediaLogger.info('ensureListingMediaServerFn deduped via in-flight run', {
+        listingKey: data.listingKey,
+      });
+      return {
+        ...sharedResult,
+        deduped: true,
+      } satisfies EnsureListingMediaSummary;
+    }
+
+    const recentCompletionExpiry = recentListingEnsureCompletions.get(data.listingKey);
+    if (recentCompletionExpiry && recentCompletionExpiry > now) {
+      listingMediaLogger.info('ensureListingMediaServerFn deduped via recent completion window', {
+        listingKey: data.listingKey,
+      });
       return {
         deduped: true,
         scanned: 0,
@@ -455,11 +555,36 @@ export const ensureListingMediaServerFn = createServerFn({ method: 'POST' })
       } satisfies EnsureListingMediaSummary;
     }
 
-    inFlightListingEnsures.set(data.listingKey, now + ENSURE_LISTING_DEDUPE_WINDOW_MS);
+    const run = ensureListingMedia(data.listingKey)
+      .then((result) => ({ ...result, deduped: false as const }))
+      .finally(() => {
+        inFlightListingEnsures.delete(data.listingKey);
+        recentListingEnsureCompletions.set(
+          data.listingKey,
+          Date.now() + ENSURE_LISTING_DEDUPE_WINDOW_MS,
+        );
+      });
+
+    inFlightListingEnsures.set(data.listingKey, run);
 
     try {
-      return await ensureListingMedia(data.listingKey);
-    } finally {
-      inFlightListingEnsures.set(data.listingKey, Date.now() + ENSURE_LISTING_DEDUPE_WINDOW_MS);
+      const result = await run;
+      listingMediaLogger.info('ensureListingMediaServerFn completed', {
+        listingKey: data.listingKey,
+        summary: result,
+      });
+      return result;
+    } catch (error) {
+      recentListingEnsureCompletions.delete(data.listingKey);
+      listingMediaLogger.error('ensureListingMediaServerFn failed', {
+        listingKey: data.listingKey,
+        error: toErrorMessage(error),
+      });
+
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      throw new Error('Failed to ensure listing media for listing');
     }
   });

@@ -14,15 +14,25 @@ type LogMethodName = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
 function buildDestination(config: LoggerConfig) {
   if (config.pretty) {
-    return pino.transport({
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'SYS:standard',
-        ignore: 'pid,hostname',
-        singleLine: false,
-      },
-    });
+    try {
+      return pino.transport({
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          translateTime: 'SYS:standard',
+          ignore: 'pid,hostname',
+          singleLine: false,
+        },
+      });
+    } catch (error) {
+      // Container images may omit optional pretty transport dependencies.
+      // Fall back to stdout JSON logs instead of crashing process startup.
+      const message = error instanceof Error ? error.message : String(error);
+      process.stderr.write(
+        `[logger] pretty transport unavailable; falling back to stdout (${message})\n`,
+      );
+      return process.stdout;
+    }
   }
 
   return process.stdout;
