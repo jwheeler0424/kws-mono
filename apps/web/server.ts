@@ -64,6 +64,7 @@
  */
 
 import { existsSync } from 'node:fs';
+import { statfs } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -509,6 +510,30 @@ async function initializeServer() {
           status: 200,
           headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         });
+      },
+
+      '/metrics/disk': async () => {
+        try {
+          // Query the root directory ("/") or target partition
+          const stats = await statfs('/');
+
+          // Calculate bytes and percentages
+          const totalSpace = stats.blocks * stats.bsize;
+          const freeSpace = stats.bfree * stats.bsize;
+          const usedSpace = totalSpace - freeSpace;
+          const usagePercentage = (usedSpace / totalSpace) * 100;
+
+          const metrics = {
+            totalBytes: totalSpace,
+            usedBytes: usedSpace,
+            freeBytes: freeSpace,
+            usagePercentage: Number(usagePercentage.toFixed(2)),
+          };
+
+          return Response.json(metrics);
+        } catch {
+          return Response.json({ error: 'Failed to fetch disk metrics' }, { status: 500 });
+        }
       },
 
       // Serve static assets (preloaded or on-demand)
