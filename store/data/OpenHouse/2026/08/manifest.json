@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "resource": "OpenHouse",
+  "year": "2026",
+  "month": "08",
+  "updatedAt": "2026-10-05T21:07:48.878Z",
+  "chunks": [
+    {
+      "file": "openhouse-2026-10-05T21-07-48-877Z-d9cb1m11.jsonl.gz",
+      "checksumSha256": "da4d8e3ad44afed2685429c68fc0ee1102899f9dda4f3ec111a3d14aee6bd7c0",
+      "recordCount": 2,
+      "firstTimestamp": "2026-08-05T17:40:20.972Z",
+      "lastTimestamp": "2026-08-31T21:25:11.870Z",
+      "createdAt": "2026-10-05T21:07:48.878Z"
+    }
+  ]
+}

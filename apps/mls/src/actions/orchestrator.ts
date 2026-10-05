@@ -1,3 +1,8 @@
+const INITIAL_PROPERTY_TYPES = new Set([
+  'Residential',
+  'ResidentialIncome',
+  'ResidentialLease',
+]);
 import { env } from '@kws/config/env';
 import { startOfYear } from 'date-fns';
 
@@ -141,7 +146,12 @@ function propertySeedConfig(osn: string) {
       return true;
     }
 
-    return isViewable && normalizedStatus !== undefined && activeStatuses.has(normalizedStatus);
+    return (
+      isViewable &&
+      normalizedStatus !== undefined &&
+      activeStatuses.has(normalizedStatus) &&
+      INITIAL_PROPERTY_TYPES.has(record.PropertyType?.trim() ?? '')
+    );
   };
 
   return seedResource({
