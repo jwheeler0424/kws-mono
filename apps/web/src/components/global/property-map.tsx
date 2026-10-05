@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef } from 'react';
 
 import { ensureLeafletRegistered, registerLeafletMap } from '@/lib/tools/leaflet';
+import { createVectorBasemapLayer } from '@/lib/tools/vector-basemap';
 
 export const ZOOM_BREAKPOINT = 14;
 
@@ -37,14 +38,7 @@ export function PropertyMap({
       center: propertyPosition,
       zoom: 12,
       scrollWheelZoom: false,
-    }).addLayer(
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        detectRetina: true,
-        edgeBufferTiles: 2,
-      }),
-    );
+    }).addLayer(createVectorBasemapLayer());
 
     const unregisterMap = registerLeafletMap(map);
 

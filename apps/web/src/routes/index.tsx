@@ -64,7 +64,7 @@ function Home() {
                   position: 'relative',
                   width: '100%',
                   textAlign: 'right',
-                  fontWeight: '500',
+                  fontWeight: '700',
                 }}>
                 Search Active Listings
               </h1>
@@ -119,7 +119,7 @@ function Home() {
                   position: 'relative',
                   width: '100%',
                   textAlign: 'left',
-                  fontWeight: '500',
+                  fontWeight: '700',
                   paddingBottom: '0',
                   marginTop: '2rem',
                 }}>
@@ -179,7 +179,7 @@ function Home() {
                   position: 'relative',
                   width: '100%',
                   textAlign: 'right',
-                  fontWeight: '500',
+                  fontWeight: '700',
                 }}>
                 About Me
               </h1>
@@ -231,7 +231,7 @@ function Home() {
                   position: 'relative',
                   width: '100%',
                   textAlign: 'left',
-                  fontWeight: '500',
+                  fontWeight: '700',
                 }}>
                 Buying Your New Home
               </h1>
@@ -282,7 +282,7 @@ function Home() {
                   position: 'relative',
                   width: '100%',
                   textAlign: 'right',
-                  fontWeight: '500',
+                  fontWeight: '700',
                 }}>
                 Selling Your Home in Seattle
               </h1>
@@ -334,7 +334,7 @@ function Home() {
                   position: 'relative',
                   width: '100%',
                   textAlign: 'left',
-                  fontWeight: '500',
+                  fontWeight: '700',
                 }}>
                 Let's Discover Seattle
               </h1>

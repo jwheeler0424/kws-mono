@@ -494,27 +494,27 @@
 
 @layer base {
   h1 {
-    @apply font-title text-4xl font-normal tracking-normal text-polaris-primary sm:text-5xl lg:text-6xl;
+    @apply font-title text-4xl font-bold tracking-normal text-polaris-primary sm:text-5xl lg:text-6xl;
   }
 
   h2 {
-    @apply font-title text-2xl font-normal tracking-normal text-polaris-primary;
+    @apply font-title text-2xl font-bold tracking-normal text-polaris-primary;
   }
 
   h3 {
-    @apply mb-0 font-title text-xl font-normal tracking-normal text-polaris-primary;
+    @apply mb-0 font-title text-xl font-bold tracking-normal text-polaris-primary;
   }
 
   h4 {
-    @apply font-title text-lg font-normal tracking-normal text-polaris-primary;
+    @apply font-title text-lg font-bold tracking-normal text-polaris-primary;
   }
 
   h5 {
-    @apply font-title text-base font-normal tracking-normal text-polaris-primary;
+    @apply font-title text-base font-bold tracking-normal text-polaris-primary;
   }
 
   h6 {
-    @apply font-title text-base font-normal tracking-normal text-polaris-primary;
+    @apply font-title text-base font-bold tracking-normal text-polaris-primary;
   }
 
   p {
@@ -654,7 +654,7 @@
     @apply relative flex h-svh w-full shrink-0 flex-col items-start justify-center gap-2 px-6 sm:px-12 landscape:basis-1/2;
   }
   article.banner.banner-team > main > h2 {
-    @apply text-[15vw] leading-[0.75] font-normal uppercase 2xsdt:text-[6vw];
+    @apply text-[15vw] leading-[0.75] font-bold uppercase 2xsdt:text-[6vw];
   }
   article.banner.banner-team > main > h4 {
     @apply font-nueu-haas-grotesk text-sm font-black tracking-widest uppercase md:text-base 2xsdt:text-xs;

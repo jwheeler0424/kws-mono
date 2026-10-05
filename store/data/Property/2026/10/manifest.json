@@ -3,7 +3,7 @@
   "resource": "Property",
   "year": "2026",
   "month": "10",
-  "updatedAt": "2026-10-05T22:06:37.330Z",
+  "updatedAt": "2026-10-05T23:34:01.775Z",
   "chunks": [
     {
       "file": "property-2026-10-05T22-03-51-986Z-ln96dza1.jsonl.gz",
@@ -132,6 +132,22 @@
       "firstTimestamp": "2026-10-05T20:51:11.250Z",
       "lastTimestamp": "2026-10-05T22:06:12.213Z",
       "createdAt": "2026-10-05T22:06:37.329Z"
+    },
+    {
+      "file": "property-2026-10-05T23-19-02-471Z-mq8w5ddg.jsonl.gz",
+      "checksumSha256": "1905e0927aed953e192fd6111ef784e235cba3ea8d13b27a6455faa011e09238",
+      "recordCount": 371,
+      "firstTimestamp": "2026-10-05T22:06:11.742Z",
+      "lastTimestamp": "2026-10-05T23:18:11.616Z",
+      "createdAt": "2026-10-05T23:19:02.544Z"
+    },
+    {
+      "file": "property-2026-10-05T23-34-01-753Z-8slm5je2.jsonl.gz",
+      "checksumSha256": "25d9b2bad260632f60fa7293fdaa5c20ff6a04846bca874e2d5da7a632c66e46",
+      "recordCount": 88,
+      "firstTimestamp": "2026-10-05T23:18:11.031Z",
+      "lastTimestamp": "2026-10-05T23:32:11.830Z",
+      "createdAt": "2026-10-05T23:34:01.775Z"
     }
   ]
 }

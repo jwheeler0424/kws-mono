@@ -25,8 +25,8 @@ const BouncingLoader = () => {
               gradientUnits='userSpaceOnUse'
               gradientTransform='matrix(2.30025e-15,-37.566,37.566,2.30025e-15,416.455,540.999)'
               id='map-marker-38-f'>
-              <stop offset='0' stopColor='rgb(204, 15, 22)' />
-              <stop offset='1' stopColor='rgb(238, 33, 39)' />
+              <stop offset='0' stopColor='var(--polaris-primary)' />
+              <stop offset='1' stopColor='var(--polaris-primary-600)' />
             </linearGradient>
             <linearGradient
               x1='0'
@@ -36,8 +36,8 @@ const BouncingLoader = () => {
               gradientUnits='userSpaceOnUse'
               gradientTransform='matrix(1.16666e-15,-19.053,19.053,1.16666e-15,414.482,522.486)'
               id='map-marker-38-s'>
-              <stop offset='0' stopColor='rgb(157, 12, 17)' />
-              <stop offset='1' stopColor='rgb(242, 80, 85)' />
+              <stop offset='0' stopColor='var(--polaris-primary-900)' />
+              <stop offset='1' stopColor='var(--polaris-primary-400)' />
             </linearGradient>
           </defs>
           <g transform='matrix(19.5417,0,0,19.5417,-7889.1,-9807.44)'>
@@ -65,5 +65,4 @@ export const MapLoader = () => {
     </main>
   );
 };
-
 export default MapLoader;

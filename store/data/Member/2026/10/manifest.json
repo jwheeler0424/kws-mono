@@ -3,7 +3,7 @@
   "resource": "Member",
   "year": "2026",
   "month": "10",
-  "updatedAt": "2026-10-05T21:52:45.378Z",
+  "updatedAt": "2026-10-05T23:25:01.555Z",
   "chunks": [
     {
       "file": "member-2026-10-05T21-02-52-073Z-264nvial.jsonl.gz",
@@ -36,6 +36,14 @@
       "firstTimestamp": "2026-10-05T20:58:16.569Z",
       "lastTimestamp": "2026-10-05T21:43:15.612Z",
       "createdAt": "2026-10-05T21:52:45.378Z"
+    },
+    {
+      "file": "member-2026-10-05T23-25-01-547Z-r0jdvgh2.jsonl.gz",
+      "checksumSha256": "0ca7224c15826da5a513de5d33d2faba1f6e7e17387fb019815c52fd429b595e",
+      "recordCount": 105,
+      "firstTimestamp": "2026-10-05T21:43:14.091Z",
+      "lastTimestamp": "2026-10-05T23:13:14.685Z",
+      "createdAt": "2026-10-05T23:25:01.550Z"
     }
   ]
 }

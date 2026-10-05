@@ -5,7 +5,7 @@ import L, { DivIcon, type LeafletEvent, type PopupEvent } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import Supercluster from 'supercluster';
 
 import { ensureLeafletRegistered, registerLeafletMap } from '@/lib/tools/leaflet';
@@ -14,6 +14,7 @@ import { useMapActions, useMapStore } from '@/stores/map.store';
 
 import Loader from './map-loader';
 import PropertyCardSkeleton from './property-card-skeleton';
+import { VectorBasemapLayer } from './vector-basemap-layer';
 
 ensureLeafletRegistered();
 
@@ -548,12 +549,7 @@ export function MapView({
         maxZoom={18}
         scrollWheelZoom={false}
         className='absolute inset-0 z-0 h-full w-full'>
-        <TileLayer
-          url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          detectRetina
-          edgeBufferTiles={2}
-        />
+        <VectorBasemapLayer />
 
         <MapEvents
           mapTimestamp={mapTimestamp}

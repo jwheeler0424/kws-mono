@@ -980,7 +980,7 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
                   <EmptyMedia variant='icon'>
                     <Search className='size-4' />
                   </EmptyMedia>
-                  <EmptyTitle>No listings found</EmptyTitle>
+                  <EmptyTitle className='font-bold'>No listings found</EmptyTitle>
                   <EmptyDescription>
                     No properties matched "{trimmedSearchQuery}". Try a broader phrase or reset your
                     filters.
@@ -1023,7 +1023,7 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
                             />
                           </ItemMedia>
                           <ItemContent className='h-10 justify-center py-0'>
-                            <ItemTitle className='line-clamp-1 w-full truncate text-sm font-semibold transition-colors duration-200 ease-linear group-hover:text-polaris-primary'>
+                            <ItemTitle className='line-clamp-1 w-full truncate text-sm font-bold transition-colors duration-200 ease-linear group-hover:text-polaris-primary'>
                               <span className='block w-full truncate'>
                                 {getAddressStreet(result)}
                               </span>

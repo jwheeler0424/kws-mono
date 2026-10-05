@@ -94,7 +94,7 @@ function RouteComponent() {
             Provided by NWMLS, Listed by {property.listOfficeName ?? property.listAgentFullName}
           </article>
           <main className={cn('-ml-px flex h-fit flex-col gap-1')}>
-            <h1 className={cn('m-0! font-sans! text-2xl! font-medium! text-gray-900!')}>
+            <h1 className={cn('m-0! font-sans! text-2xl! font-bold! text-gray-900!')}>
               {property.internetAddressDisplayYN === false
                 ? 'Unavailable'
                 : getAddressStreet(property)}
@@ -210,7 +210,7 @@ function RouteComponent() {
             </p>
             <h2
               className={cn(
-                'mt-4! font-sans! text-3xl! font-semibold! tracking-normal! text-gray-900!',
+                'mt-4! font-sans! text-3xl! font-bold! tracking-normal! text-gray-900!',
               )}>
               {property.internetAutomatedValuationDisplayYN === false
                 ? 'Unavailable'
@@ -222,9 +222,7 @@ function RouteComponent() {
           <section className={cn('flex w-full flex-col gap-10')}>
             <article className={cn('w-full')}>
               <h3
-                className={cn(
-                  'font-sans! text-base! font-semibold! tracking-normal! text-gray-900!',
-                )}>
+                className={cn('font-sans! text-base! font-bold! tracking-normal! text-gray-900!')}>
                 Property Description
               </h3>
               <p className={cn('mt-2! pr-2 pl-0 text-base!')}>{property.publicRemarks}</p>
@@ -267,7 +265,7 @@ function RouteComponent() {
                 <article className={cn('w-full')}>
                   <h3
                     className={cn(
-                      'font-sans! text-base! font-semibold! tracking-normal! text-gray-900!',
+                      'font-sans! text-base! font-bold! tracking-normal! text-gray-900!',
                     )}>
                     Interior Features
                   </h3>
