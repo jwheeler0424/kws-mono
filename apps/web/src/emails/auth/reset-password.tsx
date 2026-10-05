@@ -1,4 +1,4 @@
-import { Body, Head, Html, Img, Preview, Tailwind } from '@react-email/components';
+import { Body, Head, Html, Img, Preview, Section, Tailwind } from '@react-email/components';
 
 import {
   Button,
@@ -6,7 +6,6 @@ import {
   CardContent,
   CardHeader,
   Link as EmailLink,
-  Flex,
   Heading,
   Separator,
   Text,
@@ -32,25 +31,31 @@ export const ResetPasswordEmail = ({
         <Body className='bg-background px-4 py-10 font-sans text-foreground'>
           <Preview>Reset your password</Preview>
           <Card className='mx-auto max-w-[560px] border border-solid border-border px-4 py-0'>
-            <CardHeader className='px-10 pt-12 pb-0'>
+            <CardHeader className='px-4 sm:px-8 pt-12 pb-0'>
               {logoSrc ? (
-                <Img src={logoSrc} width='48' height='48' alt='Application logo' className='mb-8' />
+                <Img
+                  src={logoSrc}
+                  width='180'
+                  height='24'
+                  alt='Compass'
+                  className='mb-8 h-auto max-w-full'
+                />
               ) : null}
               <Heading level='h2' className='mb-2'>
                 Reset your password
               </Heading>
             </CardHeader>
-            <CardContent className='px-10 pb-12'>
+            <CardContent className='px-4 sm:px-8 pb-12'>
               <Text>Hi {userFirstname},</Text>
               <Text>
                 Someone recently requested a password change for your account. If this was you, you
                 can set a new password here:
               </Text>
-              <Flex justify='center' className='my-8'>
+              <Section align='center' className='my-8 text-center'>
                 <Button size='lg' className='no-underline' href={resetPasswordLink}>
                   Reset password
                 </Button>
-              </Flex>
+              </Section>
               <Text>
                 If you don&apos;t want to change your password or didn&apos;t request this, just
                 ignore and delete this message.

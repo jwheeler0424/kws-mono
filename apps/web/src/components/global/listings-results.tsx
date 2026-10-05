@@ -96,7 +96,7 @@ export function ListingsResults({ params }: { params: Partial<TListingsSearch> }
     <>
       {shouldShowPrimaryLoader ? (
         <main className='flex h-full min-h-[50vh] w-full flex-1 items-center justify-center py-20'>
-          <BeatLoader color='#ff0000' loading={true} size={15} />
+          <BeatLoader color='#171717' loading={true} size={15} />
         </main>
       ) : null}
       {!shouldShowPrimaryLoader ? (
@@ -118,7 +118,7 @@ export function ListingsResults({ params }: { params: Partial<TListingsSearch> }
           />
           {shouldShowOverlayLoader ? (
             <div className='pointer-events-none absolute inset-0 z-20 flex items-center justify-center'>
-              <BeatLoader color='#ff0000' loading={true} size={15} />
+              <BeatLoader color='#171717' loading={true} size={15} />
             </div>
           ) : null}
         </div>

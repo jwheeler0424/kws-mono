@@ -5,7 +5,7 @@ export const mainNav = {
       slug: '/',
     },
     {
-      label: 'Meet The Team',
+      label: 'About Me',
       slug: '/about',
     },
     {
@@ -13,7 +13,7 @@ export const mainNav = {
       slug: '/listings',
     },
     {
-      label: 'Our Properties',
+      label: 'Our Exclusive Listings',
       slug: '/properties',
     },
     {

@@ -16,7 +16,7 @@ type RouterLinkBaseProps = Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, '
   VariantProps<typeof linkVariants>;
 
 const RouterLinkBase = React.forwardRef<HTMLAnchorElement, RouterLinkBaseProps>(
-  ({ className, variant = 'default', size = 'default', ...props }, ref) => (
+  ({ className, variant = 'link', size = 'default', ...props }, ref) => (
     <a ref={ref} className={cn(linkVariants({ variant, size, className }))} {...props} />
   ),
 );
@@ -47,7 +47,7 @@ export const Link = ((props: unknown) => {
   ) {
     const {
       href,
-      variant = 'default',
+      variant = 'link',
       size = 'default',
       className,
       to: _to,

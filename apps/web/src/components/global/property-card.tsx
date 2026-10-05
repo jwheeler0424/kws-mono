@@ -171,9 +171,7 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
           data-property={listing.listingId}
           variant={'outlinePrimary'}
           size={'sm'}
-          className={cn(
-            'w-full rounded shadow drop-shadow-none group-hover:bg-polaris-primary group-hover:text-white',
-          )}
+          className={cn('w-full group-hover:bg-polaris-primary group-hover:text-white')}
           onClick={(e) => e.stopPropagation()}>
           View Property
         </Button>

@@ -343,7 +343,7 @@ export function VirtualPropertyGrid({
                   <div
                     ref={fallbackLoadMoreRef}
                     className='flex w-full flex-col items-center justify-center gap-6 py-10'>
-                    <BeatLoader color='#ff0000' loading={true} size={15} />
+                    <BeatLoader color='#171717' loading={true} size={15} />
                     <span className='text-gray text-center font-sans text-sm font-thin'>
                       {loaderLabel}
                     </span>
@@ -393,7 +393,7 @@ export function VirtualPropertyGrid({
                     {isLoaderRow ? (
                       loadingMore ? (
                         <main className='flex flex-col gap-12 h-full min-h-[50vh] w-full flex-1 items-center justify-center py-20'>
-                          <BeatLoader color='#ff0000' loading={true} size={15} />
+                          <BeatLoader color='#171717' loading={true} size={15} />
                           <span className='text-gray text-center font-sans text-sm font-thin'>
                             {loaderLabel}
                           </span>

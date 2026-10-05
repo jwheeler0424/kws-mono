@@ -18,7 +18,7 @@ export function ListingsMap({ search }: { search: Partial<TListingsSearch> }) {
       <ClientOnly
         fallback={
           <main className='flex h-full w-full flex-1 items-center justify-center py-20'>
-            <BeatLoader color='#ff0000' loading={true} size={15} />
+            <BeatLoader color='#171717' loading={true} size={15} />
           </main>
         }>
         <MapView properties={markers} markersLoading={markersLoading} />

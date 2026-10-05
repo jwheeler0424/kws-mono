@@ -16,8 +16,8 @@ function Card({
   return (
     <EmailContainer
       className={cn(
-        'group/card flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs',
-        size === 'sm' && 'gap-4 py-4',
+        'group/card overflow-hidden rounded-lg bg-card py-6 text-sm text-card-foreground',
+        size === 'sm' && 'py-4',
         className,
       )}
       {...props}
@@ -26,12 +26,7 @@ function Card({
 }
 
 function CardHeader({ className, ...props }: React.ComponentProps<typeof EmailSection>) {
-  return (
-    <EmailSection
-      className={cn('grid auto-rows-min items-start gap-1 rounded-t-xl px-6', className)}
-      {...props}
-    />
-  );
+  return <EmailSection className={cn('rounded-t-lg px-6', className)} {...props} />;
 }
 
 function CardTitle({ className, ...props }: React.ComponentProps<typeof EmailText>) {
@@ -49,9 +44,7 @@ function CardContent({ className, ...props }: React.ComponentProps<typeof EmailS
 }
 
 function CardFooter({ className, ...props }: React.ComponentProps<typeof EmailSection>) {
-  return (
-    <EmailSection className={cn('flex items-center rounded-b-xl px-6', className)} {...props} />
-  );
+  return <EmailSection className={cn('rounded-b-lg px-6', className)} {...props} />;
 }
 
 export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle };

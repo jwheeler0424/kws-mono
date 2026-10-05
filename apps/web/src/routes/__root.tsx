@@ -29,7 +29,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       defaultTitle: 'KyleWeberSeattle.com - Find Your True North in the Housing Market',
       titleTemplate: '%s | KyleWeberSeattle.com',
       defaultDescription:
-        'KyleWeberSeattle.com is your guide to navigating the housing market with confidence.',
+        'Explore Seattle real estate with Kyle Weber at Compass, from finding your next home to selling with confidence.',
       defaultImage: {
         url: 'https://kyleweberseattle.com/assets/images/blog-page.jpg',
         width: 2048,
@@ -37,7 +37,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       },
       twitterHandle: '@kyleweberseattle',
       twitterSite: '@kyleweberseattle',
-      themeColor: '#ff0000',
+      themeColor: '#171717',
     });
     return { siteConfig };
     // Placeholder for any root-level data fetching or context setup that may be needed in the future.
@@ -53,7 +53,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       viewportMeta(),
       ...seo({
         title: 'KyleWeberSeattle.com - Find Your True North in the Housing Market',
-        description: `KyleWeberSeattle.com is your guide to navigating the housing market with confidence.`,
+        description:
+          'Explore Seattle real estate with Kyle Weber at Compass, from finding your next home to selling with confidence.',
       }),
     ],
     links: [

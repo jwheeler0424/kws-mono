@@ -2,7 +2,7 @@ import { Separator } from '@kws/design/ui/separator';
 import { Link, useLocation } from '@tanstack/react-router';
 import React from 'react';
 
-import { cn, formatCompanyName, titlePretty } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 import { Hamburger } from './menus/hamburger';
 import { mainNav } from './menus/main-nav';
@@ -16,7 +16,6 @@ export function FrontendHeader({ slug, ref, ...props }: FrontendHeaderProps) {
   const location = useLocation();
   const pathname = slug ?? location.pathname;
   const isTransparent = pathname === '/';
-  const companyName = formatCompanyName('Polaris Pacific NW Residential');
 
   const handleClick = React.useCallback(() => {
     setMenuOpen(false);
@@ -40,24 +39,38 @@ export function FrontendHeader({ slug, ref, ...props }: FrontendHeaderProps) {
         className={cn(
           'mx-auto flex h-full w-11/12 flex-row items-center justify-between px-2 md:px-5 2xl:px-12',
         )}>
-        <h1 className={cn('z-50')}>
+        <div className='z-50 shrink-0'>
           <Link
             to='/'
-            title={titlePretty(companyName.join(' '))}
-            className={cn(
-              'flex w-fit items-center font-title! text-[1.675rem] leading-[0.73]! text-polaris-primary! uppercase no-underline! transition-colors duration-200 ease-linear hover:text-polaris-primary-400! sm:text-[2rem]! 2xsdt:text-polaris-primary! 2xsdt:hover:text-polaris-primary-400!',
-              isTransparent &&
-                'text-white! drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] hover:text-polaris-primary! 2xsdt:text-white!',
-              menuOpen && 'text-white! hover:text-white!',
-              isTransparent &&
-                menuOpen &&
-                'text-white! drop-shadow-none hover:text-white! 2xsdt:text-white! 2xsdt:hover:text-polaris-primary!',
-            )}>
-            Polaris
-            <br />
-            Pacific
+            title='Kyle Weber at Compass'
+            aria-label='Kyle Weber at Compass — Home'
+            className='flex items-center no-underline!'>
+            <img
+              src='/assets/brand/compass-black.png'
+              alt='Compass'
+              width={180}
+              height={24}
+              className={cn(
+                'h-auto w-32 sm:w-40',
+                isTransparent && 'hidden',
+                menuOpen && 'hidden 2xsdt:block',
+                isTransparent && menuOpen && '2xsdt:hidden',
+              )}
+            />
+            <img
+              src='/assets/brand/compass-white.png'
+              alt='Compass'
+              width={180}
+              height={24}
+              className={cn(
+                'hidden h-auto w-32 sm:w-40',
+                isTransparent && 'block',
+                menuOpen && 'block 2xsdt:hidden',
+                isTransparent && menuOpen && '2xsdt:block',
+              )}
+            />
           </Link>
-        </h1>
+        </div>
 
         <nav
           className={cn(
@@ -70,7 +83,7 @@ export function FrontendHeader({ slug, ref, ...props }: FrontendHeaderProps) {
             className={cn(
               'flex flex-col pt-2 transition-opacity duration-200',
               menuOpen ? 'opacity-100' : 'opacity-0',
-              '2xsdt:flex 2xsdt:grow 2xsdt:flex-row 2xsdt:items-center 2xsdt:justify-center 2xsdt:gap-8 2xsdt:p-0 2xsdt:opacity-100',
+              '2xsdt:flex 2xsdt:grow 2xsdt:flex-row 2xsdt:items-center 2xsdt:justify-end 2xsdt:gap-5 2xsdt:p-0 2xsdt:opacity-100',
             )}>
             {mainNav.navLinks.map((link, i) => {
               return (
@@ -85,10 +98,10 @@ export function FrontendHeader({ slug, ref, ...props }: FrontendHeaderProps) {
                     title={link.label}
                     onClick={handleClick}
                     className={cn(
-                      'block py-6 text-left font-title! text-[13vw]! font-medium text-white uppercase no-underline! transition-all duration-200 ease-linear group-hover:text-polaris-primary sm:py-5 sm:text-[6vw]! md:py-4 md:text-[4vw]! lg:text-[3.5vw]! 2xsdt:block 2xsdt:p-0 2xsdt:text-center 2xsdt:font-sans! 2xsdt:text-sm! 2xsdt:text-gray-600 2xsdt:normal-case 2xsdt:group-hover:text-polaris-primary',
+                      'block py-3 text-left font-sans! text-lg! font-medium text-white no-underline! transition-colors duration-200 group-hover:text-neutral-300 2xsdt:block 2xsdt:p-0 2xsdt:text-center 2xsdt:text-sm! 2xsdt:text-gray-600 2xsdt:group-hover:text-polaris-primary',
                       isTransparent &&
-                        'font-medium 2xsdt:block 2xsdt:p-0 2xsdt:text-center 2xsdt:text-sm 2xsdt:text-white 2xsdt:drop-shadow-[1px_1px_1px_rgba(0,0,0,0.5)] 2xsdt:group-hover:text-polaris-primary',
-                      pathname === link.slug && 'text-polaris-primary 2xsdt:text-polaris-primary',
+                        'font-medium 2xsdt:block 2xsdt:p-0 2xsdt:text-center 2xsdt:text-sm 2xsdt:text-white 2xsdt:drop-shadow-[1px_1px_1px_rgba(0,0,0,0.5)] 2xsdt:group-hover:text-neutral-300',
+                      pathname === link.slug && 'text-white 2xsdt:text-polaris-primary',
                       pathname === link.slug && menuOpen && 'text-white 2xsdt:text-polaris-primary',
                       pathname === link.slug && isTransparent && '2xsdt:text-white',
                     )}>

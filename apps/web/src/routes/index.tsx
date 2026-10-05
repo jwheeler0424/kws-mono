@@ -27,11 +27,12 @@ function Home() {
             loop
             muted
             playsInline
-            preload='yes'
+            preload='metadata'
+            poster='/assets/images/compass/search.webp'
             className='size-full object-cover object-center'
-            mobileSrc='/assets/videos/intro-mobile_HD.mp4'
-            tabletSrc='/assets/videos/intro-tablet_HD.mp4'
-            desktopSrc='/assets/videos/intro-desktop_HD.mp4'
+            mobileSrc='/assets/videos/compass/intro-portrait.mp4'
+            tabletSrc='/assets/videos/compass/intro-portrait.mp4'
+            desktopSrc='/assets/videos/compass/intro-landscape.mp4'
           />
         </ParallaxContentLayer>
       </ParallaxContainer>
@@ -40,7 +41,7 @@ function Home() {
       <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden border-b border-neutral-700'>
         <ParallaxMediaLayer>
           <img
-            src='/assets/images/search-active-listings.jpg'
+            src='/assets/images/compass/search.webp'
             fetchPriority='high'
             loading='eager'
             alt='Search Active Listings - Seattle Skyline'
@@ -75,7 +76,7 @@ function Home() {
                   justifyContent: 'flex-end',
                   width: '100%',
                 }}>
-                <Link href='/listings' title='Find your home' variant={'outlineWhite'} size={'md'}>
+                <Link href='/listings' title='Find your home' variant={'solidWhite'} size={'md'}>
                   Find your home
                 </Link>
               </section>
@@ -88,10 +89,10 @@ function Home() {
       <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden border-b border-neutral-700'>
         <ParallaxMediaLayer>
           <img
-            src='/assets/images/our-properties.jpg'
+            src='/assets/images/compass/properties.webp'
             fetchPriority='high'
             loading='eager'
-            alt='Our Properties - Seattle Skyline'
+            alt='Our exclusive listings in Seattle'
             className='size-full object-cover object-center'
           />
         </ParallaxMediaLayer>
@@ -122,7 +123,7 @@ function Home() {
                   paddingBottom: '0',
                   marginTop: '2rem',
                 }}>
-                Our Properties
+                Our Exclusive Listings
               </h1>
               <section className='w-full h-full flex grow items-center justify-center'>
                 <FeaturedProperties autoplay autoPlaySpeed={4000} />
@@ -136,10 +137,10 @@ function Home() {
                 }}>
                 <Link
                   href='/properties'
-                  title='View our properties'
-                  variant={'solidPrimary'}
+                  title='View exclusive listings'
+                  variant={'solidWhite'}
                   size={'md'}>
-                  View our properties
+                  View exclusive listings
                 </Link>
               </section>
             </main>
@@ -151,8 +152,8 @@ function Home() {
       <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden border-b border-neutral-700'>
         <ParallaxMediaLayer>
           <img
-            src='/assets/images/meet-the-team.jpg'
-            alt='Meet the Team - Polaris NW Residential Team'
+            src='/assets/images/compass/about-home.webp'
+            alt='Pike Place Market in Seattle'
             fetchPriority='high'
             loading='eager'
             className='size-full object-cover object-center brightness-75'
@@ -180,7 +181,7 @@ function Home() {
                   textAlign: 'right',
                   fontWeight: '500',
                 }}>
-                Meet the Team
+                About Me
               </h1>
               <section
                 style={{
@@ -190,8 +191,8 @@ function Home() {
                   justifyContent: 'flex-end',
                   width: '100%',
                 }}>
-                <Link href='/about' title='Get to know us' variant={'outlineWhite'} size={'md'}>
-                  Get to know us
+                <Link href='/about' title='Get to know me' variant={'solidWhite'} size={'md'}>
+                  Get to know me
                 </Link>
               </section>
             </main>
@@ -203,8 +204,8 @@ function Home() {
       <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden border-b border-neutral-700'>
         <ParallaxMediaLayer>
           <img
-            src='/assets/images/buying.jpg'
-            alt='Buying your home - Polaris NW Residential'
+            src='/assets/images/compass/buying.webp'
+            alt='A waterfront home in Seattle'
             fetchPriority='high'
             loading='eager'
             className='size-full object-cover object-center'
@@ -232,7 +233,7 @@ function Home() {
                   textAlign: 'left',
                   fontWeight: '500',
                 }}>
-                Buying your home
+                Buying Your New Home
               </h1>
               <section
                 style={{
@@ -241,7 +242,7 @@ function Home() {
                   alignContent: 'center',
                   justifyContent: 'flex-start',
                 }}>
-                <Link href='/buying' title='Learn more' variant={'outlineWhite'} size={'md'}>
+                <Link href='/buying' title='Learn more' variant={'solidWhite'} size={'md'}>
                   Learn more
                 </Link>
               </section>
@@ -254,8 +255,8 @@ function Home() {
       <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden border-b border-neutral-700'>
         <ParallaxMediaLayer>
           <img
-            src='/assets/images/selling.jpg'
-            alt='Selling your home - Polaris NW Residential'
+            src='/assets/images/compass/selling.webp'
+            alt='A modern Seattle home surrounded by trees'
             fetchPriority='high'
             loading='eager'
             className='size-full object-cover object-center'
@@ -283,7 +284,7 @@ function Home() {
                   textAlign: 'right',
                   fontWeight: '500',
                 }}>
-                Selling your home
+                Selling Your Home in Seattle
               </h1>
               <section
                 style={{
@@ -293,7 +294,7 @@ function Home() {
                   justifyContent: 'flex-end',
                   width: '100%',
                 }}>
-                <Link href='/selling' title='Learn more' variant={'outlineWhite'} size={'md'}>
+                <Link href='/selling' title='Learn more' variant={'solidWhite'} size={'md'}>
                   Learn more
                 </Link>
               </section>
@@ -306,8 +307,8 @@ function Home() {
       <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden border-b border-neutral-700'>
         <ParallaxMediaLayer>
           <img
-            src='/assets/images/blog.jpg'
-            alt="Let's Discover Seattle - Polaris NW Residential"
+            src='/assets/images/compass/seattle.webp'
+            alt='Seattle skyline at dusk'
             fetchPriority='high'
             loading='eager'
             className='size-full object-cover object-center'
@@ -346,13 +347,13 @@ function Home() {
                   gap: '1.75rem',
                   width: '100%',
                 }}>
-                <Link href='/blog' title='Our blog' variant={'outlineWhite'} size={'md'}>
+                <Link href='/blog' title='Our blog' variant={'solidWhite'} size={'md'}>
                   Our blog
                 </Link>
                 <Link
                   href='https://www.youtube.com/@kyleweberseattle'
                   title='YouTube channel'
-                  variant={'solidPrimary'}
+                  variant={'solidWhite'}
                   size={'md'}>
                   YouTube channel
                 </Link>

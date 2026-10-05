@@ -1055,10 +1055,7 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
         <div className='flex w-full items-center justify-end'>
           <SheetTrigger
             render={
-              <Button
-                variant={'solidPrimary'}
-                size={'md'}
-                className='font-admin rounded-full text-xs font-medium'>
+              <Button variant={'solidPrimary'} size={'md'}>
                 Advanced Filter
               </Button>
             }
@@ -1067,7 +1064,9 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
       </div>
       <SheetContent className='border-none bg-white' side={'right'}>
         <SheetHeader className='pb-2'>
-          <SheetTitle className='text-2xl leading-7 font-normal'>Property Filters</SheetTitle>
+          <SheetTitle className='font-sans! text-2xl leading-7 font-bold'>
+            Property Filters
+          </SheetTitle>
           <SheetDescription className='text-sm'>
             {`Adjust the filters to find the perfect property for you.`}
           </SheetDescription>

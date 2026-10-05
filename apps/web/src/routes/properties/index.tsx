@@ -30,9 +30,9 @@ export const Route = createFileRoute('/properties/')({
     return {
       meta: [
         ...seo({
-          title: 'Recently Listed Properties',
+          title: 'Our Exclusive Listings',
           description:
-            'Discover all of the latest market updates and the best places to eat in Seattle.',
+            'Explore available, pending and recently sold Seattle properties with Kyle Weber at Compass and Hopper Group.',
           keywords: [
             'properties',
             'buying',
@@ -58,28 +58,34 @@ function RouteComponent() {
   return (
     <main className='w-full'>
       {/* Hero */}
-      <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden'>
+      <ParallaxContainer className='banner-short relative flex items-center justify-center overflow-hidden'>
         <ParallaxMediaLayer>
           <img
-            className='h-full w-full object-cover object-top'
+            className='h-full w-full object-cover'
             src='/assets/images/our-properties-page.jpg'
             alt='Our Properties Banner - Incredible View'
             fetchPriority='high'
             loading='eager'
           />
         </ParallaxMediaLayer>
-        <ParallaxContentLayer range={75} speed={0.68}>
+        <ParallaxContentLayer>
           <article className='banner banner-title flex'>
-            <main className='relative top-[clamp(15vh,calc(10vh-4rem),25vh)] px-0 py-[clamp(1.25rem,1.65vw-2.16rem,6rem)]'>
-              <h1 className='relative w-full text-left text-7xl font-medium text-white'>
-                Our Properties
-              </h1>
+            <main className='py-12'>
+              <h1>Our Exclusive Listings</h1>
             </main>
           </article>
         </ParallaxContentLayer>
       </ParallaxContainer>
 
       <article className='content relative'>
+        <div className='flex justify-center border-b border-neutral-200 py-8'>
+          <img
+            src='/assets/brand/hopper-group-black.png'
+            alt='Hopper Group'
+            className='h-28 w-auto max-w-full object-contain sm:h-36'
+            loading='lazy'
+          />
+        </div>
         <PropertiesSection
           title='Available Properties'
           properties={available ?? []}

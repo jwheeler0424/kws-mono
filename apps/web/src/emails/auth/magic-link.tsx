@@ -1,11 +1,10 @@
-import { Body, Head, Html, Img, Preview, Tailwind } from '@react-email/components';
+import { Body, Head, Html, Img, Preview, Section, Tailwind } from '@react-email/components';
 
 import {
   Button,
   Card,
   CardContent,
   CardHeader,
-  Flex,
   Heading,
   Link,
   Separator,
@@ -40,38 +39,38 @@ export const MagicLinkEmail = ({
         <Body className='bg-background px-4 py-10 font-sans text-foreground'>
           <Preview>Sign in to {appName}</Preview>
           <Card className='mx-auto max-w-[560px] border border-solid border-border px-4 py-0'>
-            <CardHeader className='px-10 pt-12 pb-0'>
+            <CardHeader className='px-4 sm:px-8 pt-12 pb-0'>
               {logoSrc ? (
                 <Img
                   src={logoSrc}
-                  width='48'
-                  height='48'
-                  alt={`${appName} logo`}
-                  className='mb-8'
+                  width='180'
+                  height='24'
+                  alt='Compass'
+                  className='mb-8 h-auto max-w-full'
                 />
               ) : null}
               <Heading level='h2' className='mb-2'>
                 Sign in with a magic link
               </Heading>
             </CardHeader>
-            <CardContent className='px-10 pb-12'>
+            <CardContent className='px-4 sm:px-8 pb-12'>
               <Text>
                 Use this secure sign-in link for <strong>{email}</strong>. It expires soon for your
                 security.
               </Text>
-              <Flex justify='center' className='my-8'>
+              <Section align='center' className='my-8 text-center'>
                 <Button size='lg' className='no-underline' href={magicLink}>
                   Sign in to {appName}
                 </Button>
-              </Flex>
+              </Section>
               {loginCode ? (
                 <>
                   <Text>Or use this temporary login code:</Text>
-                  <Flex justify='center' className='my-4'>
+                  <Section align='center' className='my-4 text-center'>
                     <Text className='my-0 inline-block rounded-md border border-border bg-muted px-4 py-3 text-center font-mono text-foreground'>
                       {loginCode}
                     </Text>
-                  </Flex>
+                  </Section>
                 </>
               ) : null}
               <Separator className='my-8' />

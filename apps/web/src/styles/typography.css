@@ -1,31 +1,43 @@
-/* Knockout */
 @font-face {
-  font-family: 'Knockout';
-  src: url('../assets/fonts/Knockout/Knockout-68.otf') format('opentype');
+  font-family: 'Compass Display';
+  src: url('/assets/fonts/compass/CompassDisplay-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
-/* Nueue Haas Grotesk */
 @font-face {
-  font-family: 'Nueu Haas Grotesk';
-  src: url('../assets/fonts/NueuHaasGrotesk/NHaasGroteskTXStd-55Rg.otf') format('opentype');
+  font-family: 'Compass Sans';
+  src: url('/assets/fonts/compass/CompassSans-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Nueu Haas Grotesk';
-  src: url('../assets/fonts/NueuHaasGrotesk/NHaasGroteskTXStd-56It.otf') format('opentype');
+  font-family: 'Compass Sans';
+  src: url('/assets/fonts/compass/CompassSans-Italic.ttf') format('truetype');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Nueu Haas Grotesk';
-  src: url('../assets/fonts/NueuHaasGrotesk/NHaasGroteskTXStd-75Bd.otf') format('opentype');
+  font-family: 'Compass Sans';
+  src: url('/assets/fonts/compass/CompassSans-Bold.ttf') format('truetype');
   font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Compass Sans';
+  src: url('/assets/fonts/compass/CompassSans-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT Pressura Mono';
+  src: url('/assets/fonts/compass/GT-Pressura-Mono-Regular.ttf') format('truetype');
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }

@@ -39,12 +39,12 @@ function RouteComponent() {
                 href='https://www.kyleweberseattle.com'
                 target='_blank'
                 rel='nofollow noreferrer noopener external'>
-                polarisnwresidential.com
+                kyleweberseattle.com
               </a>{' '}
               website (“Website” or “Service”) and any of its related products and services
-              (collectively, “Services”) and outlines how Polaris Pacific (“Polaris Pacific”, “we”,
-              “us” or “our”) addresses copyright infringement notifications and how you (“you” or
-              “your”) may submit a copyright infringement complaint.
+              (collectively, “Services”) and outlines how Compass (“Compass”, “we”, “us” or “our”)
+              addresses copyright infringement notifications and how you (“you” or “your”) may
+              submit a copyright infringement complaint.
             </p>
             <p>
               Protection of intellectual property is of utmost importance to us and we ask our users
@@ -111,7 +111,7 @@ function RouteComponent() {
             </p>
             <p>
               Notwithstanding anything to the contrary contained in any portion of this Policy,
-              Polaris Pacific reserves the right to take no action upon receipt of a DMCA copyright
+              Compass reserves the right to take no action upon receipt of a DMCA copyright
               infringement notification if it fails to comply with all the requirements of the DMCA
               for such notifications.
             </p>
@@ -149,7 +149,7 @@ function RouteComponent() {
                 https://www.kyleweberseattle.com/contact
               </a>
               <br />
-              <a href='mailto:contact@polarisnwresidential.com'>contact@polarisnwresidential.com</a>
+              <a href='mailto:kweber@compass.com'>kweber@compass.com</a>
             </p>
           </section>
         </article>

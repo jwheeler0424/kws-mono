@@ -13,7 +13,7 @@ export function getEmailBaseUrl() {
 
 export function getEmailLogoSrc() {
   const baseUrl = getEmailBaseUrl();
-  return baseUrl ? `${baseUrl}/android-chrome-192x192.png` : undefined;
+  return `${baseUrl || 'https://kyleweberseattle.com'}/assets/brand/compass-black.png`;
 }
 
 export function getResolvedEmailBaseUrl() {
@@ -22,7 +22,7 @@ export function getResolvedEmailBaseUrl() {
 
 export function getAuthAppName() {
   const value = process.env.VITE_APP_NAME?.trim();
-  return value && value.length > 0 ? value : 'Admin Template';
+  return value && value.length > 0 ? value : 'Kyle Weber at Compass';
 }
 
 export const sharedEmailTailwindConfig: TailwindConfig = {

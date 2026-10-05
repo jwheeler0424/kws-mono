@@ -32,6 +32,10 @@ export const Hamburger = ({
       )}
       id='menu-toggle'
       type='button'
+      aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+      title={menuOpen ? 'Close navigation' : 'Open navigation'}
+      aria-expanded={menuOpen}
+      aria-controls='menu'
       onClick={handleClick}
       ref={ref}
       {...props}>

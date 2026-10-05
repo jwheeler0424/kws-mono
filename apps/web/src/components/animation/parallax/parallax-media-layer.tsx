@@ -27,6 +27,8 @@ export const ParallaxMediaLayer = <T extends ElementType = 'div'>({
   className,
   ...rest
 }: ParallaxMediaLayerProps<T>) => {
+  const mediaInset = `${-Math.abs(range * speed)}%`;
+
   return (
     <ParallaxItem
       speed={speed}
@@ -34,13 +36,17 @@ export const ParallaxMediaLayer = <T extends ElementType = 'div'>({
       direction={direction}
       className={cn('pointer-events-none absolute inset-0', className)}
       {...rest}>
-      {children}
-      <Activity mode={overlay ? 'visible' : 'hidden'}>
-        <div
-          data-slot='parallax-overlay'
-          className={`bg-black/${overlayOpacity} absolute inset-0 isolate`}
-        />
-      </Activity>
+      <div
+        className='absolute'
+        style={{ inset: direction === 'y' ? `${mediaInset} 0` : `0 ${mediaInset}` }}>
+        {children}
+        <Activity mode={overlay ? 'visible' : 'hidden'}>
+          <div
+            data-slot='parallax-overlay'
+            className={`bg-black/${overlayOpacity} absolute inset-0 isolate`}
+          />
+        </Activity>
+      </div>
     </ParallaxItem>
   );
 };

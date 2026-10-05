@@ -3,7 +3,7 @@
   "resource": "OpenHouse",
   "year": "2026",
   "month": "10",
-  "updatedAt": "2026-10-05T21:08:14.415Z",
+  "updatedAt": "2026-10-05T22:06:41.331Z",
   "chunks": [
     {
       "file": "openhouse-2026-10-05T21-07-55-708Z-xgldt522.jsonl.gz",
@@ -148,6 +148,14 @@
       "firstTimestamp": "2026-10-05T18:55:14.800Z",
       "lastTimestamp": "2026-10-05T20:55:22.882Z",
       "createdAt": "2026-10-05T21:08:14.414Z"
+    },
+    {
+      "file": "openhouse-2026-10-05T22-06-41-324Z-vn3vrlt6.jsonl.gz",
+      "checksumSha256": "821ac248f8a615aaaf17d5cc3cbb2a2ff4d786753121eacdf0821fb445ffb744",
+      "recordCount": 289,
+      "firstTimestamp": "2026-10-05T20:55:19.964Z",
+      "lastTimestamp": "2026-10-05T21:55:17.166Z",
+      "createdAt": "2026-10-05T22:06:41.327Z"
     }
   ]
 }

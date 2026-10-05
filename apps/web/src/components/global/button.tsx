@@ -7,60 +7,52 @@ import { cva } from 'class-variance-authority';
 
 import { cn } from '@/lib/utils';
 
+const solidButton =
+  'border-black bg-black text-white hover:border-[#242424] hover:bg-[#242424] hover:text-white';
+const outlineButton = 'border-black bg-transparent text-black hover:bg-black hover:text-white';
+
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:ring-offset-admin-900 dark:transition-colors dark:duration-200 dark:ease-linear',
+  'inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-solid font-sans text-base leading-[1.3] font-medium tracking-normal whitespace-nowrap no-underline shadow-none ring-offset-white transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        default: '',
+        default: solidButton,
         outlineWhite:
-          'rounded-md border-2 border-white bg-transparent fill-white text-white no-underline underline-offset-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] transition-colors duration-200 ease-linear hover:bg-white hover:fill-polaris-primary hover:text-polaris-primary hover:no-underline hover:shadow-primary',
-        solidWhite:
-          'rounded-md border-2 border-white bg-white text-polaris-primary no-underline underline-offset-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] transition-colors duration-200 ease-linear hover:bg-transparent hover:text-white hover:no-underline hover:shadow-primary',
-        outlineBlue:
-          'rounded-md border-2 border-blue bg-transparent px-4 py-1 text-sm font-normal text-blue no-underline underline-offset-0 transition-colors duration-200 ease-linear hover:bg-blue hover:text-white hover:no-underline dark:border-highlight dark:text-highlight dark:hover:bg-highlight dark:hover:text-white',
-        solidBlue:
-          'rounded-md border-2 border-blue bg-blue text-sm font-normal text-white no-underline underline-offset-0 transition-colors duration-200 ease-linear hover:bg-blue-600 hover:text-white hover:no-underline',
-        outlinePrimary:
-          'rounded-md border-2 border-polaris-primary bg-transparent text-polaris-primary no-underline underline-offset-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] transition-colors duration-200 ease-linear hover:bg-polaris-primary hover:text-white hover:no-underline hover:shadow',
-        solidPrimary:
-          'rounded-md border-2 border-polaris-primary bg-polaris-primary text-white no-underline underline-offset-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] transition-colors duration-200 ease-linear hover:border-polaris-primary-600 hover:bg-polaris-primary-700 hover:text-white hover:no-underline hover:shadow-primary',
+          'border-white bg-transparent text-white hover:bg-white hover:text-black focus-visible:ring-white',
+        solidWhite: 'border-white bg-white text-black hover:opacity-80 focus-visible:ring-white',
+        outlineBlue: outlineButton,
+        solidBlue: solidButton,
+        outlinePrimary: outlineButton,
+        solidPrimary: solidButton,
         outlineRed:
-          'rounded-md border-2 border-red-600 bg-transparent text-red-600 no-underline underline-offset-0 drop-shadow-none transition-colors duration-200 ease-linear hover:bg-red-600 hover:text-white hover:no-underline hover:shadow focus-visible:ring-red-600',
+          'border-red-600 bg-transparent text-red-600 hover:bg-red-600 hover:text-white focus-visible:ring-red-600',
         solidRed:
-          'rounded-md border-2 border-red bg-red text-white no-underline underline-offset-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] transition-colors duration-200 ease-linear hover:border-red-600 hover:bg-primary-600 hover:text-white hover:no-underline hover:shadow-primary',
-        outlineAdmin:
-          'rounded-md border-2 border-admin bg-transparent text-sm font-normal text-admin no-underline underline-offset-0 transition-colors duration-200 ease-linear hover:bg-admin hover:text-white hover:no-underline',
-        solidAdmin:
-          'rounded-md border-2 border-admin bg-admin text-sm font-normal text-white shadow shadow-admin-900/50 transition-colors duration-200 ease-linear hover:bg-admin-700 dark:bg-blue dark:hover:bg-blue-600',
-        outlineIcon:
-          'rounded-md border-2 border-icon bg-transparent text-sm font-normal text-icon no-underline underline-offset-0 transition-colors duration-200 ease-linear hover:bg-icon hover:text-white hover:no-underline',
-        solidIcon:
-          'rounded-md border-2 border-icon bg-icon text-sm font-normal text-white no-underline underline-offset-0 transition-colors duration-200 ease-linear hover:bg-icon-600 hover:text-white hover:no-underline',
-        outlineGreen:
-          'rounded-md border-2 border-green-600 bg-transparent text-sm font-normal text-green-600 no-underline underline-offset-0 transition-colors duration-200 ease-linear hover:bg-green-600 hover:text-white hover:no-underline',
-        solidGreen:
-          'rounded-md border-2 border-green-600 bg-green-600 text-sm font-normal text-white no-underline underline-offset-0 transition-colors duration-200 ease-linear hover:bg-green-700 hover:text-white hover:no-underline',
-        ghost:
-          'text-highlight hover:bg-icon-100/35 focus-visible:ring-highlight dark:hover:bg-admin-900',
-        slide: 'border border-solid border-gray/50 bg-black/50',
-        link: 'text-current underline-offset-4 hover:underline',
+          'border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white focus-visible:ring-red-600',
+        outlineAdmin: outlineButton,
+        solidAdmin: solidButton,
+        outlineIcon: outlineButton,
+        solidIcon: solidButton,
+        outlineGreen: outlineButton,
+        solidGreen: solidButton,
+        ghost: 'border-transparent bg-transparent text-neutral-900 hover:bg-neutral-100',
+        slide: 'border-white/50 bg-black/50 text-white hover:bg-black/70',
+        link: 'border-transparent bg-transparent text-current underline-offset-4 hover:underline',
       },
       chroma: {
         default: '',
-        admin: 'text-admin hover:text-admin-400 dark:hover:text-admin-700',
-        blue: 'text-highlight hover:text-blue dark:hover:text-blue',
+        admin: 'text-neutral-900 hover:text-neutral-600',
+        blue: 'text-neutral-900 hover:text-neutral-600',
         white: 'text-white',
         primary: 'text-polaris-primary',
         gray: 'text-gray-700',
       },
       size: {
-        default: '',
-        sm: 'rounded-md px-3 py-1',
-        md: 'rounded-md px-4 py-2',
-        lg: 'rounded-md px-8 py-3',
-        icon: 'rounded-md p-2',
-        slide: 'size-8 rounded-full',
+        default: 'px-6 pt-[calc(0.75rem+0.125em)] pb-[calc(0.75rem-0.125em)]',
+        sm: 'min-h-9 px-4 pt-[calc(0.5rem+0.125em)] pb-[calc(0.5rem-0.125em)] text-sm',
+        md: 'px-6 pt-[calc(0.75rem+0.125em)] pb-[calc(0.75rem-0.125em)]',
+        lg: 'px-6 pt-[calc(0.75rem+0.125em)] pb-[calc(0.75rem-0.125em)] text-lg leading-normal',
+        icon: 'size-10 p-0',
+        slide: 'size-8 p-0',
       },
     },
     defaultVariants: {
@@ -68,6 +60,7 @@ const buttonVariants = cva(
       chroma: 'default',
       size: 'default',
     },
+    compoundVariants: [{ variant: 'link', size: 'default', className: 'min-h-0 border-0 p-0' }],
   },
 );
 

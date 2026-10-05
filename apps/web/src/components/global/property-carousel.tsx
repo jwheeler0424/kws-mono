@@ -97,7 +97,7 @@ export function PropertyCarousel({
           ))}
         </CarouselContent>
         <CarouselPrevious
-          className='-left-5 bg-white/80 text-polaris-primary hover:bg-polaris-primary hover:text-white border-white transition-colors duration-300 2xlmb:bg-transparent 2xlmb:text-white 2xlmb:border-2 2xlmb:border-white 2xlmb:hover:bg-white 2xlmb:hover:text-polaris-primary 2xlmb:-left-10 xstb:-left-5 md:-left-12 lgtb:-left-14 2xsdt:-left-10 xsdt:left-0 lgdt:-left-12 4xldt:-left-14'
+          className='rounded-full! -left-5 bg-white/80 text-polaris-primary hover:bg-polaris-primary hover:text-white border-white transition-colors duration-300 2xlmb:bg-transparent 2xlmb:text-white 2xlmb:border 2xlmb:border-white 2xlmb:hover:bg-white 2xlmb:hover:text-polaris-primary 2xlmb:-left-10 xstb:-left-5 md:-left-12 lgtb:-left-14 2xsdt:-left-10 xsdt:left-0 lgdt:-left-12 4xldt:-left-14'
           render={
             <Button size='icon'>
               <ChevronLeftIcon className='-ml-0.5' />
@@ -105,7 +105,7 @@ export function PropertyCarousel({
           }
         />
         <CarouselNext
-          className='-right-5 bg-white/80 text-polaris-primary hover:bg-polaris-primary hover:text-white border-white transition-colors duration-300 2xlmb:bg-transparent 2xlmb:text-white 2xlmb:border-2 2xlmb:border-white 2xlmb:hover:bg-white 2xlmb:hover:text-polaris-primary 2xlmb:-right-10 xstb:-right-5 md:-right-12 lgtb:-right-14 2xsdt:-right-10 xsdt:right-0 lgdt:-right-12 4xldt:-right-14'
+          className='rounded-full! -right-5 bg-white/80 text-polaris-primary hover:bg-polaris-primary hover:text-white border-white transition-colors duration-300 2xlmb:bg-transparent 2xlmb:text-white 2xlmb:border 2xlmb:border-white 2xlmb:hover:bg-white 2xlmb:hover:text-polaris-primary 2xlmb:-right-10 xstb:-right-5 md:-right-12 lgtb:-right-14 2xsdt:-right-10 xsdt:right-0 lgdt:-right-12 4xldt:-right-14'
           render={
             <Button size='icon'>
               <ChevronRightIcon className='-mr-0.5' />

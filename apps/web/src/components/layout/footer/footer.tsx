@@ -68,12 +68,12 @@ export function FrontendFooter({ className, ...props }: FrontendFooterProps) {
           'flex w-full flex-col items-center justify-center gap-6 self-center pt-0 text-center text-polaris-primary!',
         )}>
         <p className={cn('max-w-160 px-6 text-[10px]! text-polaris-primary! lg:text-xs!')}>
-          Polaris Pacific is a licensed real estate broker and abides by equal housing opportunity
-          laws. All material presented herein is inteded for informational purposes only.
-          Information is compiled from sources deemed reliable but is subject to errors, omissions,
-          changes in price, condition, sale, or withdrawl without notice. No statement is made as to
-          the accuracy of any description. All measurments and square footages are approximate. This
-          is not intended to solicit property already listed. Nothing herein shall be construed as
+          Compass is a licensed real estate broker and abides by equal housing opportunity laws. All
+          material presented herein is inteded for informational purposes only. Information is
+          compiled from sources deemed reliable but is subject to errors, omissions, changes in
+          price, condition, sale, or withdrawl without notice. No statement is made as to the
+          accuracy of any description. All measurments and square footages are approximate. This is
+          not intended to solicit property already listed. Nothing herein shall be construed as
           legal, accounting, or other professional advice outside the realm of real estate
           brokerage.
         </p>
@@ -82,20 +82,25 @@ export function FrontendFooter({ className, ...props }: FrontendFooterProps) {
           <path d='M123.256 78.75H67.479V58.592h55.777V78.75zM123.256 107.662H67.479V87.491h55.777v20.171z' />
         </svg>
       </section>
-      <section className={cn('flex items-end justify-between')}>
-        <h1 className={cn('mt-0 mb-1 w-fit p-4 font-title! text-3xl! leading-[0.73]! uppercase!')}>
+      <section className='flex flex-col items-center justify-between gap-4 sm:flex-row sm:items-end'>
+        <div className='w-fit p-4'>
           <a
-            href='https://polarispacific.com/'
+            href='https://www.compass.com/'
             target='_blank'
+            rel='noopener noreferrer'
             className='text-polaris-primary! no-underline! transition-colors duration-200 ease-linear hover:text-polaris-primary-300!'>
-            Polaris
-            <br />
-            Pacific
+            <img
+              src='/assets/brand/compass-black.png'
+              alt='Compass'
+              className='h-auto w-36'
+              width={180}
+              height={24}
+            />
           </a>
-        </h1>
+        </div>
         <article className={cn('mb-0.5 flex flex-col gap-1 p-4')}>
           <main className='flex flex-wrap items-center justify-end gap-x-1.5 text-right text-xs font-medium text-polaris-primary'>
-            <span>Copyright &copy; {year} Polaris Pacific.</span>
+            <span>Copyright &copy; {year} Compass.</span>
             <span>All Rights Reserved.</span>
           </main>
           <section

@@ -4,10 +4,6 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import './typography.css';
-@import '@fontsource-variable/geist';
-@import '@fontsource-variable/manrope';
-@import '@fontsource/fira-mono';
-@import '@fontsource-variable/roboto';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -35,7 +31,7 @@
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -44,20 +40,20 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --font-fira-mono: 'Fira Mono', monospace;
-  --font-nueu-haas-grotesk: 'Nueu Haas Grotesk', sans-serif;
-  --font-roboto: 'Roboto', sans-serif;
-  --font-knockout: 'Knockout', sans-serif;
-  --polaris-primary-100: oklch(0.945 0.065 27.5);
-  --polaris-primary-200: oklch(0.865 0.12 27.5);
-  --polaris-primary-300: oklch(0.785 0.18 27.5);
-  --polaris-primary-400: oklch(0.705 0.24 27.5);
-  --polaris-primary: oklch(0.625 0.3 27.5);
-  --polaris-primary-500: oklch(0.625 0.3 27.5);
-  --polaris-primary-600: oklch(0.525 0.35 27.5);
-  --polaris-primary-700: oklch(0.425 0.4 27.5);
-  --polaris-primary-800: oklch(0.325 0.45 27.5);
-  --polaris-primary-900: oklch(0.225 0.5 27.5);
+  --font-fira-mono: 'GT Pressura Mono', monospace;
+  --font-nueu-haas-grotesk: 'Compass Sans', sans-serif;
+  --font-roboto: 'Compass Sans', sans-serif;
+  --font-knockout: 'Compass Display', serif;
+  --polaris-primary-100: #f5f5f5;
+  --polaris-primary-200: #e5e5e5;
+  --polaris-primary-300: #a3a3a3;
+  --polaris-primary-400: #737373;
+  --polaris-primary: #171717;
+  --polaris-primary-500: #525252;
+  --polaris-primary-600: #404040;
+  --polaris-primary-700: #262626;
+  --polaris-primary-800: #171717;
+  --polaris-primary-900: #0a0a0a;
 }
 
 .dark {
@@ -92,26 +88,26 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  --polaris-primary-100: oklch(0.945 0.065 27.5);
-  --polaris-primary-200: oklch(0.865 0.12 27.5);
-  --polaris-primary-300: oklch(0.785 0.18 27.5);
-  --polaris-primary-400: oklch(0.705 0.24 27.5);
-  --polaris-primary: oklch(0.675 0.25 27.5);
-  --polaris-primary-500: oklch(0.625 0.3 27.5);
-  --polaris-primary-600: oklch(0.525 0.35 27.5);
-  --polaris-primary-700: oklch(0.425 0.4 27.5);
-  --polaris-primary-800: oklch(0.325 0.45 27.5);
-  --polaris-primary-900: oklch(0.225 0.5 27.5);
+  --polaris-primary-100: #f5f5f5;
+  --polaris-primary-200: #e5e5e5;
+  --polaris-primary-300: #a3a3a3;
+  --polaris-primary-400: #737373;
+  --polaris-primary: #171717;
+  --polaris-primary-500: #525252;
+  --polaris-primary-600: #404040;
+  --polaris-primary-700: #262626;
+  --polaris-primary-800: #171717;
+  --polaris-primary-900: #0a0a0a;
 }
 
 @theme inline {
-  --font-sans: 'Geist Variable', sans-serif;
-  --font-heading: 'Manrope Variable', sans-serif;
-  --font-mono: 'Fira Mono', monospace;
+  --font-sans: 'Compass Sans', sans-serif;
+  --font-heading: 'Compass Display', serif;
+  --font-mono: 'GT Pressura Mono', monospace;
   --font-knockout: var(--font-knockout);
-  --font-roboto: 'Roboto', sans-serif;
-  --font-nueu-haas-grotesk: 'Nueu Haas Grotesk', sans-serif;
-  --font-fira-mono: 'Fira Mono', monospace;
+  --font-roboto: 'Compass Sans', sans-serif;
+  --font-nueu-haas-grotesk: 'Compass Sans', sans-serif;
+  --font-fira-mono: 'GT Pressura Mono', monospace;
   --font-title: var(--font-knockout);
   --color-polaris-primary-100: var(--polaris-primary-100);
   --color-polaris-primary-200: var(--polaris-primary-200);
@@ -215,6 +211,17 @@
   }
   html {
     @apply font-sans;
+  }
+  body {
+    letter-spacing: 0;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    overflow-wrap: anywhere;
   }
 
   ::selection {
@@ -487,27 +494,27 @@
 
 @layer base {
   h1 {
-    @apply font-title text-7xl font-normal tracking-normal text-polaris-primary uppercase;
+    @apply font-title text-4xl font-normal tracking-normal text-polaris-primary sm:text-5xl lg:text-6xl;
   }
 
   h2 {
-    @apply font-title text-2xl font-normal tracking-normal text-polaris-primary uppercase;
+    @apply font-title text-2xl font-normal tracking-normal text-polaris-primary;
   }
 
   h3 {
-    @apply mb-0 font-title text-xl font-normal tracking-normal text-polaris-primary uppercase;
+    @apply mb-0 font-title text-xl font-normal tracking-normal text-polaris-primary;
   }
 
   h4 {
-    @apply font-title text-lg font-normal tracking-normal text-polaris-primary uppercase;
+    @apply font-title text-lg font-normal tracking-normal text-polaris-primary;
   }
 
   h5 {
-    @apply font-title text-base font-normal tracking-normal text-polaris-primary uppercase;
+    @apply font-title text-base font-normal tracking-normal text-polaris-primary;
   }
 
   h6 {
-    @apply font-title text-base font-normal tracking-normal text-polaris-primary uppercase;
+    @apply font-title text-base font-normal tracking-normal text-polaris-primary;
   }
 
   p {
@@ -528,6 +535,31 @@
 
   .content {
     @apply mx-auto flex w-11/12 flex-col gap-8 px-2 md:px-5 2xl:px-12;
+  }
+  .guide-content {
+    @apply max-w-[100rem] gap-0 py-16;
+  }
+  .guide-content p,
+  .about-story p {
+    @apply mt-5 text-base leading-8;
+  }
+  .guide-content h2 {
+    @apply mt-14 mb-6 text-3xl leading-tight sm:text-4xl;
+  }
+  .guide-content h3 {
+    @apply mt-8 mb-4 text-xl leading-snug sm:text-2xl;
+  }
+  .guide-content li {
+    @apply leading-8;
+  }
+  .guide-content li p {
+    @apply m-0;
+  }
+  .guide-contact {
+    @apply border border-neutral-900 bg-neutral-900 px-6 py-3 text-white no-underline hover:bg-white hover:text-neutral-900;
+  }
+  .about-story p:first-child {
+    @apply mt-0;
   }
   .banner-short {
     @apply relative w-full portrait:h-[60svh] landscape:h-[60svh] landscape:lg:h-[calc(80svh-4rem)];
@@ -584,7 +616,7 @@
   }
 
   article.hero-banner > main > h1 {
-    @apply text-7xl text-white drop-shadow-[1px_2px_2px_rgba(0,0,0,0.65)];
+    @apply text-7xl font-bold! text-white drop-shadow-[1px_2px_2px_rgba(0,0,0,0.65)];
   }
 
   article.hero-banner > main > section {
@@ -600,7 +632,7 @@
   }
 
   article.banner > main > h1 {
-    @apply text-7xl text-white drop-shadow-[1px_2px_2px_rgba(0,0,0,0.65)];
+    @apply text-7xl font-bold! text-white drop-shadow-[1px_2px_2px_rgba(0,0,0,0.65)];
   }
 
   article.banner.banner-title > main {
@@ -608,7 +640,7 @@
   }
 
   article.banner.banner-title > main > h1 {
-    @apply text-7xl text-white drop-shadow-[1px_2px_2px_rgba(0,0,0,0.65)];
+    @apply text-4xl leading-tight text-white drop-shadow-[1px_2px_2px_rgba(0,0,0,0.65)] sm:text-5xl lg:text-6xl;
   }
 
   article.banner.banner-team {
@@ -682,6 +714,9 @@
 
 div.leaflet-control-container {
   @apply h-full! w-full!;
+}
+.content [data-slot='field-error'] {
+  color: var(--destructive);
 }
 .leaflet-left {
   @apply left-4;

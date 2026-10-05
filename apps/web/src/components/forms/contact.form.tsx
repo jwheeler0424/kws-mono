@@ -58,7 +58,7 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
 
   return (
     <form
-      className={cn('w-full space-y-4', className)}
+      className={cn('grid w-full grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2', className)}
       onSubmit={async (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -70,10 +70,8 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
         children={(field) => {
           const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
           return (
-            <Field data-invalid={isInvalid}>
-              <FieldLabel
-                htmlFor={field.name}
-                className={cn('text-sm font-bold tracking-wider text-gray-900')}>
+            <Field data-invalid={isInvalid} className='gap-2 sm:col-span-2'>
+              <FieldLabel htmlFor={field.name} className='text-sm font-medium text-neutral-900'>
                 Name
               </FieldLabel>
               <Input
@@ -87,13 +85,13 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
                 placeholder='Alan Rickman'
                 autoComplete='name'
                 className={cn(
-                  'focus:border-gray w-full rounded-md! border border-gray-200! px-2.5 py-3 text-sm text-gray-900 shadow ring-offset-0 placeholder:text-gray-200 placeholder:italic focus-visible:ring-0 focus-visible:ring-black! focus-visible:ring-offset-0 disabled:cursor-default disabled:opacity-100',
+                  'h-12 w-full rounded-none border-neutral-300 bg-white px-4 text-base text-neutral-900 shadow-none placeholder:text-neutral-500 focus-visible:border-neutral-900 focus-visible:ring-1 focus-visible:ring-neutral-900 focus-visible:ring-offset-0',
                 )}
                 disabled={isSubmitting}
               />
 
               {isInvalid && (
-                <FieldError className='text-polaris-primary' errors={field.state.meta.errors} />
+                <FieldError className='text-destructive' errors={field.state.meta.errors} />
               )}
             </Field>
           );
@@ -105,8 +103,8 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
         children={(field) => {
           const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
           return (
-            <Field data-invalid={isInvalid}>
-              <FieldLabel className={cn('text-sm font-bold tracking-wider text-gray-900')}>
+            <Field data-invalid={isInvalid} className='gap-2'>
+              <FieldLabel htmlFor={field.name} className='text-sm font-medium text-neutral-900'>
                 Email
               </FieldLabel>
               <Input
@@ -118,14 +116,15 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
                 aria-invalid={isInvalid}
                 variant={'frontend'}
                 type='email'
+                autoComplete='email'
                 className={cn(
-                  'focus:border-gray w-full rounded-md! border border-gray-200! px-2.5 py-3 text-sm text-gray-900 shadow ring-offset-0 placeholder:text-gray-200 placeholder:italic focus-visible:ring-0 focus-visible:ring-black! focus-visible:ring-offset-0 disabled:cursor-default disabled:opacity-100',
+                  'h-12 w-full rounded-none border-neutral-300 bg-white px-4 text-base text-neutral-900 shadow-none placeholder:text-neutral-500 focus-visible:border-neutral-900 focus-visible:ring-1 focus-visible:ring-neutral-900 focus-visible:ring-offset-0',
                 )}
                 placeholder={'yourself@company.com'}
                 disabled={isSubmitting}
               />
               {isInvalid && (
-                <FieldError className='text-polaris-primary' errors={field.state.meta.errors} />
+                <FieldError className='text-destructive' errors={field.state.meta.errors} />
               )}
             </Field>
           );
@@ -137,8 +136,8 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
         children={(field) => {
           const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
           return (
-            <Field data-invalid={isInvalid}>
-              <FieldLabel className={cn('text-sm font-bold tracking-wider text-gray-900')}>
+            <Field data-invalid={isInvalid} className='gap-2'>
+              <FieldLabel htmlFor={field.name} className='text-sm font-medium text-neutral-900'>
                 Phone
               </FieldLabel>
               <Input
@@ -150,14 +149,15 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
                 aria-invalid={isInvalid}
                 variant={'frontend'}
                 type='tel'
+                autoComplete='tel'
                 className={cn(
-                  'focus:border-gray w-full rounded-md! border border-gray-200! px-2.5 py-3 text-sm text-gray-900 shadow ring-offset-0 placeholder:text-gray-200 placeholder:italic focus-visible:ring-0 focus-visible:ring-black! focus-visible:ring-offset-0 disabled:cursor-default disabled:opacity-100',
+                  'h-12 w-full rounded-none border-neutral-300 bg-white px-4 text-base text-neutral-900 shadow-none placeholder:text-neutral-500 focus-visible:border-neutral-900 focus-visible:ring-1 focus-visible:ring-neutral-900 focus-visible:ring-offset-0',
                 )}
                 placeholder={'206-555-5555'}
                 disabled={isSubmitting}
               />
               {isInvalid && (
-                <FieldError className='text-polaris-primary' errors={field.state.meta.errors} />
+                <FieldError className='text-destructive' errors={field.state.meta.errors} />
               )}
             </Field>
           );
@@ -169,8 +169,8 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
         children={(field) => {
           const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
           return (
-            <Field data-invalid={isInvalid}>
-              <FieldLabel className={cn('text-sm font-bold tracking-wider text-gray-900')}>
+            <Field data-invalid={isInvalid} className='gap-2 sm:col-span-2'>
+              <FieldLabel htmlFor={field.name} className='text-sm font-medium text-neutral-900'>
                 Message
               </FieldLabel>
               <Textarea
@@ -181,14 +181,14 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
                 onChange={(e) => field.handleChange(e.target.value)}
                 aria-invalid={isInvalid}
                 className={cn(
-                  'focus:border-gray min-h-20 w-full resize-none! rounded-md! border border-gray-200! px-2.5 py-1.5 text-sm text-gray-900 shadow ring-offset-0 placeholder:text-gray-200 placeholder:italic focus-visible:ring-1! focus-visible:ring-black! focus-visible:ring-offset-0 disabled:cursor-default disabled:opacity-100',
+                  'min-h-44 w-full resize-y rounded-none border-neutral-300 bg-white px-4 py-3 text-base leading-7 text-neutral-900 shadow-none placeholder:text-neutral-500 focus-visible:border-neutral-900 focus-visible:ring-1 focus-visible:ring-neutral-900 focus-visible:ring-offset-0',
                 )}
-                placeholder={'Ask us a question directly...'}
+                placeholder='How can I help?'
                 disabled={isSubmitting}
               />
 
               {isInvalid && (
-                <FieldError className='text-polaris-primary' errors={field.state.meta.errors} />
+                <FieldError className='text-destructive' errors={field.state.meta.errors} />
               )}
             </Field>
           );
@@ -198,10 +198,7 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
       <Button
         type='submit'
         disabled={!canSubmit || isSubmitting}
-        className={cn(
-          'mt-2 w-full flex-1 grow text-base leading-6 transition-all duration-200 ease-linear',
-          isSubmitting && 'flex-0',
-        )}
+        className='mt-2 w-full sm:col-span-2 sm:w-auto sm:justify-self-start'
         size={'lg'}
         variant={'solidPrimary'}>
         {isSubmitting ? (
@@ -209,7 +206,7 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
             <Spinner /> {'Submitting request...'}
           </>
         ) : (
-          'Submit'
+          'Send message'
         )}
       </Button>
     </form>

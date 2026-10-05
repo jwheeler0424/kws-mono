@@ -3,7 +3,7 @@
   "resource": "Property",
   "year": "2026",
   "month": "07",
-  "updatedAt": "2026-07-14T20:04:12.337Z",
+  "updatedAt": "2026-10-05T21:53:24.657Z",
   "chunks": [
     {
       "file": "property-2026-07-06T18-28-08-277Z-jky6499x.jsonl.gz",
@@ -2972,6 +2972,46 @@
       "firstTimestamp": "2026-07-14T19:48:12.201Z",
       "lastTimestamp": "2026-07-14T20:03:15.315Z",
       "createdAt": "2026-07-14T20:04:12.334Z"
+    },
+    {
+      "file": "property-2026-10-05T21-52-49-436Z-6jxf4cvx.jsonl.gz",
+      "checksumSha256": "65908ae40d0fdd891cccdcec9fd41a5f12f85e28c86e1379a20c2e9ec8880c38",
+      "recordCount": 912,
+      "firstTimestamp": "2026-07-14T20:20:13.487Z",
+      "lastTimestamp": "2026-07-19T11:04:14.786Z",
+      "createdAt": "2026-10-05T21:52:49.633Z"
+    },
+    {
+      "file": "property-2026-10-05T21-52-58-824Z-xhhwicyc.jsonl.gz",
+      "checksumSha256": "2c82e8a6701fa2a304092a1c60c8ad67d484a2c7a78b2d43d5401c9c1865fe72",
+      "recordCount": 931,
+      "firstTimestamp": "2026-07-19T11:04:15.162Z",
+      "lastTimestamp": "2026-07-23T11:05:18.456Z",
+      "createdAt": "2026-10-05T21:52:59.009Z"
+    },
+    {
+      "file": "property-2026-10-05T21-53-07-555Z-bo4j42cx.jsonl.gz",
+      "checksumSha256": "4540c48dc51bc659cf3baffb277bd92bd8028655d53fe92a175f498a7758519e",
+      "recordCount": 917,
+      "firstTimestamp": "2026-07-23T11:05:18.602Z",
+      "lastTimestamp": "2026-07-27T11:04:15.309Z",
+      "createdAt": "2026-10-05T21:53:07.739Z"
+    },
+    {
+      "file": "property-2026-10-05T21-53-17-043Z-ch9lyxad.jsonl.gz",
+      "checksumSha256": "f5e81f6b436a4b8abf47426bdb077781c7d1117a70c49573dd3df637b1905706",
+      "recordCount": 925,
+      "firstTimestamp": "2026-07-27T11:04:16.040Z",
+      "lastTimestamp": "2026-07-31T11:05:53.823Z",
+      "createdAt": "2026-10-05T21:53:17.216Z"
+    },
+    {
+      "file": "property-2026-10-05T21-53-24-526Z-28xdcssk.jsonl.gz",
+      "checksumSha256": "9470995b863733fb714f28ec84febe8e7d2251ebe103d699a168798ca350cd59",
+      "recordCount": 675,
+      "firstTimestamp": "2026-07-31T11:05:53.976Z",
+      "lastTimestamp": "2026-07-31T23:31:11.387Z",
+      "createdAt": "2026-10-05T21:53:24.656Z"
     }
   ]
 }

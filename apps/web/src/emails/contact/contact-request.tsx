@@ -27,11 +27,11 @@ export const ContactRequestEmail = ({
   <Html>
     <Head>
       <Font
-        fontFamily='Knockout'
+        fontFamily='Compass Sans'
         fallbackFontFamily='Verdana'
         webFont={{
-          url: `${env.APP_URL}/assets/fonts/knockout/Knockout-68.otf`,
-          format: 'opentype',
+          url: `${env.APP_URL}/assets/fonts/compass/CompassSans-Regular.ttf`,
+          format: 'truetype',
         }}
         fontWeight={400}
         fontStyle='normal'
@@ -40,23 +40,29 @@ export const ContactRequestEmail = ({
     <Tailwind config={sharedEmailTailwindConfig}>
       <Body className='bg-background px-4 py-10 font-sans text-foreground'>
         <Preview>
-          {subject ?? `You've recieved a new contact message!`} for {appName}
+          {subject ?? `You've received a new contact message!`} for {appName}
         </Preview>
         <Card className='mx-auto max-w-[560px] border border-solid border-border px-4 py-0'>
-          <CardHeader className='px-10 pt-12 pb-0'>
+          <CardHeader className='px-4 pt-12 pb-0 sm:px-8'>
             {logoSrc ? (
-              <Img src={logoSrc} width='48' height='48' alt={`${appName} logo`} className='mb-8' />
+              <Img
+                src={logoSrc}
+                width='180'
+                height='24'
+                alt='Compass'
+                className='mb-8 h-auto max-w-full'
+              />
             ) : null}
             <Heading level='h2' className='mb-2'>
-              You've recieved a new contact message!
+              You've received a new contact message!
             </Heading>
           </CardHeader>
-          <CardContent className='px-10 pb-12'>
+          <CardContent className='px-4 pb-12 sm:px-8'>
             <Text style={paragraph}>
               {propertyAddress
-                ? `You have recieved a new contact message in regards to a property
+                ? `You have received a new contact message in regards to a property
             that is listed on your website. Please see the details below.`
-                : `You have recieved a new contact message. Please see the details below.`}
+                : `You have received a new contact message. Please see the details below.`}
             </Text>
             {propertyAddress && (
               <>
@@ -85,8 +91,15 @@ export const ContactRequestEmail = ({
 
             <Separator className='my-8' />
             <Text style={footer}>
-              Polaris NW Residential <br />
-              Polaris Pacific, 2228 1st Ave., Suite 230 Seattle, WA 98121
+              Kyle Weber at Compass <br />
+              700 110th Ave NE #270, Bellevue, WA 98004 <br />
+              <Link href='mailto:kweber@compass.com' style={anchor}>
+                kweber@compass.com
+              </Link>{' '}
+              ·{' '}
+              <Link href='tel:+12066498935' style={anchor}>
+                206.649.8935
+              </Link>
             </Text>
           </CardContent>
         </Card>
@@ -98,7 +111,7 @@ export const ContactRequestEmail = ({
 export default ContactRequestEmail;
 
 const h3 = {
-  color: '#525f7f',
+  color: '#262626',
   fontSize: '16px',
   fontWeight: '600' as const,
   lineHeight: '24px',
@@ -106,7 +119,7 @@ const h3 = {
 };
 
 const paragraph = {
-  color: '#525f7f',
+  color: '#262626',
 
   fontSize: '16px',
   lineHeight: '24px',
@@ -114,12 +127,12 @@ const paragraph = {
 };
 
 const anchor = {
-  color: '#556cd6',
+  color: '#171717',
   textDecoration: 'underline',
 };
 
 const footer = {
-  color: '#8898aa',
+  color: '#737373',
   fontSize: '12px',
   lineHeight: '16px',
 };

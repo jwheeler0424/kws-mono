@@ -3,7 +3,7 @@
   "resource": "Lookup",
   "year": "2026",
   "month": "09",
-  "updatedAt": "2026-10-05T20:57:21.129Z",
+  "updatedAt": "2026-10-05T21:52:43.858Z",
   "chunks": [
     {
       "file": "lookup-2026-10-05T20-54-28-137Z-qfu87nt6.jsonl.gz",
@@ -20,6 +20,14 @@
       "firstTimestamp": "2026-09-03T05:28:18.165Z",
       "lastTimestamp": "2026-09-03T05:28:18.165Z",
       "createdAt": "2026-10-05T20:57:21.128Z"
+    },
+    {
+      "file": "lookup-2026-10-05T21-52-43-856Z-085s5ycc.jsonl.gz",
+      "checksumSha256": "a89b824e590c8896cb1b3909afda6c31396a0a54ad316c5e650ea3e66048ae82",
+      "recordCount": 1,
+      "firstTimestamp": "2026-09-03T05:28:18.165Z",
+      "lastTimestamp": "2026-09-03T05:28:18.165Z",
+      "createdAt": "2026-10-05T21:52:43.858Z"
     }
   ]
 }

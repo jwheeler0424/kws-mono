@@ -48,22 +48,20 @@ function RouteComponent() {
   return (
     <main className='w-full'>
       {/* Hero */}
-      <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden'>
+      <ParallaxContainer className='banner-short relative flex items-center justify-center overflow-hidden'>
         <ParallaxMediaLayer>
           <img
-            className='h-full w-full object-cover object-top'
+            className='h-full w-full object-cover'
             src='/assets/images/blog-page.jpg'
             alt='Blog Banner - Seattle Night time'
             fetchPriority='high'
             loading='eager'
           />
         </ParallaxMediaLayer>
-        <ParallaxContentLayer range={75} speed={0.68}>
+        <ParallaxContentLayer>
           <article className='banner banner-title flex'>
-            <main className='relative top-[clamp(15vh,calc(10vh-4rem),25vh)] px-0 py-[clamp(1.25rem,1.65vw-2.16rem,6rem)]'>
-              <h1 className='relative w-full text-left text-7xl font-medium text-white'>
-                Let's Discover Seattle
-              </h1>
+            <main className='py-12'>
+              <h1>Let's Discover Seattle</h1>
             </main>
           </article>
         </ParallaxContentLayer>
@@ -105,7 +103,7 @@ function RouteComponent() {
 							</main>
 						))} */}
           <main className={cn('flex h-full w-full flex-1 items-center justify-center py-20')}>
-            <BeatLoader color='#ff0000' loading={true} size={15} />
+            <BeatLoader color='#171717' loading={true} size={15} />
           </main>
         </section>
       </article>
