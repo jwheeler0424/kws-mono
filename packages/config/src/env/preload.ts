@@ -37,8 +37,11 @@ const collectEnvPaths = () => {
     }
   }
 
-  throw new Error('No runtime env file found in packages/config. Expected .env.local or .env.');
+  return [];
 };
 
-const envConfig = dotenv.config({ path: collectEnvPaths() });
-dotenvExpand.expand(envConfig);
+const envPaths = collectEnvPaths();
+if (envPaths.length > 0) {
+  const envConfig = dotenv.config({ path: envPaths });
+  dotenvExpand.expand(envConfig);
+}

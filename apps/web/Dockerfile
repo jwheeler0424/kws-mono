@@ -28,9 +28,6 @@ ENV WEB_MEDIA_TARGET=/app/apps/web/public/media
 
 COPY --from=builder /app /app
 
-# Ensure runtime config package env file is present in the final image.
-RUN test -f /app/packages/config/.env
-
 COPY docker/web-entrypoint.sh /usr/local/bin/web-entrypoint.sh
 RUN sed -i 's/\r$//' /usr/local/bin/web-entrypoint.sh \
     && chmod +x /usr/local/bin/web-entrypoint.sh

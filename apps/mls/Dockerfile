@@ -29,9 +29,6 @@ ENV MLS_MEDIA_TARGET=/app/store/media
 
 COPY --from=installer /app /app
 
-# Ensure runtime config package env files are present in the final image.
-RUN test -f /app/packages/config/.env
-
 COPY docker/mls-entrypoint.sh /usr/local/bin/mls-entrypoint.sh
 RUN sed -i 's/\r$//' /usr/local/bin/mls-entrypoint.sh \
 	&& chmod +x /usr/local/bin/mls-entrypoint.sh
