@@ -370,7 +370,6 @@ export const insertCommentSchema = createInsertSchema(comments, {
   downvotes: true,
   flagCount: true,
   spamScore: true,
-  searchVector: true,
 });
 
 export const updateCommentSchema = insertCommentSchema.partial();

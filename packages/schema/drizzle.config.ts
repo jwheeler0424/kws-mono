@@ -11,7 +11,6 @@ export default defineConfig({
   out: './drizzle/migrations',
   schema: './src/schema.ts',
   dialect: 'postgresql',
-  strict: true,
   verbose: true,
   dbCredentials: {
     database: DB_NAME,

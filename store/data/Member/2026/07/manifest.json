@@ -3,7 +3,7 @@
   "resource": "Member",
   "year": "2026",
   "month": "07",
-  "updatedAt": "2026-07-14T20:10:01.209Z",
+  "updatedAt": "2026-10-05T21:02:44.508Z",
   "chunks": [
     {
       "file": "member-2026-07-06T17-36-34-501Z-h9dbshq7.jsonl.gz",
@@ -2836,6 +2836,54 @@
       "firstTimestamp": "2026-07-14T19:58:10.748Z",
       "lastTimestamp": "2026-07-14T19:58:12.551Z",
       "createdAt": "2026-07-14T20:10:01.207Z"
+    },
+    {
+      "file": "member-2026-10-05T20-59-52-564Z-e01yxkxf.jsonl.gz",
+      "checksumSha256": "6cb0fec707b2804df6247bec9764ab9fe48629e21faa4ac8238cb8b6959b54e6",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-07-14T20:13:10.666Z",
+      "lastTimestamp": "2026-07-16T02:58:09.364Z",
+      "createdAt": "2026-10-05T20:59:52.571Z"
+    },
+    {
+      "file": "member-2026-10-05T21-01-37-310Z-smkea90h.jsonl.gz",
+      "checksumSha256": "cf1ed87b466b3709f6c775b9e6be537d29f0ebedbdb167df27a05c59e9a51ab4",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-07-16T02:58:09.452Z",
+      "lastTimestamp": "2026-07-20T20:58:11.835Z",
+      "createdAt": "2026-10-05T21:01:37.317Z"
+    },
+    {
+      "file": "member-2026-10-05T21-02-32-970Z-zquuiizq.jsonl.gz",
+      "checksumSha256": "673f45203f7f48c76a6b8799c50a7a729223730401c663899e0226e9ba9d8c73",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-07-20T20:58:12.179Z",
+      "lastTimestamp": "2026-07-24T19:28:13.310Z",
+      "createdAt": "2026-10-05T21:02:32.978Z"
+    },
+    {
+      "file": "member-2026-10-05T21-02-42-753Z-91tg9gp4.jsonl.gz",
+      "checksumSha256": "2e6dcc5f639fc04a3a4515940aa2d05c4e8457ef43f3f9a34f3592eac77b7f3c",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-07-24T19:28:13.814Z",
+      "lastTimestamp": "2026-07-29T16:58:13.471Z",
+      "createdAt": "2026-10-05T21:02:42.760Z"
+    },
+    {
+      "file": "member-2026-10-05T21-02-43-592Z-9cw5z9ic.jsonl.gz",
+      "checksumSha256": "2b8cac858b39e79e6c13d084432149b3edf4c78c66fdf765412d1207f171979a",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-07-29T16:58:13.562Z",
+      "lastTimestamp": "2026-07-31T22:28:32.248Z",
+      "createdAt": "2026-10-05T21:02:43.599Z"
+    },
+    {
+      "file": "member-2026-10-05T21-02-44-503Z-zch64l2w.jsonl.gz",
+      "checksumSha256": "74e00039c850e4ff3aefdbdd3d47a6ed019628a85b39b62b6e5aca2f3bc7c138",
+      "recordCount": 488,
+      "firstTimestamp": "2026-07-31T22:28:32.616Z",
+      "lastTimestamp": "2026-07-31T23:58:23.442Z",
+      "createdAt": "2026-10-05T21:02:44.507Z"
     }
   ]
 }

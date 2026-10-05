@@ -9,44 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as SellingRouteImport } from './routes/selling'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as BuyingRouteImport } from './routes/buying'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PropertiesIndexRouteImport } from './routes/properties/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as BuyingRouteImport } from './routes/buying'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as SellingRouteImport } from './routes/selling'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
-import { Route as RobotsDotTxtRouteImport } from './routes/robots[.].txt'
-import { Route as PoliciesPrivacyRouteImport } from './routes/policies/privacy'
-import { Route as PoliciesDmcaRouteImport } from './routes/policies/dmca'
-import { Route as ListingsListingKeyRouteImport } from './routes/listings/$listingKey'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
+import { Route as ListingsListingKeyRouteImport } from './routes/listings/$listingKey'
 import { Route as ListingsListingsRouteRouteImport } from './routes/listings/_listings.route'
-import { Route as ListingsListingsIndexRouteImport } from './routes/listings/_listings.index'
+import { Route as PoliciesDmcaRouteImport } from './routes/policies/dmca'
+import { Route as PoliciesPrivacyRouteImport } from './routes/policies/privacy'
+import { Route as PropertiesIndexRouteImport } from './routes/properties/index'
+import { Route as RobotsDotTxtRouteImport } from './routes/robots[.].txt'
 import { Route as ApiListingsIndexRouteImport } from './routes/api/listings/index'
-import { Route as BlogTagChar123TagChar125Char123SlugChar125RouteImport } from './routes/blog/tag.{-$tag}.{-$slug}'
+import { Route as ListingsListingsIndexRouteImport } from './routes/listings/_listings.index'
 import { Route as BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport } from './routes/blog/category.{-$category}.{-$slug}'
+import { Route as BlogTagChar123TagChar125Char123SlugChar125RouteImport } from './routes/blog/tag.{-$tag}.{-$slug}'
 import { Route as BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125RouteImport } from './routes/blog/archive/{-$year}/{-$month}/{-$day}'
 
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SellingRoute = SellingRouteImport.update({
-  id: '/selling',
-  path: '/selling',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BuyingRoute = BuyingRouteImport.update({
-  id: '/buying',
-  path: '/buying',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -54,14 +39,24 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BuyingRoute = BuyingRouteImport.update({
+  id: '/buying',
+  path: '/buying',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PropertiesIndexRoute = PropertiesIndexRouteImport.update({
-  id: '/properties/',
-  path: '/properties/',
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellingRoute = SellingRouteImport.update({
+  id: '/selling',
+  path: '/selling',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
@@ -69,19 +64,9 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RobotsDotTxtRoute = RobotsDotTxtRouteImport.update({
-  id: '/robots./txt',
-  path: '/robots./txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliciesPrivacyRoute = PoliciesPrivacyRouteImport.update({
-  id: '/policies/privacy',
-  path: '/policies/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliciesDmcaRoute = PoliciesDmcaRouteImport.update({
-  id: '/policies/dmca',
-  path: '/policies/dmca',
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListingsListingKeyRoute = ListingsListingKeyRouteImport.update({
@@ -89,14 +74,34 @@ const ListingsListingKeyRoute = ListingsListingKeyRouteImport.update({
   path: '/listings/$listingKey',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/blog/$slug',
-  path: '/blog/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ListingsListingsRouteRoute = ListingsListingsRouteRouteImport.update({
   id: '/listings/_listings',
   path: '/listings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliciesDmcaRoute = PoliciesDmcaRouteImport.update({
+  id: '/policies/dmca',
+  path: '/policies/dmca',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliciesPrivacyRoute = PoliciesPrivacyRouteImport.update({
+  id: '/policies/privacy',
+  path: '/policies/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PropertiesIndexRoute = PropertiesIndexRouteImport.update({
+  id: '/properties/',
+  path: '/properties/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDotTxtRoute = RobotsDotTxtRouteImport.update({
+  id: '/robots./txt',
+  path: '/robots./txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiListingsIndexRoute = ApiListingsIndexRouteImport.update({
+  id: '/api/listings/',
+  path: '/api/listings/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListingsListingsIndexRoute = ListingsListingsIndexRouteImport.update({
@@ -104,21 +109,16 @@ const ListingsListingsIndexRoute = ListingsListingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ListingsListingsRouteRoute,
 } as any)
-const ApiListingsIndexRoute = ApiListingsIndexRouteImport.update({
-  id: '/api/listings/',
-  path: '/api/listings/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogTagChar123TagChar125Char123SlugChar125Route =
-  BlogTagChar123TagChar125Char123SlugChar125RouteImport.update({
-    id: '/blog/tag/{-$tag}/{-$slug}',
-    path: '/blog/tag/{-$tag}/{-$slug}',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const BlogCategoryChar123CategoryChar125Char123SlugChar125Route =
   BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport.update({
     id: '/blog/category/{-$category}/{-$slug}',
     path: '/blog/category/{-$category}/{-$slug}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const BlogTagChar123TagChar125Char123SlugChar125Route =
+  BlogTagChar123TagChar125Char123SlugChar125RouteImport.update({
+    id: '/blog/tag/{-$tag}/{-$slug}',
+    path: '/blog/tag/{-$tag}/{-$slug}',
     getParentRoute: () => rootRouteImport,
   } as any)
 const BlogArchiveChar123YearChar125Char123MonthChar125Char123DayChar125Route =
@@ -281,32 +281,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/selling': {
-      id: '/selling'
-      path: '/selling'
-      fullPath: '/selling'
-      preLoaderRoute: typeof SellingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/buying': {
-      id: '/buying'
-      path: '/buying'
-      fullPath: '/buying'
-      preLoaderRoute: typeof BuyingRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -316,18 +295,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/buying': {
+      id: '/buying'
+      path: '/buying'
+      fullPath: '/buying'
+      preLoaderRoute: typeof BuyingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/properties/': {
-      id: '/properties/'
-      path: '/properties'
-      fullPath: '/properties/'
-      preLoaderRoute: typeof PropertiesIndexRouteImport
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/selling': {
+      id: '/selling'
+      path: '/selling'
+      fullPath: '/selling'
+      preLoaderRoute: typeof SellingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
@@ -337,25 +330,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/robots./txt': {
-      id: '/robots./txt'
-      path: '/robots./txt'
-      fullPath: '/robots./txt'
-      preLoaderRoute: typeof RobotsDotTxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/policies/privacy': {
-      id: '/policies/privacy'
-      path: '/policies/privacy'
-      fullPath: '/policies/privacy'
-      preLoaderRoute: typeof PoliciesPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/policies/dmca': {
-      id: '/policies/dmca'
-      path: '/policies/dmca'
-      fullPath: '/policies/dmca'
-      preLoaderRoute: typeof PoliciesDmcaRouteImport
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/listings/$listingKey': {
@@ -365,18 +344,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingsListingKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/blog/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/listings/_listings': {
       id: '/listings/_listings'
       path: '/listings'
       fullPath: '/listings'
       preLoaderRoute: typeof ListingsListingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies/dmca': {
+      id: '/policies/dmca'
+      path: '/policies/dmca'
+      fullPath: '/policies/dmca'
+      preLoaderRoute: typeof PoliciesDmcaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies/privacy': {
+      id: '/policies/privacy'
+      path: '/policies/privacy'
+      fullPath: '/policies/privacy'
+      preLoaderRoute: typeof PoliciesPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/properties/': {
+      id: '/properties/'
+      path: '/properties'
+      fullPath: '/properties/'
+      preLoaderRoute: typeof PropertiesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots./txt': {
+      id: '/robots./txt'
+      path: '/robots./txt'
+      fullPath: '/robots./txt'
+      preLoaderRoute: typeof RobotsDotTxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/listings/': {
+      id: '/api/listings/'
+      path: '/api/listings'
+      fullPath: '/api/listings/'
+      preLoaderRoute: typeof ApiListingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/listings/_listings/': {
@@ -386,11 +393,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingsListingsIndexRouteImport
       parentRoute: typeof ListingsListingsRouteRoute
     }
-    '/api/listings/': {
-      id: '/api/listings/'
-      path: '/api/listings'
-      fullPath: '/api/listings/'
-      preLoaderRoute: typeof ApiListingsIndexRouteImport
+    '/blog/category/{-$category}/{-$slug}': {
+      id: '/blog/category/{-$category}/{-$slug}'
+      path: '/blog/category/{-$category}/{-$slug}'
+      fullPath: '/blog/category/{-$category}/{-$slug}'
+      preLoaderRoute: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/tag/{-$tag}/{-$slug}': {
@@ -398,13 +405,6 @@ declare module '@tanstack/react-router' {
       path: '/blog/tag/{-$tag}/{-$slug}'
       fullPath: '/blog/tag/{-$tag}/{-$slug}'
       preLoaderRoute: typeof BlogTagChar123TagChar125Char123SlugChar125RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog/category/{-$category}/{-$slug}': {
-      id: '/blog/category/{-$category}/{-$slug}'
-      path: '/blog/category/{-$category}/{-$slug}'
-      fullPath: '/blog/category/{-$category}/{-$slug}'
-      preLoaderRoute: typeof BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/archive/{-$year}/{-$month}/{-$day}': {

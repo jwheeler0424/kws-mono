@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "resource": "Office",
+  "year": "2026",
+  "month": "08",
+  "updatedAt": "2026-10-05T20:58:33.566Z",
+  "chunks": [
+    {
+      "file": "office-2026-10-05T20-58-25-668Z-cpj96qec.jsonl.gz",
+      "checksumSha256": "0dc52e4d9a7024b1f69b18ab2f6d924911a9096f8431f83055156a2e1d43a3d4",
+      "recordCount": 375,
+      "firstTimestamp": "2026-08-01T00:11:09.186Z",
+      "lastTimestamp": "2026-08-28T20:56:12.008Z",
+      "createdAt": "2026-10-05T20:58:25.671Z"
+    },
+    {
+      "file": "office-2026-10-05T20-58-33-560Z-macqq8h2.jsonl.gz",
+      "checksumSha256": "b305faa037ef82cac1018264a8ffd5caaca6b4d4c0f366862de6411649ab49fd",
+      "recordCount": 543,
+      "firstTimestamp": "2026-08-28T20:56:12.115Z",
+      "lastTimestamp": "2026-08-31T23:56:09.487Z",
+      "createdAt": "2026-10-05T20:58:33.566Z"
+    }
+  ]
+}

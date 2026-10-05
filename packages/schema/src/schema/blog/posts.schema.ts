@@ -409,7 +409,6 @@ export const insertPostSchema = createInsertSchema(posts, {
   deletedAt: true,
   commentCount: true,
   viewCount: true,
-  searchVector: true,
 });
 
 export const insertPostMetaSchema = createInsertSchema(postMeta, {

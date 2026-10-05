@@ -20,21 +20,21 @@
     "@kws/logger": "*",
     "@kws/media": "*",
     "@kws/schema": "*",
-    "@tanstack/pacer": "^0.21.1",
+    "@tanstack/pacer": "^0.23.1",
     "date-fns": "^4.4.0",
-    "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
+    "drizzle-orm": "^1.0.0-rc.5-ab785fc",
     "h3-js": "^4.4.0",
-    "pg": "^8.22.0",
-    "zod": "^4.4.3"
+    "pg": "^8.23.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@kws/types": "*",
     "@kws/typescript": "*",
     "@kws/utils": "*",
-    "@types/bun": "latest",
-    "@types/pg": "^8.20.0",
-    "drizzle-kit": "^1.0.0-rc.4-ca0f029",
-    "esbuild": "^0.28.1"
+    "@types/bun": "1.4.2",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^1.0.0-rc.5-ab785fc",
+    "esbuild": "^0.28.2"
   },
   "peerDependencies": {
     "typescript": "^7"

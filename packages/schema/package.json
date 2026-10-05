@@ -18,18 +18,18 @@
     "db:studio": "bun x drizzle-kit studio --port 3333 --config ./drizzle.config.ts"
   },
   "dependencies": {
-    "dotenv": "^17.4.2",
-    "drizzle-orm": "^1.0.0-beta.22",
-    "pg": "^8.22.0",
-    "zod": "^4.4.3"
+    "dotenv": "^18.0.5",
+    "drizzle-orm": "^1.0.0-rc.5-ab785fc",
+    "pg": "^8.23.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@kws/config": "*",
     "@kws/types": "*",
     "@kws/typescript": "*",
-    "@types/bun": "latest",
-    "@types/pg": "^8.20.0",
-    "drizzle-kit": "^1.0.0-beta.22"
+    "@types/bun": "1.4.2",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^1.0.0-rc.5-ab785fc"
   },
   "peerDependencies": {
     "typescript": "^7"

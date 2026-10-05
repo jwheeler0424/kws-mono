@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "resource": "Member",
+  "year": "2026",
+  "month": "10",
+  "updatedAt": "2026-10-05T21:02:55.763Z",
+  "chunks": [
+    {
+      "file": "member-2026-10-05T21-02-52-073Z-264nvial.jsonl.gz",
+      "checksumSha256": "a7ab14f53ee7808312d1c82e165d4278d3a02b81dd02120e9555b2fc5634154c",
+      "recordCount": 843,
+      "firstTimestamp": "2026-10-01T00:13:10.481Z",
+      "lastTimestamp": "2026-10-02T05:13:12.497Z",
+      "createdAt": "2026-10-05T21:02:52.079Z"
+    },
+    {
+      "file": "member-2026-10-05T21-02-53-175Z-ey4xispw.jsonl.gz",
+      "checksumSha256": "99d055f60ca387a86f9ccbf28df30037abcc48959f304fffa6c386b4151c0bb5",
+      "recordCount": 1000,
+      "firstTimestamp": "2026-10-02T05:13:12.580Z",
+      "lastTimestamp": "2026-10-05T17:13:15.530Z",
+      "createdAt": "2026-10-05T21:02:53.182Z"
+    },
+    {
+      "file": "member-2026-10-05T21-02-55-759Z-xdzj9ukf.jsonl.gz",
+      "checksumSha256": "9b9fc746f6274e8f72ba5cf04ea0c1a6cee4f3949f93cd2fb12f233847161843",
+      "recordCount": 420,
+      "firstTimestamp": "2026-10-05T17:13:15.622Z",
+      "lastTimestamp": "2026-10-05T20:58:18.100Z",
+      "createdAt": "2026-10-05T21:02:55.762Z"
+    }
+  ]
+}

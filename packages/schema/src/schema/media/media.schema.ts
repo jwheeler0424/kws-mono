@@ -234,8 +234,6 @@ export const insertMediaSchema = createInsertSchema(media, {
   caption: z.string().max(2000).optional(),
   description: z.string().max(5000).optional(),
   title: z.string().max(500).optional(),
-}).omit({
-  searchVector: true,
 });
 
 export const insertMediaVariantSchema = createInsertSchema(mediaVariants, {
