@@ -1,8 +1,4 @@
-const INITIAL_PROPERTY_TYPES = new Set([
-  'Residential',
-  'ResidentialIncome',
-  'ResidentialLease',
-]);
+const INITIAL_PROPERTY_TYPES = new Set(['Residential', 'ResidentialIncome', 'ResidentialLease']);
 import { env } from '@kws/config/env';
 import { startOfYear } from 'date-fns';
 
