@@ -102,9 +102,9 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
   const now = new Date();
 
   const media =
-    payload.Media
-      ?.map((mediaPayload) => mapPropertyMedia(mediaPayload, payload.ListingKey))
-      .filter((media): media is MappedMedia => media !== null) ?? [];
+    payload.Media?.map((mediaPayload) => mapPropertyMedia(mediaPayload, payload.ListingKey)).filter(
+      (media): media is MappedMedia => media !== null,
+    ) ?? [];
   const rooms =
     payload.Rooms?.map((roomPayload) => mapPropertyRoom(roomPayload, payload.ListingKey)) ?? [];
   const unitTypes =

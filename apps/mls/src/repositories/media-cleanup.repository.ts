@@ -72,39 +72,33 @@ async function listLinkedNamespaceKeys(
   const propertyAssociationMemberClause =
     memberKeys.length > 0
       ? or(
-        and(isNotNull(properties.listAgentKey), inArray(properties.listAgentKey, memberKeys)),
-        and(
-          isNotNull(properties.listAgentMlsId),
-          inArray(properties.listAgentMlsId, memberKeys),
-        ),
-        and(
-          isNotNull(properties.coListAgentKey),
-          inArray(properties.coListAgentKey, memberKeys),
-        ),
-        and(
-          isNotNull(properties.coListAgentMlsId),
-          inArray(properties.coListAgentMlsId, memberKeys),
-        ),
-      )
+          and(isNotNull(properties.listAgentKey), inArray(properties.listAgentKey, memberKeys)),
+          and(isNotNull(properties.listAgentMlsId), inArray(properties.listAgentMlsId, memberKeys)),
+          and(isNotNull(properties.coListAgentKey), inArray(properties.coListAgentKey, memberKeys)),
+          and(
+            isNotNull(properties.coListAgentMlsId),
+            inArray(properties.coListAgentMlsId, memberKeys),
+          ),
+        )
       : undefined;
 
   const propertyAssociationOfficeClause =
     officeKeys.length > 0
       ? or(
-        and(isNotNull(properties.listOfficeKey), inArray(properties.listOfficeKey, officeKeys)),
-        and(
-          isNotNull(properties.listOfficeMlsId),
-          inArray(properties.listOfficeMlsId, officeKeys),
-        ),
-        and(
-          isNotNull(properties.coListOfficeKey),
-          inArray(properties.coListOfficeKey, officeKeys),
-        ),
-        and(
-          isNotNull(properties.coListOfficeMlsId),
-          inArray(properties.coListOfficeMlsId, officeKeys),
-        ),
-      )
+          and(isNotNull(properties.listOfficeKey), inArray(properties.listOfficeKey, officeKeys)),
+          and(
+            isNotNull(properties.listOfficeMlsId),
+            inArray(properties.listOfficeMlsId, officeKeys),
+          ),
+          and(
+            isNotNull(properties.coListOfficeKey),
+            inArray(properties.coListOfficeKey, officeKeys),
+          ),
+          and(
+            isNotNull(properties.coListOfficeMlsId),
+            inArray(properties.coListOfficeMlsId, officeKeys),
+          ),
+        )
       : undefined;
 
   const propertyAssociatedListingClause =
@@ -120,29 +114,29 @@ async function listLinkedNamespaceKeys(
   const resourceEligibilityClause =
     entityType === 'properties'
       ? and(
-        isNotNull(properties.listingKey),
-        isNull(properties.deletedAt),
-        or(
-          and(
-            eq(properties.mlgCanView, true),
-            isNotNull(properties.standardStatus),
-            inArray(properties.standardStatus, [...DEFAULT_ACTIVE_PROPERTY_STATUSES]),
-            propertyPrimaryPhotoClause,
+          isNotNull(properties.listingKey),
+          isNull(properties.deletedAt),
+          or(
+            and(
+              eq(properties.mlgCanView, true),
+              isNotNull(properties.standardStatus),
+              inArray(properties.standardStatus, [...DEFAULT_ACTIVE_PROPERTY_STATUSES]),
+              propertyPrimaryPhotoClause,
+            ),
+            propertyAssociatedListingClause,
           ),
-          propertyAssociatedListingClause,
-        ),
-      )
+        )
       : entityType === 'members'
         ? and(
-          isNotNull(members.memberMlsId),
-          isNull(members.deletedAt),
-          eq(members.mlgCanView, true),
-        )
+            isNotNull(members.memberMlsId),
+            isNull(members.deletedAt),
+            eq(members.mlgCanView, true),
+          )
         : and(
-          isNotNull(offices.officeMlsId),
-          isNull(offices.deletedAt),
-          eq(offices.mlgCanView, true),
-        );
+            isNotNull(offices.officeMlsId),
+            isNull(offices.deletedAt),
+            eq(offices.mlgCanView, true),
+          );
 
   const namespaceRows = await db
     .select({ resourceRecordKey: mlsMedia.resourceRecordKey })
@@ -515,39 +509,33 @@ export async function purgeScopedMlsMediaBeforeSync(
   const propertyAssociationMemberClause =
     memberKeys.length > 0
       ? or(
-        and(isNotNull(properties.listAgentKey), inArray(properties.listAgentKey, memberKeys)),
-        and(
-          isNotNull(properties.listAgentMlsId),
-          inArray(properties.listAgentMlsId, memberKeys),
-        ),
-        and(
-          isNotNull(properties.coListAgentKey),
-          inArray(properties.coListAgentKey, memberKeys),
-        ),
-        and(
-          isNotNull(properties.coListAgentMlsId),
-          inArray(properties.coListAgentMlsId, memberKeys),
-        ),
-      )
+          and(isNotNull(properties.listAgentKey), inArray(properties.listAgentKey, memberKeys)),
+          and(isNotNull(properties.listAgentMlsId), inArray(properties.listAgentMlsId, memberKeys)),
+          and(isNotNull(properties.coListAgentKey), inArray(properties.coListAgentKey, memberKeys)),
+          and(
+            isNotNull(properties.coListAgentMlsId),
+            inArray(properties.coListAgentMlsId, memberKeys),
+          ),
+        )
       : undefined;
 
   const propertyAssociationOfficeClause =
     officeKeys.length > 0
       ? or(
-        and(isNotNull(properties.listOfficeKey), inArray(properties.listOfficeKey, officeKeys)),
-        and(
-          isNotNull(properties.listOfficeMlsId),
-          inArray(properties.listOfficeMlsId, officeKeys),
-        ),
-        and(
-          isNotNull(properties.coListOfficeKey),
-          inArray(properties.coListOfficeKey, officeKeys),
-        ),
-        and(
-          isNotNull(properties.coListOfficeMlsId),
-          inArray(properties.coListOfficeMlsId, officeKeys),
-        ),
-      )
+          and(isNotNull(properties.listOfficeKey), inArray(properties.listOfficeKey, officeKeys)),
+          and(
+            isNotNull(properties.listOfficeMlsId),
+            inArray(properties.listOfficeMlsId, officeKeys),
+          ),
+          and(
+            isNotNull(properties.coListOfficeKey),
+            inArray(properties.coListOfficeKey, officeKeys),
+          ),
+          and(
+            isNotNull(properties.coListOfficeMlsId),
+            inArray(properties.coListOfficeMlsId, officeKeys),
+          ),
+        )
       : undefined;
 
   const propertyAssociationClause =

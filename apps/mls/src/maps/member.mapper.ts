@@ -27,9 +27,9 @@ export function mapMember(payload: MlsMemberPayload): MappedMember {
   const now = new Date();
   const memberMlsId = payload.MemberMlsId;
   const media =
-    payload.Media
-      ?.map((mediaPayload) => mapMemberMedia(mediaPayload, payload.MemberMlsId))
-      .filter((item): item is MappedMedia => item !== null) ?? [];
+    payload.Media?.map((mediaPayload) => mapMemberMedia(mediaPayload, payload.MemberMlsId)).filter(
+      (item): item is MappedMedia => item !== null,
+    ) ?? [];
 
   return {
     memberMlsId,

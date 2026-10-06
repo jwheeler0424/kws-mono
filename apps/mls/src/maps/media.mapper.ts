@@ -74,7 +74,8 @@ export function mapMemberMedia(
   payload: MlsMediaPayload,
   resourceRecordKey: string,
 ): MappedMedia | null {
-  const mediaKey = payload.MediaKey?.trim() || buildEntityFallbackMediaKey('member', resourceRecordKey);
+  const mediaKey =
+    payload.MediaKey?.trim() || buildEntityFallbackMediaKey('member', resourceRecordKey);
   if (!mediaKey) {
     return null;
   }
@@ -90,7 +91,8 @@ export function mapOfficeMedia(
   payload: MlsMediaPayload,
   resourceRecordKey: string,
 ): MappedMedia | null {
-  const mediaKey = payload.MediaKey?.trim() || buildEntityFallbackMediaKey('office', resourceRecordKey);
+  const mediaKey =
+    payload.MediaKey?.trim() || buildEntityFallbackMediaKey('office', resourceRecordKey);
   if (!mediaKey) {
     return null;
   }

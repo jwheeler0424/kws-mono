@@ -262,13 +262,10 @@ async function runScheduledMediaPhases(
     memberKeys,
     officeKeys,
   });
-  const postSyncNamespacePrune = await pruneMlsMediaNamespacesWithoutLinkedMedia(
-    undefined,
-    {
-      memberKeys,
-      officeKeys,
-    },
-  );
+  const postSyncNamespacePrune = await pruneMlsMediaNamespacesWithoutLinkedMedia(undefined, {
+    memberKeys,
+    officeKeys,
+  });
 
   return {
     postSyncCleanup,

@@ -253,10 +253,10 @@ function toIsoMaybe(date: Date | undefined): string | undefined {
 
 function parsePartitionFromDirectory(partitionDir: string):
   | {
-    resource: MlsResource;
-    year: string;
-    month: string;
-  }
+      resource: MlsResource;
+      year: string;
+      month: string;
+    }
   | undefined {
   const relative = path.relative(HISTORY_ROOT, partitionDir);
   if (!relative || relative.startsWith('..')) {
@@ -839,9 +839,9 @@ export async function* replayHistoryResource<T extends Record<string, unknown>>(
         const candidateRecords =
           afterTimestamp && getTimestamp
             ? payload.records.filter((record) => {
-              const recordTimestamp = normalizeTimestamp(getTimestamp(record));
-              return Boolean(recordTimestamp && recordTimestamp > afterTimestamp);
-            })
+                const recordTimestamp = normalizeTimestamp(getTimestamp(record));
+                return Boolean(recordTimestamp && recordTimestamp > afterTimestamp);
+              })
             : payload.records;
 
         for (const record of candidateRecords) {

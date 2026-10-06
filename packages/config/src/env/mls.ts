@@ -105,7 +105,8 @@ const envSchema = z.object({
     .transform((str) => str.split(',').map((s) => s.trim()))
     .pipe(z.array(resourceExpandableSchema))
     .optional(),
-  MLS_START_DATE: z.string()
+  MLS_START_DATE: z
+    .string()
     .transform((str) => new Date(str))
     .optional(), // Coerce string to Date object
   MLS_MEDIA_STORE_PATH: z.string().min(1).optional(),

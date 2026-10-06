@@ -259,8 +259,8 @@ export function tsvector(name: string) {
         );
       }
 
-      _finalized = col.generatedAlwaysAs(
-        (): SQL => buildFtsExpression(_language, _specs),
+      _finalized = col.generatedAlwaysAs((): SQL =>
+        buildFtsExpression(_language, _specs),
       ) as TsVectorColumn;
     }
 

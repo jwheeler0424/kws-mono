@@ -17,9 +17,9 @@ export function mapOffice(payload: MlsOfficePayload): MappedOffice {
   const now = new Date();
   const officeMlsId = payload.OfficeMlsId;
   const media =
-    payload.Media
-      ?.map((mediaPayload) => mapOfficeMedia(mediaPayload, payload.OfficeMlsId))
-      .filter((item): item is MappedMedia => item !== null) ?? [];
+    payload.Media?.map((mediaPayload) => mapOfficeMedia(mediaPayload, payload.OfficeMlsId)).filter(
+      (item): item is MappedMedia => item !== null,
+    ) ?? [];
 
   return {
     officeMlsId,

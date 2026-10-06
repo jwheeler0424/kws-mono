@@ -309,8 +309,8 @@ async function touchListingsSearchSession(sessionId: string): Promise<void> {
   await Promise.all([
     typeof client.getEx === 'function'
       ? client.getEx(sessionKey, {
-        EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
-      })
+          EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
+        })
       : client.expire(sessionKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
     client.expire(sessionIdsKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
   ]);
@@ -512,8 +512,8 @@ async function getListingsSearchSessionPage(
       client.expire(sessionIdsKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
       typeof client.getEx === 'function'
         ? client.getEx(sessionKey, {
-          EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
-        })
+            EX: LISTINGS_SEARCH_SESSION_TTL_SECONDS,
+          })
         : client.expire(sessionKey, LISTINGS_SEARCH_SESSION_TTL_SECONDS),
     ]);
 

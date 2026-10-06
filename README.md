@@ -7,6 +7,7 @@
   ```terminal
   mklink /D "C:\Projects\kws-mono\apps\web\public\media" "C:\Projects\kws-mono\store\media"
   ```
+
   ```terminal
   mklink /D "C:\Projects\kws-mono\apps\mls\data" "C:\Projects\kws-mono\store\data"
   ```
@@ -16,6 +17,7 @@
   ```terminal
   ln -s ~/Projects/kws-mono/apps/web/public/media ~/Projects/kws-mono/store/media
   ```
+
   ```terminal
   ln -s ~/Projects/kws-mono/apps/mls/data ~/Projects/kws-mono/store/data
   ```
@@ -25,6 +27,7 @@
   ```terminal
   ln -s ~/Projects/kws-mono/apps/web/public/media ~/Projects/kws-mono/store/media
   ```
+
   ```terminal
   ln -s ~/Projects/kws-mono/apps/mls/data ~/Projects/kws-mono/store/data
   ```
@@ -56,15 +59,14 @@ It performs:
 
 ### GHCR authentication
 
-For local deployment, set `GHCR_USERNAME` to your GitHub username and
-`GHCR_TOKEN` in `packages/config/.env` to a personal access token **(classic)**
-with `write:packages`. Fine-grained personal access tokens are not supported by
-GHCR, even when `docker login` succeeds.
+For local deployment, set `GHCR_USERNAME` to your GitHub username and `GHCR_TOKEN` in
+`packages/config/.env` to a personal access token **(classic)** with `write:packages`. Fine-grained
+personal access tokens are not supported by GHCR, even when `docker login` succeeds.
 
-Create a token at <https://github.com/settings/tokens/new?scopes=write:packages>.
-The token's account must have write access to the destination packages. Authorize
-the token for organization SSO if required. Do not commit the token or paste it
-into chat. Rerun `bun run deploy:images` after updating it; the script logs in again.
+Create a token at <https://github.com/settings/tokens/new?scopes=write:packages>. The token's
+account must have write access to the destination packages. Authorize the token for organization SSO
+if required. Do not commit the token or paste it into chat. Rerun `bun run deploy:images` after
+updating it; the script logs in again.
 
 ### Optional environment overrides
 
@@ -144,13 +146,14 @@ Notes:
 
 - Production scripts default to `.env` via `COMPOSE_ENV_FILE=.env`.
 - Compose files now support `COMPOSE_ENV_FILE` for service `env_file` resolution.
-- `prod-up` defaults `STORE_PATH` to `$HOME/store/kyleweberseattle.com` and `HOST`/certbot domain to `kyleweberseattle.com` when unset.
+- `prod-up` defaults `STORE_PATH` to `$HOME/store/kyleweberseattle.com` and `HOST`/certbot domain to
+  `kyleweberseattle.com` when unset.
 - `prod-up` deploys swarm stack `kws` by default; override with `STACK_NAME=...`.
 
 ## Local Production Rehearsal (minimal root env)
 
-Use the root `.env.local.prod` for minimal compose-only variables (images, DB/Redis/app ports, host/media path).
-Keep full runtime app configuration in `packages/config/.env`.
+Use the root `.env.local.prod` for minimal compose-only variables (images, DB/Redis/app ports,
+host/media path). Keep full runtime app configuration in `packages/config/.env`.
 
 Start local production rehearsal:
 
@@ -221,7 +224,8 @@ RUN_MIGRATIONS=1 bun run swarm:local:up
 
 ### Media symlink behavior in production
 
-`apps/web/public/media` is intentionally excluded from Docker build context. At container startup, the app entrypoint creates a symlink:
+`apps/web/public/media` is intentionally excluded from Docker build context. At container startup,
+the app entrypoint creates a symlink:
 
 - source: `/srv/media`
 - target: `/app/apps/web/public/media`
