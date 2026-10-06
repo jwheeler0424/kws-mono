@@ -54,6 +54,18 @@ It performs:
    - `ghcr.io/<owner>/kyleweberseattle.com-mls:latest`
    - `ghcr.io/<owner>/kyleweberseattle.com-db:latest`
 
+### GHCR authentication
+
+For local deployment, set `GHCR_USERNAME` to your GitHub username and
+`GHCR_TOKEN` in `packages/config/.env` to a personal access token **(classic)**
+with `write:packages`. Fine-grained personal access tokens are not supported by
+GHCR, even when `docker login` succeeds.
+
+Create a token at <https://github.com/settings/tokens/new?scopes=write:packages>.
+The token's account must have write access to the destination packages. Authorize
+the token for organization SSO if required. Do not commit the token or paste it
+into chat. Rerun `bun run deploy:images` after updating it; the script logs in again.
+
 ### Optional environment overrides
 
 ```terminal

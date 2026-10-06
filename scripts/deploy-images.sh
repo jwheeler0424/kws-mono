@@ -71,6 +71,13 @@ DB_IMAGE="${DB_IMAGE:-${REGISTRY}/${DB_IMAGE_NAME}:latest}"
 NGINX_IMAGE="${NGINX_IMAGE:-${REGISTRY}/${NGINX_IMAGE_NAME}:latest}"
 
 if [[ "$REGISTRY" == "ghcr.io" && -n "$GHCR_TOKEN" ]]; then
+  if [[ "$GHCR_TOKEN" == github_pat_* ]]; then
+    echo "[deploy-images] GHCR does not support fine-grained personal access tokens."
+    echo "[deploy-images] Set GHCR_TOKEN to a personal access token (classic) with write:packages."
+    echo "[deploy-images] Create one at https://github.com/settings/tokens/new?scopes=write:packages"
+    exit 1
+  fi
+
   if [[ -z "$GHCR_USERNAME" ]]; then
     echo "[deploy-images] GHCR token provided but GHCR_USERNAME is empty."
     echo "[deploy-images] Set GHCR_USERNAME (typically your GitHub username or org)."
