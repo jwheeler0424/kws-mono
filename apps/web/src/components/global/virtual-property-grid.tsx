@@ -386,6 +386,7 @@ export function VirtualPropertyGrid({
                   <div
                     key={row.key}
                     data-index={row.index}
+                    ref={rowVirtualizer.measureElement}
                     className={cn(
                       isLoaderRow
                         ? 'flex w-full items-center justify-center'

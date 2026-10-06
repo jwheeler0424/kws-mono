@@ -47,6 +47,8 @@ export async function getListingDetailByKey({
       },
       where: {
         listingKey,
+        mlgCanView: true,
+        deletedAt: { isNull: true },
       },
     }),
     db.query.mlsMedia.findMany({
@@ -55,9 +57,13 @@ export async function getListingDetailByKey({
       },
       where: {
         resourceRecordKey: listingKey,
+        deletedAt: { isNull: true },
+        RAW: (table) =>
+          sql`not (coalesce(${table.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
       },
       with: {
         media: {
+          where: { deletedAt: { isNull: true } },
           with: {
             variants: {
               columns: {
@@ -75,10 +81,12 @@ export async function getListingDetailByKey({
     }),
   ]);
 
-  const mediaWithUrl: TMlsMedia[] = media.map((m) => ({
-    ...m,
-    mediaURL: m.media?.variants?.[0]?.url ?? null,
-  }));
+  const mediaWithUrl: TMlsMedia[] = media
+    .filter((item) => item.media?.variants?.[0]?.url)
+    .map((m) => ({
+      ...m,
+      mediaURL: m.media?.variants?.[0]?.url ?? null,
+    }));
 
   return listing ? { ...listing, media: mediaWithUrl } : null;
 }
@@ -281,7 +289,7 @@ function getListingsSearchSessionIdsKey(sessionId: string): string {
 }
 
 function getHydratedListingsCacheKey(sessionId: string, offset: number, limit: number): string {
-  return `${getListingsSearchSessionKey(sessionId)}:hydrated:v2:${offset}:${limit}`;
+  return `${getListingsSearchSessionKey(sessionId)}:hydrated:v3:${offset}:${limit}`;
 }
 
 function parseHydratedListingsCachePage(raw: string): HydratedListingsCachePage | null {

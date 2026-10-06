@@ -21,7 +21,10 @@ function mapMediaBase(
 ): MappedMedia {
   // Media payloads often omit MlgCanView. Treat missing/indeterminate as visible
   // and only soft-delete when the feed explicitly sets MlgCanView = false.
-  const canView = parseBoolean(payload.MlgCanView) !== false;
+  const permissions = parseStringArray(payload.Permission);
+  const canView =
+    parseBoolean(payload.MlgCanView) !== false &&
+    !permissions?.some((permission) => permission.toLowerCase() === 'private');
 
   return {
     mediaKey,
@@ -30,24 +33,16 @@ function mapMediaBase(
     imageSizeDescription: parseNullableString(payload.ImageSizeDescription, 1024),
     imageWidth: parseIntegerValue(payload.ImageWidth),
     longDescription: parseNullableString(payload.LongDescription, 1024),
-    mediaURL: parseNullableString(payload.MediaURL, 8000),
+    mediaURL: null,
     mediaModificationTimestamp: parseTimestamp(payload.MediaModificationTimestamp),
     mediaObjectId: parseNullableString(payload.MediaObjectID, 255),
     order: parseIntegerValue(payload.Order),
-    permission: parseStringArray(payload.Permission),
+    permission: permissions,
     preferredPhotoYN:
       typeof payload.PreferredPhotoYN === 'boolean' ? payload.PreferredPhotoYN : null,
     deletedAt: canView ? null : new Date(),
     updatedAt: new Date(),
   };
-}
-
-function buildEntityFallbackMediaKey(
-  entityType: 'member' | 'office',
-  resourceRecordKey: string,
-): string {
-  const prefix = entityType === 'member' ? 'member' : 'office';
-  return `${prefix}:${resourceRecordKey}`;
 }
 
 /**
@@ -60,7 +55,7 @@ export function mapPropertyMedia(
 ): MappedMedia | null {
   const mediaKey = payload.MediaKey?.trim();
   if (!mediaKey) {
-    return null;
+    throw new Error('MLS media snapshot contains a record without MediaKey');
   }
 
   return mapMediaBase(payload, resourceRecordKey, mediaKey);
@@ -74,10 +69,9 @@ export function mapMemberMedia(
   payload: MlsMediaPayload,
   resourceRecordKey: string,
 ): MappedMedia | null {
-  const mediaKey =
-    payload.MediaKey?.trim() || buildEntityFallbackMediaKey('member', resourceRecordKey);
+  const mediaKey = payload.MediaKey?.trim();
   if (!mediaKey) {
-    return null;
+    throw new Error('MLS member media snapshot contains a record without MediaKey');
   }
 
   return mapMediaBase(payload, resourceRecordKey, mediaKey);
@@ -91,10 +85,9 @@ export function mapOfficeMedia(
   payload: MlsMediaPayload,
   resourceRecordKey: string,
 ): MappedMedia | null {
-  const mediaKey =
-    payload.MediaKey?.trim() || buildEntityFallbackMediaKey('office', resourceRecordKey);
+  const mediaKey = payload.MediaKey?.trim();
   if (!mediaKey) {
-    return null;
+    throw new Error('MLS office media snapshot contains a record without MediaKey');
   }
 
   return mapMediaBase(payload, resourceRecordKey, mediaKey);

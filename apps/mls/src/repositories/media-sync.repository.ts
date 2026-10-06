@@ -3,10 +3,55 @@ import type { UUIDv7 } from '@kws/types';
 
 import { media, members, mlsMedia, offices, properties } from '@kws/schema';
 import { and, asc, eq, gt, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 
 import { db } from '@/lib/database';
 
 export type MlsMediaEntityType = 'properties' | 'members' | 'offices';
+
+export async function claimParentMedia(resourceRecordKey: string): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`mls-media:${resourceRecordKey}`}))`,
+    );
+    const busy = await tx
+      .select({ key: mlsMedia.mediaKey })
+      .from(mlsMedia)
+      .where(
+        and(
+          eq(mlsMedia.resourceRecordKey, resourceRecordKey),
+          or(
+            sql`${mlsMedia.acquisitionLeaseUntil} > now()`,
+            sql`${mlsMedia.nextAttemptAt} > now()`,
+          ),
+        ),
+      )
+      .limit(1);
+    if (busy.length > 0) return null;
+    const token = randomUUID();
+    await tx
+      .update(mlsMedia)
+      .set({ acquisitionToken: token, acquisitionLeaseUntil: new Date(Date.now() + 3_600_000) })
+      .where(eq(mlsMedia.resourceRecordKey, resourceRecordKey));
+    return token;
+  });
+}
+
+export async function releaseParentMedia(
+  token: string,
+  error?: string,
+  retryAfterMs = 3_600_000,
+): Promise<void> {
+  await db
+    .update(mlsMedia)
+    .set({
+      acquisitionToken: null,
+      acquisitionLeaseUntil: null,
+      nextAttemptAt: error ? new Date(Date.now() + retryAfterMs) : null,
+      lastAcquisitionError: error?.slice(0, 255) ?? null,
+    })
+    .where(eq(mlsMedia.acquisitionToken, token));
+}
 export type MlsMediaAssociationMode =
   | 'stale-or-unprocessed'
   | 'stale-only'
@@ -17,8 +62,12 @@ export interface MlsMediaSyncCandidate {
   mediaKey: string;
   mediaURL: string;
   resourceRecordKey: string;
+  listingId: string | null;
   mediaId: UUIDv7 | null;
   mlsUpdatedAt: string | null;
+  downloadedSourceTimestamp: string | null;
+  localFullPath: string | null;
+  linkedUpdatedAt: Date | null;
   linkedMediaExists: boolean;
   longDescription: string | null;
   imageSizeDescription: string | null;
@@ -29,6 +78,7 @@ export interface MlsMediaSyncCandidate {
 }
 
 export interface ListMlsMediaSyncCandidatesOptions {
+  offset?: number;
   /**
    * Optional ordering hint for property media rows associated with members.
    * In single-phase sync these rows are prioritized after entity media.
@@ -103,12 +153,16 @@ type CandidateRow = {
   resourceRecordKey: string | null;
   mediaId: UUIDv7 | null;
   mlsUpdatedAt: string | null;
+  downloadedSourceTimestamp: string | null;
+  localFullPath: string | null;
+  linkedUpdatedAt: Date | null;
   linkedMediaId: UUIDv7 | null;
   longDescription: string | null;
   imageSizeDescription: string | null;
   unparsedAddress: string | null;
   photoOrder: number | null;
   listingKey: string | null;
+  listingId: string | null;
   memberFullName: string | null;
   memberMlsId: string | null;
   officeName: string | null;
@@ -123,7 +177,7 @@ const DEFAULT_ACTIVE_PROPERTY_STATUSES: readonly StandardStatus[] = [
 
 function toMlsMediaSyncCandidates(rows: CandidateRow[]): MlsMediaSyncCandidate[] {
   return rows.flatMap((row) => {
-    if (!row.mediaURL || !row.resourceRecordKey) {
+    if (!row.resourceRecordKey) {
       return [];
     }
 
@@ -140,10 +194,14 @@ function toMlsMediaSyncCandidates(rows: CandidateRow[]): MlsMediaSyncCandidate[]
     return [
       {
         mediaKey: row.mediaKey,
-        mediaURL: row.mediaURL,
+        mediaURL: '',
         resourceRecordKey: row.resourceRecordKey,
+        listingId: row.listingId,
         mediaId: (row.mediaId as UUIDv7 | null) ?? null,
         mlsUpdatedAt: row.mlsUpdatedAt ?? null,
+        downloadedSourceTimestamp: row.downloadedSourceTimestamp,
+        localFullPath: row.localFullPath,
+        linkedUpdatedAt: row.linkedUpdatedAt,
         linkedMediaExists: row.linkedMediaId !== null,
         longDescription: row.longDescription ?? null,
         imageSizeDescription: row.imageSizeDescription ?? null,
@@ -210,10 +268,18 @@ export async function listMlsMediaSyncCandidates(
   ];
 
   const baseMediaRowEligibilityClause = and(
-    or(isNull(mlsMedia.deletedAt), and(isNotNull(mlsMedia.deletedAt), isNull(mlsMedia.mediaId))),
-    isNotNull(mlsMedia.mediaURL),
+    isNull(mlsMedia.deletedAt),
+    sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+    sql`(${mlsMedia.nextAttemptAt} is null or ${mlsMedia.nextAttemptAt} <= now())`,
+    sql`(${mlsMedia.acquisitionLeaseUntil} is null or ${mlsMedia.acquisitionLeaseUntil} <= now())`,
     isNotNull(mlsMedia.resourceRecordKey),
   );
+
+  const changedSourceClause = sql`case
+    when ${mlsMedia.downloadedSourceTimestamp} is not null
+      then ${mlsMedia.mediaModificationTimestamp} is distinct from ${mlsMedia.downloadedSourceTimestamp}
+    else ${mlsMedia.mediaModificationTimestamp} > ${media.updatedAt}
+  end`;
 
   const unprocessedAssociationClause = and(baseMediaRowEligibilityClause, isNull(mlsMedia.mediaId));
 
@@ -224,25 +290,14 @@ export async function listMlsMediaSyncCandidates(
       isNull(media.id),
       isNotNull(media.deletedAt),
       isNull(media.updatedAt),
-      and(
-        isNotNull(mlsMedia.mediaModificationTimestamp),
-        gt(mlsMedia.mediaModificationTimestamp, media.updatedAt),
-      ),
+      changedSourceClause,
     ),
   );
 
   const staleOnlyAssociationClause = and(
     baseMediaRowEligibilityClause,
     isNotNull(mlsMedia.mediaId),
-    or(
-      isNull(media.id),
-      isNotNull(media.deletedAt),
-      isNull(media.updatedAt),
-      and(
-        isNotNull(mlsMedia.mediaModificationTimestamp),
-        gt(mlsMedia.mediaModificationTimestamp, media.updatedAt),
-      ),
-    ),
+    or(isNull(media.id), isNotNull(media.deletedAt), isNull(media.updatedAt), changedSourceClause),
   );
 
   const repairMissingFilesClause = and(
@@ -416,66 +471,20 @@ export async function listMlsMediaSyncCandidates(
 
   const finalWhereClause = and(
     candidateWhereClause,
+    or(
+      and(
+        isNotNull(properties.listingKey),
+        isNull(properties.deletedAt),
+        eq(properties.mlgCanView, true),
+      ),
+      isViewableMemberMediaClause,
+      isViewableOfficeMediaClause,
+    ),
     entityTypeFilterClause,
     propertyAssociationRestrictionClause,
     entityRecordRestrictionClause,
     nonAssociatedPropertyEligibilityClause,
   );
-
-  // Fast path for the hottest queue: property-only, unprocessed candidates.
-  // Avoid joining members/offices/media because those tables are not needed
-  // to evaluate eligibility in this mode.
-  if (
-    propertyOnlyFilter &&
-    associationMode === 'unprocessed-only' &&
-    restrictToMemberEntityKeys.length === 0 &&
-    restrictToOfficeEntityKeys.length === 0
-  ) {
-    const rows =
-      limit > 0
-        ? await db
-            .select({
-              mediaKey: mlsMedia.mediaKey,
-              mediaURL: mlsMedia.mediaURL,
-              resourceRecordKey: mlsMedia.resourceRecordKey,
-              mediaId: mlsMedia.mediaId,
-              mlsUpdatedAt: mlsMedia.mediaModificationTimestamp,
-              longDescription: mlsMedia.longDescription,
-              imageSizeDescription: mlsMedia.imageSizeDescription,
-              unparsedAddress: properties.unparsedAddress,
-              photoOrder: mlsMedia.order,
-              listingKey: properties.listingKey,
-            })
-            .from(mlsMedia)
-            .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
-            .where(finalWhereClause)
-            .orderBy(asc(mlsMedia.updatedAt), asc(mlsMedia.mediaKey))
-            .limit(limit)
-        : [];
-
-    return rows.flatMap((row) => {
-      if (!row.mediaURL || !row.resourceRecordKey || !row.listingKey) {
-        return [];
-      }
-
-      return [
-        {
-          mediaKey: row.mediaKey,
-          mediaURL: row.mediaURL,
-          resourceRecordKey: row.resourceRecordKey,
-          mediaId: (row.mediaId as UUIDv7 | null) ?? null,
-          mlsUpdatedAt: row.mlsUpdatedAt ?? null,
-          linkedMediaExists: false,
-          longDescription: row.longDescription ?? null,
-          imageSizeDescription: row.imageSizeDescription ?? null,
-          unparsedAddress: row.unparsedAddress ?? null,
-          photoOrder: row.photoOrder ?? null,
-          entityLabel: row.unparsedAddress ?? null,
-          entityType: 'properties' as const,
-        } satisfies MlsMediaSyncCandidate,
-      ];
-    });
-  }
 
   const priorityBucket = propertyOnlyFilter
     ? sql<number>`1`
@@ -497,12 +506,16 @@ export async function listMlsMediaSyncCandidates(
       resourceRecordKey: mlsMedia.resourceRecordKey,
       mediaId: mlsMedia.mediaId,
       mlsUpdatedAt: mlsMedia.mediaModificationTimestamp,
+      downloadedSourceTimestamp: mlsMedia.downloadedSourceTimestamp,
+      localFullPath: media.storagePath,
+      linkedUpdatedAt: media.updatedAt,
       linkedMediaId: media.id,
       longDescription: mlsMedia.longDescription,
       imageSizeDescription: mlsMedia.imageSizeDescription,
       unparsedAddress: properties.unparsedAddress,
       photoOrder: mlsMedia.order,
       listingKey: properties.listingKey,
+      listingId: properties.listingId,
       memberFullName: members.memberFullName,
       memberMlsId: members.memberMlsId,
       officeName: offices.officeName,
@@ -520,6 +533,7 @@ export async function listMlsMediaSyncCandidates(
           .where(finalWhereClause)
           .orderBy(priorityBucket, asc(mlsMedia.updatedAt), asc(mlsMedia.mediaKey))
           .limit(limit)
+          .offset(options.offset ?? 0)
       : [];
 
   return toMlsMediaSyncCandidates(rows);
@@ -539,12 +553,16 @@ export async function listUnsyncedMediaForListing(
       resourceRecordKey: mlsMedia.resourceRecordKey,
       mediaId: mlsMedia.mediaId,
       mlsUpdatedAt: mlsMedia.mediaModificationTimestamp,
+      downloadedSourceTimestamp: mlsMedia.downloadedSourceTimestamp,
+      localFullPath: media.storagePath,
+      linkedUpdatedAt: media.updatedAt,
       linkedMediaId: media.id,
       longDescription: mlsMedia.longDescription,
       imageSizeDescription: mlsMedia.imageSizeDescription,
       unparsedAddress: properties.unparsedAddress,
       photoOrder: mlsMedia.order,
       listingKey: properties.listingKey,
+      listingId: properties.listingId,
       memberFullName: members.memberFullName,
       memberMlsId: members.memberMlsId,
       officeName: offices.officeName,
@@ -558,11 +576,8 @@ export async function listUnsyncedMediaForListing(
     .where(
       and(
         eq(mlsMedia.resourceRecordKey, listingKey),
-        or(
-          isNull(mlsMedia.deletedAt),
-          and(isNotNull(mlsMedia.deletedAt), isNull(mlsMedia.mediaId)),
-        ),
-        isNotNull(mlsMedia.mediaURL),
+        isNull(mlsMedia.deletedAt),
+        sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
         isNotNull(mlsMedia.resourceRecordKey),
         or(
           isNull(mlsMedia.mediaId),

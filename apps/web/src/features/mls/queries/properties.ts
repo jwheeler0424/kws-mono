@@ -36,6 +36,9 @@ export const propertyCardColumns = {
   latitude: true,
   longitude: true,
   listPrice: true,
+  listAgentPreferredPhone: true,
+  listAgentEmail: true,
+  buyerOfficeName: true,
 
   propertySubType: true,
   propertyType: true,
@@ -81,11 +84,14 @@ export const getPropertyCardQueryConfig = (): TPropertyCardQueryConfig => ({
     media: {
       limit: 1,
       where: {
-        preferredPhotoYN: true,
+        OR: [{ preferredPhotoYN: true }, { order: 1 }],
         deletedAt: { isNull: true as const },
+        RAW: (table) =>
+          sql`not (coalesce(${table.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
       },
       with: {
         media: {
+          where: { deletedAt: { isNull: true as const } },
           with: {
             variants: {
               where: {

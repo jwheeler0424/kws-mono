@@ -43,6 +43,7 @@ export async function processVariants(
   image: Bun.Image,
   original: { width: number; height: number },
   webp: WebPOptions,
+  fullSource?: Blob,
 ): Promise<RawVariantData[]> {
   const webpOpts = {
     quality: webp.quality ?? 90,
@@ -67,7 +68,7 @@ export async function processVariants(
       .blob(),
 
     // Full variant: convert format only, no spatial resize
-    image.webp(webpOpts).blob(),
+    fullSource ?? image.webp(webpOpts).blob(),
   ]);
 
   const thumbnailDims = computeOutputDimensions(

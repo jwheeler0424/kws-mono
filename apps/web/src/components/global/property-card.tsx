@@ -19,6 +19,7 @@ import {
 
 import { Badge } from './badge';
 import { buttonVariants } from './button';
+import { ListingAttribution } from './listing-attribution';
 
 interface PropertyCardProps extends React.ComponentPropsWithRef<typeof Link> {
   listing: TPropertyCard;
@@ -43,7 +44,7 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
       params={{ listingKey: listing.listingKey }}
       preload='intent'
       className={cn(
-        'group flex h-fit max-h-110 min-w-70 w-full max-w-80 flex-col rounded-none bg-white p-2 no-underline! shadow-md',
+        'group flex h-fit min-w-70 w-full max-w-80 flex-col rounded-none bg-white p-2 no-underline! shadow-md',
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -66,11 +67,6 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
         <Badge className={cn('absolute top-0 right-0 rounded-none rounded-bl text-xs font-normal')}>
           {status}
         </Badge>
-        <aside className='absolute bottom-0 left-0 h-auto w-full bg-black/25 p-1'>
-          <p className='m-0 max-w-full text-xs whitespace-normal text-white'>
-            Provided by NWMLS, {listing.officeName ?? listing.memberFullName}
-          </p>
-        </aside>
       </section>
       <main className={cn('w-full rounded-b border border-t-0 border-gray-100/50 p-2')}>
         <header className={cn('w-full space-y-2')}>
@@ -164,7 +160,16 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
           </div>
         </section>
       </main>
-      <footer className={cn('flex w-full items-center justify-end pt-2')}>
+      <footer className={cn('flex w-full flex-col items-start gap-2 pt-2')}>
+        <ListingAttribution
+          firm={listing.officeName}
+          broker={listing.memberFullName}
+          phone={listing.listAgentPreferredPhone}
+          email={listing.listAgentEmail}
+          buyerFirm={listing.buyerOfficeName}
+          sold={listing.standardStatus === 'Closed'}
+          prominence='sm'
+        />
         <span
           data-type='property-card-cta'
           data-property={listing.listingId}

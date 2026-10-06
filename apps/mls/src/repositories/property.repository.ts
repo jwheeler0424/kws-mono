@@ -13,7 +13,12 @@ import type {
   MappedPropertyUnitType,
 } from '../maps/property.mapper';
 
-import { upsertMlsMedia } from './media.repository';
+import { purgeUnavailableMlsMedia } from './media-cleanup.repository';
+import {
+  reconcileResourceMediaWithinTransaction,
+  reconcileResourceMediaBatch,
+  type MlsTransaction,
+} from './resource-media.repository';
 
 const PROPERTY_BATCH_SIZE = MLS_PROPERTY_DEFAULTS.processBatchSize;
 const PROPERTY_UPSERT_BATCH_SIZE = MLS_PROPERTY_DEFAULTS.upsertBatchSize;
@@ -123,7 +128,7 @@ export const getLatestPropertyTimestamp = async () => {
 };
 
 export async function upsertSingleProperty(record: MappedProperty): Promise<void> {
-  const { listingKey, media, rooms, unitTypes, ...rest } = record;
+  const { listingKey, media, mediaSnapshotPresent, rooms, unitTypes, ...rest } = record;
   await db
     .insert(properties)
     .values({ listingKey, ...rest })
@@ -133,7 +138,11 @@ export async function upsertSingleProperty(record: MappedProperty): Promise<void
     });
 
   await Promise.all([
-    media.length > 0 ? upsertMlsMedia(media) : Promise.resolve(),
+    mediaSnapshotPresent || record.mlgCanView === false
+      ? reconcileResourceMediaBatch([
+          { resourceRecordKey: listingKey, mediaRecords: record.mlgCanView === false ? [] : media },
+        ])
+      : Promise.resolve(),
     rooms.length > 0 ? upsertPropertyRooms(rooms) : Promise.resolve(),
     unitTypes.length > 0 ? upsertPropertyUnitTypes(unitTypes) : Promise.resolve(),
   ]);
@@ -155,6 +164,7 @@ export async function upsertProperties(
   data: (typeof properties.$inferInsert)[],
   options?: {
     useSeedStaging?: boolean;
+    transaction?: MlsTransaction;
   },
 ) {
   if (data.length === 0) return new Date(0);
@@ -174,11 +184,12 @@ export async function upsertProperties(
     return rowTimestamp > max ? rowTimestamp : max;
   }, new Date(0));
   const useSeedStaging = options?.useSeedStaging ?? false;
+  const database = options?.transaction ?? db;
   let attempted = 0;
   let applied = 0;
 
   if (useSeedStaging) {
-    await db.transaction(async (tx) => {
+    await database.transaction(async (tx) => {
       await applySeedStagingSettings((query) => tx.execute(sql.raw(query)));
 
       await tx.execute(
@@ -226,7 +237,7 @@ export async function upsertProperties(
   for (let i = 0; i < deduped.length; i += PROPERTY_UPSERT_BATCH_SIZE) {
     const batch = deduped.slice(i, i + PROPERTY_UPSERT_BATCH_SIZE);
     attempted += batch.length;
-    await db.transaction(async (tx) => {
+    await database.transaction(async (tx) => {
       const changedRows = await tx
         .insert(properties)
         .values(batch)
@@ -375,7 +386,7 @@ export async function processMlsPropertiesPayload(
     const chunkUnitTypes: (typeof propertyUnitTypes.$inferInsert)[] = [];
 
     for (const item of chunk) {
-      const { media, rooms, unitTypes, ...propertyData } = item;
+      const { media, mediaSnapshotPresent: _snapshot, rooms, unitTypes, ...propertyData } = item;
       chunkProperties.push(propertyData);
 
       if (media.length > 0) {
@@ -389,12 +400,21 @@ export async function processMlsPropertiesPayload(
       }
     }
 
-    const localMaxTimestamp = await upsertProperties(chunkProperties, options);
+    const localMaxTimestamp = await db.transaction(async (tx) => {
+      const timestamp = await upsertProperties(chunkProperties, { ...options, transaction: tx });
+      for (const item of chunk) {
+        if (item.mediaSnapshotPresent || item.mlgCanView === false) {
+          await reconcileResourceMediaWithinTransaction(tx, {
+            resourceRecordKey: item.listingKey,
+            mediaRecords: item.mlgCanView === false ? [] : item.media,
+          });
+        }
+      }
+      return timestamp;
+    });
+    await purgeUnavailableMlsMedia(chunk.map((item) => item.listingKey));
 
     const childTasks: Array<() => Promise<Date | void>> = [];
-    if (chunkMedia.length > 0) {
-      childTasks.push(() => upsertMlsMedia(chunkMedia));
-    }
     if (chunkRooms.length > 0) {
       childTasks.push(() => upsertPropertyRooms(chunkRooms));
     }

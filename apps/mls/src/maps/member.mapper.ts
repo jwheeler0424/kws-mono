@@ -19,6 +19,7 @@ type MemberInsert = typeof members.$inferInsert;
 export type MappedMember = Omit<MemberInsert, 'createdAt' | 'searchVector'> & {
   NWM: NWM_Member | null;
   media: MappedMedia[];
+  mediaSnapshotPresent: boolean;
 };
 
 export function mapMember(payload: MlsMemberPayload): MappedMember {
@@ -58,5 +59,6 @@ export function mapMember(payload: MlsMemberPayload): MappedMember {
     /* extensions */
     NWM: nwm,
     media,
+    mediaSnapshotPresent: Array.isArray(payload.Media),
   };
 }

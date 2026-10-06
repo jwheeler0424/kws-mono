@@ -2,14 +2,22 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import ContactForm from '@/components/forms/contact.form';
+import { ListingAttribution } from '@/components/global/listing-attribution';
+import { listingDetailOptions } from '@/features/mls/options';
 
 const contactSearchSchema = z.object({
   address: z.string().optional(),
+  listingKey: z.string().min(1).max(64).optional(),
 });
 
 export const Route = createFileRoute('/contact')({
   component: RouteComponent,
   validateSearch: contactSearchSchema,
+  loaderDeps: ({ search }) => ({ listingKey: search.listingKey }),
+  loader: ({ context, deps }) =>
+    deps.listingKey
+      ? context.queryClient.ensureQueryData(listingDetailOptions({ listingKey: deps.listingKey }))
+      : null,
   head: () => ({
     meta: [
       { title: 'Contact Kyle Weber | KyleWeberSeattle.com' },
@@ -24,6 +32,17 @@ export const Route = createFileRoute('/contact')({
 
 function RouteComponent() {
   const { address } = Route.useSearch();
+  const listing = Route.useLoaderData();
+  const attribution = listing ? (
+    <ListingAttribution
+      firm={listing.listOfficeName}
+      broker={listing.listAgentFullName}
+      phone={listing.listAgentPreferredPhone}
+      email={listing.listAgentEmail}
+      buyerFirm={listing.buyerOfficeName}
+      sold={listing.standardStatus === 'Closed'}
+    />
+  ) : null;
   return (
     <main className='content relative max-w-[100rem] py-16'>
       <header>
@@ -32,6 +51,7 @@ function RouteComponent() {
       <div className='grid items-start gap-12 lg:grid-cols-[1fr_2fr] lg:gap-20'>
         <aside className='flex flex-col gap-8 lg:pt-1'>
           <div>
+            {attribution}
             <h2 className='mb-3 text-2xl'>Kyle Weber</h2>
             <p className='text-base leading-8 text-neutral-600'>
               <a href='tel:+12066498935'>206.649.8935</a>
@@ -55,7 +75,22 @@ function RouteComponent() {
           </div>
         </aside>
         <section className='w-full max-w-4xl' aria-label='Contact Kyle'>
-          <ContactForm propertyAddress={address} />
+          <ContactForm
+            propertyAddress={address}
+            listingAttribution={
+              listing ? (
+                <ListingAttribution
+                  firm={listing.listOfficeName}
+                  broker={listing.listAgentFullName}
+                  phone={listing.listAgentPreferredPhone}
+                  email={listing.listAgentEmail}
+                  buyerFirm={listing.buyerOfficeName}
+                  sold={listing.standardStatus === 'Closed'}
+                  prominence='lg'
+                />
+              ) : null
+            }
+          />
           <p className='mt-8 text-xs leading-6 text-neutral-600'>
             By providing Compass with your contact information, you acknowledge and agree to our{' '}
             <Link to='/policies/privacy'>Privacy Policy</Link> and consent to receiving marketing

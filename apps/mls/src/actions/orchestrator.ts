@@ -124,7 +124,7 @@ function propertySeedConfig(osn: string) {
   const activeStatuses = new Set(['Active', 'ActiveUnderContract', 'ComingSoon']);
 
   const shouldRetainProperty = (record: MlsPropertyPayload): boolean => {
-    const normalizedStatus = record.StandardStatus?.trim();
+    const normalizedStatus = record.StandardStatus?.replace(/\s+/g, '');
     const isViewable = record.MlgCanView === true;
 
     const officeCandidates = [record.ListOfficeMlsId, record.CoListOfficeMlsId]
@@ -146,7 +146,7 @@ function propertySeedConfig(osn: string) {
       isViewable &&
       normalizedStatus !== undefined &&
       activeStatuses.has(normalizedStatus) &&
-      INITIAL_PROPERTY_TYPES.has(record.PropertyType?.trim() ?? '')
+      INITIAL_PROPERTY_TYPES.has(record.PropertyType?.replace(/\s+/g, '') ?? '')
     );
   };
 
@@ -277,7 +277,22 @@ function propertyConfig(
     fetchFn,
     getLatestTimestamp: getLatestPropertyTimestamp,
     getTimestamp: (record) => record.ModificationTimestamp,
-    upsert: async (payload) => processMlsPropertiesPayload(payload.map(mapProperty)),
+    upsert: async (payload) =>
+      processMlsPropertiesPayload(
+        payload
+          .filter(
+            (record) =>
+              record.MlgCanView === false ||
+              INITIAL_PROPERTY_TYPES.has(record.PropertyType?.replace(/\s+/g, '') ?? '') ||
+              [record.ListOfficeMlsId, record.CoListOfficeMlsId].some(
+                (key) => key && env.MLS_OFFICE_ID?.includes(key),
+              ) ||
+              [record.ListAgentMlsId, record.CoListAgentMlsId].some(
+                (key) => key && env.MLS_MEMBER_ID?.includes(key),
+              ),
+          )
+          .map(mapProperty),
+      ),
   });
 }
 

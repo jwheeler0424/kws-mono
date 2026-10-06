@@ -1,5 +1,6 @@
 import { main } from '@/app';
 import { benchmarkDeltaSync } from '@/app/benchmark';
+import { backfillContactsFromCli } from '@/app/contact-backfill';
 import {
   historyCompactFromCli,
   historyQuarantineSummaryFromCli,
@@ -11,6 +12,10 @@ import { logger } from '@/lib/logger';
 
 async function run() {
   const [, , command, ...args] = process.argv;
+  if (command === 'contacts:backfill') {
+    await backfillContactsFromCli(args);
+    return;
+  }
 
   if (command === 'history:verify') {
     await historyVerifyFromCli(args);

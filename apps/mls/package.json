@@ -13,6 +13,7 @@
     "history:quarantine-summary": "bun --bun run src/index.ts history:quarantine-summary",
     "history:storage-report": "bun --bun run src/index.ts history:storage-report",
     "benchmark:delta": "bun --bun run src/index.ts benchmark:delta",
+    "contacts:backfill": "bun --bun run src/index.ts contacts:backfill",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

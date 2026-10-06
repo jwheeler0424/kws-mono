@@ -3,9 +3,11 @@ import { eq, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
 import { logger } from '@/lib/logger';
-import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
+import { chunkArray, dedupeByKey } from '@/lib/utils/helpers';
 
 import type { MappedMedia } from '../maps/media.mapper';
+
+import { buildMlsMediaConflictSet } from './mls-media-conflict-set';
 
 export async function upsertSingleMlsMedia(record: MappedMedia): Promise<void> {
   const { mediaKey, ...rest } = record;
@@ -14,7 +16,7 @@ export async function upsertSingleMlsMedia(record: MappedMedia): Promise<void> {
     .values({ mediaKey, ...rest })
     .onConflictDoUpdate({
       target: mlsMedia.mediaKey,
-      set: { ...rest, updatedAt: new Date() },
+      set: buildMlsMediaConflictSet(new Date()),
     });
 }
 
@@ -31,7 +33,7 @@ export async function upsertMlsMedia(data: (typeof mlsMedia.$inferInsert)[]) {
 
   const deduped = dedupeByKey(data, (row) => row.mediaKey);
   const batches = chunkArray(deduped, 1000);
-  const setFields = getUpsertSetFields(mlsMedia, ['mediaKey', 'createdAt', 'searchVector']);
+  const setFields = buildMlsMediaConflictSet(new Date());
   const updateWhere = sql`
     excluded.resource_record_key is distinct from ${mlsMedia.resourceRecordKey}
     or
@@ -39,6 +41,8 @@ export async function upsertMlsMedia(data: (typeof mlsMedia.$inferInsert)[]) {
     or excluded.media_url is distinct from ${mlsMedia.mediaURL}
     or excluded.preferred_photo_yn is distinct from ${mlsMedia.preferredPhotoYN}
     or excluded."order" is distinct from ${mlsMedia.order}
+    or excluded.permission is distinct from ${mlsMedia.permission}
+    or excluded.long_description is distinct from ${mlsMedia.longDescription}
     or excluded.deleted_at is distinct from ${mlsMedia.deletedAt}
   `;
   const maxTimestamp = deduped.reduce((max, row) => {

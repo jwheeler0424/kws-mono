@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { mkdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 import type {
@@ -42,7 +44,14 @@ async function writeLocalVariant(
   // Normalise to forward slashes for the URL
   const urlPath = [publicBaseUrl.replace(/\/$/, ''), ns, filename].join('/');
 
-  await Bun.write(storagePath, variant.blob);
+  await mkdir(path.dirname(storagePath), { recursive: true });
+  const temporaryPath = `${storagePath}.${randomUUID()}.tmp`;
+  try {
+    await Bun.write(temporaryPath, variant.blob);
+    await rename(temporaryPath, storagePath);
+  } finally {
+    await rm(temporaryPath, { force: true });
+  }
 
   return {
     variantName: variant.variantName,

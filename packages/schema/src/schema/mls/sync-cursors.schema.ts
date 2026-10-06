@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 
 // ---------------------------------------------------------------------------
 // mls_sync_cursors — tracks replication state per resource
@@ -19,6 +19,8 @@ export const mlsSyncCursors = pgTable(
     lastRunAt: timestamp('last_run_at', { withTimezone: true }),
     lastRunStatus: varchar('last_run_status', { length: 32 }), // 'success' | 'error' | 'running'
     lastRunError: text('last_run_error'),
+    runToken: uuid('run_token'),
+    leaseUntil: timestamp('lease_until', { withTimezone: true }),
     checkpointRequestUrl: text('checkpoint_request_url'),
     checkpointNextUrl: text('checkpoint_next_url'),
     checkpointRecentRequestUrls: text('checkpoint_recent_request_urls'),

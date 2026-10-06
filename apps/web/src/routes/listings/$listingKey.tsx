@@ -15,9 +15,9 @@ import { useState } from 'react';
 
 import { Badge } from '@/components/global/badge';
 import { Link } from '@/components/global/link';
+import { ListingAttribution } from '@/components/global/listing-attribution';
 import PropertyMap from '@/components/global/map-wrapper';
 import { PropertySlideshow } from '@/components/global/property-slideshow';
-import { ensureListingMediaServerFn } from '@/features/mls/functions';
 import { listingDetailOptions } from '@/features/mls/options';
 import { cn } from '@/lib/utils';
 import {
@@ -34,10 +34,6 @@ import {
 
 export const Route = createFileRoute('/listings/$listingKey')({
   loader: async ({ context, params }) => {
-    void ensureListingMediaServerFn({
-      data: { listingKey: params.listingKey },
-    }).catch(() => undefined);
-
     return context.queryClient.ensureQueryData(
       listingDetailOptions({ listingKey: params.listingKey }),
     );
@@ -75,9 +71,6 @@ function RouteComponent() {
           'relative mx-auto flex h-full w-11/12 flex-col items-start justify-between px-2 text-white md:flex-row md:gap-4 md:px-5 2xl:px-12',
         )}>
         <section className={cn('my-2 flex w-full flex-col mdmb:mb-4')}>
-          <article className={cn('h-8 w-full text-sm! text-gray-400! mddt:mb-2 xldt:mb-4')}>
-            Provided by NWMLS, Listed by {property.listOfficeName ?? property.listAgentFullName}
-          </article>
           <main className={cn('-ml-px flex h-fit flex-col gap-1')}>
             <h1 className={cn('m-0! font-sans! text-2xl! font-bold! text-gray-900!')}>
               {property.internetAddressDisplayYN === false
@@ -157,11 +150,20 @@ function RouteComponent() {
         </section>
         <aside
           className={cn(
-            'flex h-fit w-full items-start justify-start gap-1 py-1 sm:w-fit sm:justify-end md:my-4 md:mt-8 lgtb:mt-9 xsdt:mt-9.5 smdt:mt-11.5 xldt:mt-12',
+            'flex h-fit w-full min-w-0 flex-col items-start gap-2 py-1 md:my-4 md:max-w-80',
           )}>
+          <ListingAttribution
+            firm={property.listOfficeName}
+            broker={property.listAgentFullName}
+            phone={property.listAgentPreferredPhone}
+            email={property.listAgentEmail}
+            buyerFirm={property.buyerOfficeName}
+            sold={property.standardStatus === 'Closed'}
+          />
           <Link
             to='/contact'
             search={{
+              listingKey: property.listingKey,
               address:
                 property.internetAddressDisplayYN === false
                   ? `MLS# ${property.listingId?.replace(/^\D+/g, '')}`

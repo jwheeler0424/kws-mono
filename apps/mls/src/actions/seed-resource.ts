@@ -332,6 +332,7 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
           message: detail.message,
           ...(formatted.meta ?? {}),
         });
+        throw err;
       }
     };
 

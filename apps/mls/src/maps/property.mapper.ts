@@ -36,6 +36,7 @@ export type MappedProperty = Omit<
 > & {
   NWM: NWM_Property | null;
   media: MappedMedia[];
+  mediaSnapshotPresent: boolean;
   rooms: MappedPropertyRoom[];
   unitTypes: MappedPropertyUnitType[];
 };
@@ -335,14 +336,18 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     listAgentMlsId: parseNullableString(payload.ListAgentMlsId, 64),
     listAgentFullName: parseNullableString(payload.ListAgentFullName, 256),
     listAgentEmail: parseNullableString(payload.ListAgentEmail, 256),
+    listAgentPreferredPhone: parseNullableString(payload.ListAgentPreferredPhone, 32),
     listAgentDirectPhone: parseNullableString(payload.ListAgentDirectPhone, 32),
     listOfficeKey: parseNullableString(payload.ListOfficeKey, 64),
     listOfficeMlsId: parseNullableString(payload.ListOfficeMlsId, 64),
     listOfficeName: parseNullableString(payload.ListOfficeName, 256),
+    listOfficeEmail: parseNullableString(payload.ListOfficeEmail, 256),
     listOfficePhone: parseNullableString(payload.ListOfficePhone, 32),
     coListAgentKey: parseNullableString(payload.CoListAgentKey, 64),
     coListAgentMlsId: parseNullableString(payload.CoListAgentMlsId, 64),
     coListAgentFullName: parseNullableString(payload.CoListAgentFullName, 256),
+    coListAgentPreferredPhone: parseNullableString(payload.CoListAgentPreferredPhone, 32),
+    coListAgentEmail: parseNullableString(payload.CoListAgentEmail, 256),
     buyerAgentKey: parseNullableString(payload.BuyerAgentKey, 64),
     buyerAgentMlsId: parseNullableString(payload.BuyerAgentMlsId, 64),
     buyerAgentFullName: parseNullableString(payload.BuyerAgentFullName, 256),
@@ -364,6 +369,7 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     coListOfficeKey: parseNullableString(payload.CoListOfficeKey, 255),
     coListOfficeMlsId: parseNullableString(payload.CoListOfficeMlsId, 25),
     coListOfficeName: parseNullableString(payload.CoListOfficeName, 255),
+    coListOfficeEmail: parseNullableString(payload.CoListOfficeEmail, 256),
     coListOfficePhone: parseNullableString(payload.CoListOfficePhone, 16),
     coListOfficePhoneExt: parseNullableString(payload.CoListOfficePhoneExt, 10),
     listOfficePhoneExt: parseNullableString(payload.ListOfficePhoneExt, 10),
@@ -399,6 +405,7 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     /* extensions */
     NWM: nwm,
     media,
+    mediaSnapshotPresent: Array.isArray(payload.Media),
     rooms,
     unitTypes,
   };

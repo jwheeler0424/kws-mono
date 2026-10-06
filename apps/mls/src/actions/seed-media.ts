@@ -3,15 +3,24 @@ import type { UUIDv7 } from '@kws/types';
 import { env } from '@kws/config';
 import { processImage } from '@kws/media';
 import { media, mediaVariants, mlsMedia } from '@kws/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
+import type { MlsMediaPayload } from '@/types';
+
 import { db } from '@/lib/database';
 import { mlsLogger } from '@/lib/logger';
+import { fetchFreshParentMedia } from '@/lib/utils/fetch';
+import { downloadMlsMedia, MlsMediaDownloadError } from '@/lib/utils/media-download';
+import { mlsQuotaTracker } from '@/lib/utils/quota';
+import { throttle } from '@/lib/utils/rate-limit';
 
 import {
   listMlsMediaSyncCandidates,
+  claimParentMedia,
+  releaseParentMedia,
   type MlsMediaAssociationMode,
   type MlsMediaEntityType,
   type MlsMediaSyncCandidate,
@@ -127,19 +136,6 @@ function truncate(value: string | null | undefined, maxLength: number): string |
   return value.length > maxLength ? value.slice(0, maxLength) : value;
 }
 
-function inferOriginalFilename(urlOrPath: string, fallbackKey: string): string {
-  const fallback = `${sanitizeBaseFilename(fallbackKey)}.source`;
-
-  try {
-    const parsed = new URL(urlOrPath);
-    const name = parsed.pathname.split('/').pop();
-    return name && name.length > 0 ? name : fallback;
-  } catch {
-    const basename = path.basename(urlOrPath);
-    return basename && basename.length > 0 ? basename : fallback;
-  }
-}
-
 function findWorkspaceRoot(startDir: string): string {
   let current = startDir;
 
@@ -186,8 +182,36 @@ function localPublicBaseUrl(entityType: MlsMediaEntityType): string {
 function resolveExpectedFullPath(candidate: MlsMediaSyncCandidate): string {
   const basePath = localBasePath(candidate.entityType);
   const ns = candidate.resourceRecordKey;
-  const filename = `${sanitizeBaseFilename(candidate.mediaKey)}_full.webp`;
-  return path.join(basePath, ns, filename);
+  if (!/^[a-zA-Z0-9_-]+$/.test(ns)) throw new Error('Invalid MLS media namespace');
+  const legacyPath = path.join(
+    basePath,
+    ns,
+    `${sanitizeBaseFilename(candidate.mediaKey)}_full.webp`,
+  );
+  const sourceChanged = candidate.downloadedSourceTimestamp
+    ? Date.parse(candidate.downloadedSourceTimestamp) !== Date.parse(candidate.mlsUpdatedAt ?? '')
+    : Boolean(
+        candidate.linkedUpdatedAt &&
+        candidate.mlsUpdatedAt &&
+        Date.parse(candidate.mlsUpdatedAt) > candidate.linkedUpdatedAt.getTime(),
+      );
+  if (
+    !sourceChanged &&
+    candidate.localFullPath &&
+    path.resolve(candidate.localFullPath).startsWith(`${path.resolve(basePath)}${path.sep}`)
+  ) {
+    return candidate.localFullPath;
+  }
+  if (!sourceChanged && existsSync(legacyPath)) return legacyPath;
+  const version = createHash('sha256')
+    .update(`${candidate.mediaKey}:${candidate.mlsUpdatedAt ?? ''}`)
+    .digest('hex')
+    .slice(0, 16);
+  return path.join(
+    basePath,
+    ns,
+    `${sanitizeBaseFilename(candidate.mediaKey)}-${version}_full.webp`,
+  );
 }
 
 type VariantName = 'thumbnail' | 'preview' | 'full';
@@ -196,10 +220,7 @@ function resolveExpectedVariantPath(
   candidate: MlsMediaSyncCandidate,
   variantName: VariantName,
 ): string {
-  const basePath = localBasePath(candidate.entityType);
-  const ns = candidate.resourceRecordKey;
-  const filename = `${sanitizeBaseFilename(candidate.mediaKey)}_${variantName}.webp`;
-  return path.join(basePath, ns, filename);
+  return resolveExpectedFullPath(candidate).replace(/_full\.webp$/, `_${variantName}.webp`);
 }
 
 async function areAllCanonicalVariantsPresent(candidate: MlsMediaSyncCandidate): Promise<boolean> {
@@ -211,7 +232,10 @@ async function areAllCanonicalVariantsPresent(candidate: MlsMediaSyncCandidate):
   return results.every(Boolean);
 }
 
-async function resolvePipelineSource(candidate: MlsMediaSyncCandidate): Promise<{
+async function resolvePipelineSource(
+  candidate: MlsMediaSyncCandidate,
+  getMediaUrl: () => Promise<string>,
+): Promise<{
   source: string | Blob;
   sourceOrigin: 'local' | 'remote';
 }> {
@@ -225,8 +249,18 @@ async function resolvePipelineSource(candidate: MlsMediaSyncCandidate): Promise<
     };
   }
 
+  const mediaUrl = await getMediaUrl();
+  const budgetedFetch = async (input: string, options: RequestInit): Promise<Response> => {
+    await throttle();
+    mlsQuotaTracker.prepareRequest();
+    return fetch(input, options);
+  };
+  const source = await downloadMlsMedia(mediaUrl, env.MLS_ACCESS_KEY, budgetedFetch, {
+    demo: new URL(env.MLS_API_URL).hostname === 'api-demo.mlsgrid.com',
+  });
+  mlsQuotaTracker.recordResponseBytes(source.size);
   return {
-    source: await fetchMlsMediaBlob(candidate.mediaURL),
+    source,
     sourceOrigin: 'remote',
   };
 }
@@ -249,24 +283,6 @@ function buildMediaTitle(candidate: MlsMediaSyncCandidate): string {
   }
 
   return base;
-}
-
-/**
- * Downloads a MLS MediaURL with the OAuth2 access token set as User-Agent.
- * MLS Grid requires this header for all media downloads (enforced June 1 2026).
- */
-async function fetchMlsMediaBlob(mediaURL: string): Promise<Blob> {
-  const response = await fetch(mediaURL, {
-    headers: {
-      'User-Agent': env.MLS_ACCESS_KEY,
-    },
-  });
-  if (!response.ok) {
-    throw new Error(
-      `MLS media download failed: ${response.status} ${response.statusText} — ${mediaURL}`,
-    );
-  }
-  return response.blob();
 }
 
 function toErrorMessage(error: unknown): string {
@@ -306,17 +322,17 @@ async function markMlsMediaRowAsUnprocessable(candidate: MlsMediaSyncCandidate):
 
 async function upsertProcessedMedia(
   candidate: MlsMediaSyncCandidate,
+  token: string,
+  getMediaUrl: () => Promise<string>,
 ): Promise<{ mode: 'created' | 'updated'; sourceOrigin: 'local' | 'remote' }> {
-  // ── Pre-download existence check ─────────────────────────────────────────
-  // If the full-size WebP already exists on disk, use the local file as the
-  // pipeline source instead of re-downloading from the MLS URL.  This keeps
-  // the DB in sync without a network round-trip and is safe on repeated runs
-  // (the variants are overwritten with identical content).
-  const pipelineSource = await resolvePipelineSource(candidate);
+  const pipelineSource = await resolvePipelineSource(candidate, getMediaUrl);
+  const filename = path.basename(resolveExpectedFullPath(candidate)).replace(/_full\.webp$/, '');
 
   const result = await processImage({
     source: pipelineSource.source,
-    filename: sanitizeBaseFilename(candidate.mediaKey),
+    filename,
+    durableFull: true,
+    preserveFullWebp: pipelineSource.sourceOrigin === 'local',
     organizationId: candidate.resourceRecordKey,
     storage: {
       provider: 'local',
@@ -328,17 +344,29 @@ async function upsertProcessedMedia(
   const fullVariant = result.variants.full;
   const title = buildMediaTitle(candidate);
   const description = buildPhotoLabel(candidate) ?? candidate.imageSizeDescription ?? null;
-  const originalFilename = inferOriginalFilename(candidate.mediaURL, candidate.mediaKey);
+  const originalFilename = `${sanitizeBaseFilename(candidate.mediaKey)}.source`;
 
   return db.transaction(async (tx) => {
+    const claimed = await tx
+      .select({ key: mlsMedia.mediaKey })
+      .from(mlsMedia)
+      .where(
+        and(
+          eq(mlsMedia.mediaKey, candidate.mediaKey),
+          eq(mlsMedia.acquisitionToken, token),
+          sql`${mlsMedia.mediaModificationTimestamp} is not distinct from ${candidate.mlsUpdatedAt}::timestamptz`,
+          sql`${mlsMedia.deletedAt} is null`,
+          sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+        ),
+      )
+      .for('update');
+    if (claimed.length === 0) throw new Error('MLS media source changed during acquisition');
     const aspectRatioValue = Number.isFinite(result.source.aspectRatio)
       ? result.source.aspectRatio.toFixed(4)
       : null;
 
     const baseMediaValues = {
-      filename:
-        truncate(`${sanitizeBaseFilename(candidate.mediaKey)}_full.webp`, 255) ??
-        `${sanitizeBaseFilename(candidate.mediaKey)}_full.webp`,
+      filename: `${filename}_full.webp`,
       originalFilename: truncate(originalFilename, 255) ?? originalFilename,
       mimeType: result.source.mimeType,
       fileSize: fullVariant.fileSize,
@@ -404,7 +432,12 @@ async function upsertProcessedMedia(
 
     await tx
       .update(mlsMedia)
-      .set({ mediaId: finalMediaId })
+      .set({
+        mediaId: finalMediaId,
+        downloadedSourceTimestamp: candidate.mlsUpdatedAt,
+        mediaURL: null,
+        lastAcquisitionError: null,
+      })
       .where(
         and(
           eq(mlsMedia.mediaKey, candidate.mediaKey),
@@ -461,14 +494,17 @@ export async function runMlsMediaSync(
 
   const processCandidate = async (
     candidate: MlsMediaSyncCandidate,
+    token: string,
+    getMediaUrl: () => Promise<string>,
+    onFailure: (error: unknown) => void,
   ): Promise<'processed' | 'skipped' | 'failed'> => {
-    if (!candidate.mediaURL || !candidate.resourceRecordKey) {
+    if (!candidate.resourceRecordKey) {
       summary.skipped += 1;
       return 'skipped';
     }
 
     try {
-      const outcome = await upsertProcessedMedia(candidate);
+      const outcome = await upsertProcessedMedia(candidate, token, getMediaUrl);
       summary.processed += 1;
       if (outcome.sourceOrigin === 'local') {
         summary.localSourceUsed += 1;
@@ -482,6 +518,7 @@ export async function runMlsMediaSync(
       }
       return 'processed';
     } catch (error) {
+      onFailure(error);
       const permanent = isPermanentImageProcessingError(error);
       const message = toErrorMessage(error);
 
@@ -491,7 +528,6 @@ export async function runMlsMediaSync(
         syncLogger.warn('dropping unprocessable MLS media row from future retries', {
           mediaKey: candidate.mediaKey,
           resourceRecordKey: candidate.resourceRecordKey,
-          mediaURL: candidate.mediaURL,
           entityType: candidate.entityType,
           markedDeleted: marked,
           error: message,
@@ -503,7 +539,6 @@ export async function runMlsMediaSync(
       syncLogger.warn('failed to process MLS media row', {
         mediaKey: candidate.mediaKey,
         resourceRecordKey: candidate.resourceRecordKey,
-        mediaURL: candidate.mediaURL,
         entityType: candidate.entityType,
         error: message,
       });
@@ -519,29 +554,90 @@ export async function runMlsMediaSync(
       failed: 0,
     };
 
-    if (processConcurrency === 1 || candidates.length <= 1) {
-      for (const candidate of candidates) {
-        const status = await processCandidate(candidate);
-        outcome[status] += 1;
-      }
-    } else {
-      let nextIndex = 0;
-      const workers = Array.from({ length: Math.min(processConcurrency, candidates.length) }, () =>
-        (async () => {
-          while (true) {
-            const index = nextIndex;
-            nextIndex += 1;
-            if (index >= candidates.length) {
-              break;
-            }
-            const status = await processCandidate(candidates[index]!);
-            outcome[status] += 1;
-          }
-        })(),
-      );
-
-      await Promise.all(workers);
+    const byParent = new Map<string, MlsMediaSyncCandidate[]>();
+    for (const candidate of candidates) {
+      const key = `${candidate.entityType}:${candidate.resourceRecordKey}`;
+      const group = byParent.get(key) ?? [];
+      group.push(candidate);
+      byParent.set(key, group);
     }
+    const groups = [...byParent.values()];
+    let nextGroup = 0;
+    await Promise.all(
+      Array.from({ length: Math.min(processConcurrency, groups.length) }, async () => {
+        while (nextGroup < groups.length) {
+          const group = groups[nextGroup++]!;
+          const first = group[0]!;
+          const token = await claimParentMedia(first.resourceRecordKey);
+          if (!token) {
+            summary.skipped += group.length;
+            outcome.skipped += group.length;
+            continue;
+          }
+          let snapshot: Promise<MlsMediaPayload[]> | undefined;
+          let failure: unknown;
+          const started = Date.now();
+          const onFailure = (error: unknown) => {
+            failure = error;
+          };
+          try {
+            for (const candidate of group) {
+              if (failure || Date.now() - started > 600_000) {
+                failure ??= new MlsMediaDownloadError(410);
+                summary.skipped += 1;
+                outcome.skipped += 1;
+                continue;
+              }
+              const getMediaUrl = async () => {
+                snapshot ??= fetchFreshParentMedia(
+                  candidate.entityType,
+                  candidate.resourceRecordKey,
+                  candidate.listingId,
+                );
+                const fresh = (await snapshot).find((item) => item.MediaKey === candidate.mediaKey);
+                if (
+                  !fresh?.MediaURL ||
+                  fresh.MlgCanView === false ||
+                  (Array.isArray(fresh.Permission) &&
+                    fresh.Permission.some(
+                      (permission: unknown) =>
+                        typeof permission === 'string' && permission.toLowerCase() === 'private',
+                    ))
+                ) {
+                  throw new Error('Fresh MLS media is absent or private');
+                }
+                if (
+                  candidate.mlsUpdatedAt &&
+                  (!fresh.MediaModificationTimestamp ||
+                    Date.parse(fresh.MediaModificationTimestamp) !==
+                      Date.parse(candidate.mlsUpdatedAt))
+                ) {
+                  throw new Error('MLS media source changed; waiting for replication');
+                }
+                await db
+                  .update(mlsMedia)
+                  .set({ lastAttemptAt: new Date() })
+                  .where(
+                    and(
+                      eq(mlsMedia.mediaKey, candidate.mediaKey),
+                      eq(mlsMedia.acquisitionToken, token),
+                    ),
+                  );
+                return fresh.MediaURL;
+              };
+              const status = await processCandidate(candidate, token, getMediaUrl, onFailure);
+              outcome[status] += 1;
+            }
+          } finally {
+            await releaseParentMedia(
+              token,
+              failure ? toErrorMessage(failure) : undefined,
+              failure instanceof MlsMediaDownloadError ? failure.retryAfterMs : 3_600_000,
+            );
+          }
+        }
+      }),
+    );
 
     return outcome;
   };
@@ -636,6 +732,7 @@ export async function runMlsMediaSync(
       const repairSelectionStartedAt = Date.now();
 
       const repairCandidates = await listMlsMediaSyncCandidates(batchSize, {
+        offset: batch * batchSize,
         prioritizeMemberKeys,
         prioritizeOfficeKeys,
         primaryOnlyForNonPrioritizedProperties,
@@ -789,6 +886,6 @@ export async function runInitialMlsMediaSync(
     ...options,
     maxBatches: options.maxBatches ?? Number.MAX_SAFE_INTEGER,
     primaryOnlyForNonPrioritizedProperties: options.primaryOnlyForNonPrioritizedProperties ?? true,
-    primaryOnlyForAllProperties: options.primaryOnlyForAllProperties ?? true,
+    primaryOnlyForAllProperties: options.primaryOnlyForAllProperties ?? false,
   });
 }

@@ -9,6 +9,7 @@ import type { MlsResource } from '@/types';
 
 import { MLS_HISTORY_DEFAULTS } from './constants';
 import { logger } from './logger';
+import { omitMediaUrl } from './utils/media-history';
 
 function resolveHistoryRoot(): string {
   const configuredPath = MLS_HISTORY_DEFAULTS.storePath;
@@ -527,14 +528,17 @@ export async function quarantineInvalidTimestampRecords<T extends Record<string,
 
   const payload = `${invalid
     .map((item) =>
-      JSON.stringify({
-        quarantinedAt: now.toISOString(),
-        resource,
-        ...context,
-        reason: item.reason,
-        modificationTimestamp: item.timestampRaw,
-        record: item.record,
-      }),
+      JSON.stringify(
+        {
+          quarantinedAt: now.toISOString(),
+          resource,
+          ...context,
+          reason: item.reason,
+          modificationTimestamp: item.timestampRaw,
+          record: item.record,
+        },
+        omitMediaUrl,
+      ),
     )
     .join('\n')}\n`;
 
@@ -757,7 +761,7 @@ export async function persistHistoryPage<T extends Record<string, unknown>>(para
       const finalPath = path.join(dir, chunkFile);
       const tempPath = `${finalPath}.tmp`;
 
-      const jsonl = `${partitionRecords.map((record) => JSON.stringify(record)).join('\n')}\n`;
+      const jsonl = `${partitionRecords.map((record) => JSON.stringify(record, omitMediaUrl)).join('\n')}\n`;
       const checksum = checksumSha256(jsonl);
       const { firstTimestamp, lastTimestamp } = computeTimestampWindow(
         partitionRecords,

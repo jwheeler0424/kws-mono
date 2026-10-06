@@ -6,23 +6,26 @@ import { chunkArray } from '@/lib/utils/helpers';
 
 import type { MappedMedia } from '../maps/media.mapper';
 
+import { purgeUnavailableMlsMedia } from './media-cleanup.repository';
 import { buildMlsMediaConflictSet } from './mls-media-conflict-set';
 
 const MEDIA_UPSERT_CHUNK_SIZE = 250;
+export type MlsTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export interface ResourceMediaBatchItem {
   resourceRecordKey: string;
   mediaRecords: MappedMedia[];
 }
 
-async function reconcileResourceMediaWithinTransaction(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+export async function reconcileResourceMediaWithinTransaction(
+  tx: MlsTransaction,
   item: ResourceMediaBatchItem,
 ): Promise<void> {
   const incomingKeys = item.mediaRecords.map((record) => record.mediaKey);
   if (incomingKeys.length > 0) {
     await tx
-      .delete(mlsMedia)
+      .update(mlsMedia)
+      .set({ deletedAt: new Date(), updatedAt: new Date(), mediaURL: null })
       .where(
         and(
           eq(mlsMedia.resourceRecordKey, item.resourceRecordKey),
@@ -30,7 +33,10 @@ async function reconcileResourceMediaWithinTransaction(
         ),
       );
   } else {
-    await tx.delete(mlsMedia).where(eq(mlsMedia.resourceRecordKey, item.resourceRecordKey));
+    await tx
+      .update(mlsMedia)
+      .set({ deletedAt: new Date(), updatedAt: new Date(), mediaURL: null })
+      .where(eq(mlsMedia.resourceRecordKey, item.resourceRecordKey));
   }
 
   if (item.mediaRecords.length === 0) {
@@ -59,4 +65,5 @@ export async function reconcileResourceMediaBatch(items: ResourceMediaBatchItem[
       await reconcileResourceMediaWithinTransaction(tx, item);
     }
   });
+  await purgeUnavailableMlsMedia(items.map((item) => item.resourceRecordKey));
 }

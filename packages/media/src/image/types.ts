@@ -102,6 +102,8 @@ export interface ImagePipelineOptions {
   webp?: WebPOptions;
   /** Where to write the processed variants. */
   storage: StorageOptions;
+  durableFull?: boolean;
+  preserveFullWebp?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

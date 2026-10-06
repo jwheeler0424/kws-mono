@@ -1,2 +1,2 @@
 export const PROPERTY_CARD_MAX_WIDTH = 312;
-export const PROPERTY_CARD_HEIGHT = 424;
+export const PROPERTY_CARD_HEIGHT = 524;

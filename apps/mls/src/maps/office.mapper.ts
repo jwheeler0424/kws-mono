@@ -10,6 +10,7 @@ type OfficeInsert = typeof offices.$inferInsert;
 
 export type MappedOffice = Omit<OfficeInsert, 'createdAt' | 'searchVector'> & {
   media: MappedMedia[];
+  mediaSnapshotPresent: boolean;
 };
 
 export function mapOffice(payload: MlsOfficePayload): MappedOffice {
@@ -49,5 +50,6 @@ export function mapOffice(payload: MlsOfficePayload): MappedOffice {
     updatedAt: now,
     /* extensions */
     media,
+    mediaSnapshotPresent: Array.isArray(payload.Media),
   };
 }

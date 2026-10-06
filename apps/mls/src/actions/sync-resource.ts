@@ -16,6 +16,12 @@ import { logger } from '@/lib/logger';
 
 import type { ErrorDetail, ODataPageBatch, SyncResult } from '../types';
 
+import {
+  claimSyncCursor,
+  checkpointSyncCursor,
+  finishSyncCursor,
+} from '../repositories/sync-cursor.repository';
+
 // ---------------------------------------------------------------------------
 // Configuration contract
 // ---------------------------------------------------------------------------
@@ -72,7 +78,9 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
   logger.info('sync started', { resource, osn });
 
   const dbWatermark = normalizeTimestamp(await config.getLatestTimestamp());
-  let activeAfterTimestamp = dbWatermark;
+  const cursor = await claimSyncCursor(resource, osn, dbWatermark);
+  if (!cursor) return { resource, osn, upserted: 0, errors: 0, durationMs: Date.now() - startedAt };
+  let activeAfterTimestamp = normalizeTimestamp(cursor.timestamp);
 
   const overlapMs = Math.max(MLS_SYNC_DEFAULTS.deltaOverlapMs, MLS_SYNC_DEFAULTS.minDeltaOverlapMs);
   const precisionSafetyMs = MLS_SYNC_DEFAULTS.timestampPrecisionSafetyMs;
@@ -125,6 +133,11 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
       });
 
       await config.upsert(batch);
+      const receivedTimestamp = batch.reduce<Date | undefined>((latest, record) => {
+        const timestamp = normalizeTimestamp(getTimestamp(record));
+        return timestamp && (!latest || timestamp > latest) ? timestamp : latest;
+      }, undefined);
+      await checkpointSyncCursor(cursor.token, receivedTimestamp);
       page++;
 
       upserted += batch.length;
@@ -180,6 +193,7 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    await finishSyncCursor(cursor.token, message);
     logger.error('sync failed', { resource, osn, message });
 
     return {
@@ -191,6 +205,8 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
       error: message,
       errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
     };
+  } finally {
+    await finishSyncCursor(cursor.token, errors > 0 ? 'Replication failed' : undefined);
   }
 }
 

@@ -44,6 +44,44 @@ export interface DeadMlsMediaPurgeSummary {
   variantFilesDeleted: number;
 }
 
+export async function purgeUnavailableMlsMedia(resourceRecordKeys: string[]): Promise<void> {
+  if (resourceRecordKeys.length === 0) return;
+  const unavailable = await db
+    .select({ mediaId: mlsMedia.mediaId })
+    .from(mlsMedia)
+    .where(
+      and(
+        inArray(mlsMedia.resourceRecordKey, resourceRecordKeys),
+        isNotNull(mlsMedia.mediaId),
+        or(
+          isNotNull(mlsMedia.deletedAt),
+          sql`coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[]`,
+        ),
+      ),
+    );
+  const ids = [...new Set(unavailable.flatMap((row) => (row.mediaId ? [row.mediaId] : [])))];
+  if (ids.length === 0) return;
+  const publicReferences = await db
+    .select({ mediaId: mlsMedia.mediaId })
+    .from(mlsMedia)
+    .where(
+      and(
+        inArray(mlsMedia.mediaId, ids),
+        isNull(mlsMedia.deletedAt),
+        sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+      ),
+    );
+  const protectedIds = new Set(publicReferences.map((row) => row.mediaId));
+  const purgeIds = ids.filter((id) => !protectedIds.has(id));
+  if (purgeIds.length === 0) return;
+  const variants = await db
+    .select({ storagePath: mediaVariants.storagePath })
+    .from(mediaVariants)
+    .where(inArray(mediaVariants.mediaId, purgeIds));
+  await deleteVariantFilesInChunks(variants.map((variant) => variant.storagePath));
+  await db.delete(media).where(inArray(media.id, purgeIds));
+}
+
 export interface ScopedMlsMediaPurgeSummary {
   linkedRowsScanned: number;
   linkedRowsDetached: number;

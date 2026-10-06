@@ -28,6 +28,15 @@ export const mlsMedia = pgTable(
     permission: varchar('permission', { length: 255 }).array(),
     preferredPhotoYN: boolean('preferred_photo_yn'),
     resourceRecordKey: varchar('resource_record_key', { length: 255 }),
+    downloadedSourceTimestamp: timestamp('downloaded_source_timestamp', {
+      withTimezone: true,
+      mode: 'string',
+    }),
+    acquisitionToken: uuid('acquisition_token'),
+    acquisitionLeaseUntil: timestamp('acquisition_lease_until', { withTimezone: true }),
+    nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }),
+    lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
+    lastAcquisitionError: varchar('last_acquisition_error', { length: 255 }),
 
     mediaId: uuid('media_id')
       .$type<UUIDv7>()
@@ -53,6 +62,7 @@ export const mlsMedia = pgTable(
     index('idx_mls_media_updated_at').on(t.updatedAt),
     index('idx_mls_media_deleted_at').on(t.deletedAt),
     index('idx_mls_media_media_id').on(t.mediaId),
+    index('idx_mls_media_next_attempt').on(t.nextAttemptAt, t.acquisitionLeaseUntil),
     index('idx_permission').on(t.permission),
     index('idx_media_listing_primary').on(t.resourceRecordKey, t.preferredPhotoYN, t.order),
     index('idx_mls_media_candidate_sort').on(t.updatedAt, t.mediaKey),

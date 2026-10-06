@@ -382,14 +382,18 @@ export interface MlsPropertyPayload {
   ListAgentMlsId?: string;
   ListAgentFullName?: string;
   ListAgentEmail?: string;
+  ListAgentPreferredPhone?: string;
   ListAgentDirectPhone?: string;
   ListOfficeKey?: string;
   ListOfficeMlsId?: string;
   ListOfficeName?: string;
+  ListOfficeEmail?: string;
   ListOfficePhone?: string;
   CoListAgentKey?: string;
   CoListAgentMlsId?: string;
   CoListAgentFullName?: string;
+  CoListAgentPreferredPhone?: string;
+  CoListAgentEmail?: string;
   BuyerAgentKey?: string;
   BuyerAgentMlsId?: string;
   BuyerAgentFullName?: string;
@@ -411,6 +415,7 @@ export interface MlsPropertyPayload {
   CoListOfficeKey?: string;
   CoListOfficeMlsId?: string;
   CoListOfficeName?: string;
+  CoListOfficeEmail?: string;
   CoListOfficePhone?: string;
   CoListOfficePhoneExt?: string;
   ListOfficePhoneExt?: string;

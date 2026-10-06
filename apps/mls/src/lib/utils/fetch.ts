@@ -2,6 +2,7 @@ import { env } from '@kws/config';
 
 import type {
   MlsLookupPayload,
+  MlsMediaPayload,
   MlsMemberPayload,
   MlsOfficePayload,
   MlsOpenHousePayload,
@@ -117,19 +118,60 @@ export function buildFilter(osn: string, afterTimestamp?: Date, beforeTimestamp?
   return parts.join(' and ');
 }
 
+export function buildFreshParentMediaUrl(
+  entityType: 'properties' | 'members' | 'offices',
+  recordKey: string,
+  listingId?: string | null,
+): string {
+  if (entityType === 'properties' && !listingId) {
+    throw new Error('MLS Property media lookup requires the prefixed ListingId');
+  }
+  const [resource, keyField] =
+    entityType === 'properties'
+      ? ['Property', 'ListingId']
+      : entityType === 'members'
+        ? ['Member', 'MemberMlsId']
+        : ['Office', 'OfficeMlsId'];
+  const filterKey = entityType === 'properties' ? listingId! : recordKey;
+  const params = new URLSearchParams({
+    $filter: `OriginatingSystemName eq '${escapeODataString(env.MLS_ORIGINATING_SYSTEM_NAME)}' and ${keyField} eq '${escapeODataString(filterKey)}'`,
+    $expand: 'Media',
+    $top: '1',
+  });
+  return `${baseUrl(resource as MlsResource)}?${params.toString()}`;
+}
+
+export async function fetchFreshParentMedia(
+  entityType: 'properties' | 'members' | 'offices',
+  recordKey: string,
+  listingId?: string | null,
+): Promise<MlsMediaPayload[]> {
+  const page = await fetchPage<{
+    ListingKey?: string;
+    MlgCanView?: boolean;
+    MlgCanUse?: string[];
+    Media?: MlsMediaPayload[];
+  }>(buildFreshParentMediaUrl(entityType, recordKey, listingId));
+  const parent = page.value[0];
+  if (
+    !parent ||
+    (entityType === 'properties' && parent.ListingKey !== recordKey) ||
+    parent.MlgCanView !== true ||
+    (parent.MlgCanUse && !parent.MlgCanUse.includes('IDX')) ||
+    !Array.isArray(parent.Media)
+  ) {
+    throw new Error('Fresh MLS media snapshot is missing or not authorized for IDX');
+  }
+  return parent.Media;
+}
+
 export async function* paginate<T>(initialUrl: string): AsyncGenerator<ODataPageBatch<T>> {
   let url: string | undefined = initialUrl;
   while (url) {
     const requestUrl = url;
     const page: ODataPage<T> = await fetchPage<T>(url);
     const nextUrl = page['@odata.nextLink'];
-    if (page.value.length > 0) {
-      yield {
-        value: page.value,
-        requestUrl,
-        nextUrl,
-      };
-    }
+    yield { value: page.value, requestUrl, nextUrl };
     url = nextUrl;
   }
 }
@@ -406,12 +448,6 @@ function getPropertySeedTop(): number {
   return Math.min(MLS_SYNC_DEFAULTS.maxPageSizeWithExpand, MLS_SYNC_DEFAULTS.pageSize, 500);
 }
 
-const RESIDENTIAL_PROPERTY_TYPES = new Set([
-  'Residential',
-  'ResidentialIncome',
-  'ResidentialLease',
-]);
-
 /**
  * Fetch residential Property records for delta sync. Property type filtering
  * stays local because replication requests only support limited filter fields.
@@ -433,12 +469,7 @@ export async function* fetchResidentialProperties(
     });
 
   for await (const pageBatch of paginate<MlsPropertyPayload>(initialUrl)) {
-    const value = pageBatch.value.filter((record) =>
-      RESIDENTIAL_PROPERTY_TYPES.has(record.PropertyType?.trim() ?? ''),
-    );
-    if (value.length > 0) {
-      yield { ...pageBatch, value };
-    }
+    yield pageBatch;
   }
 }
 

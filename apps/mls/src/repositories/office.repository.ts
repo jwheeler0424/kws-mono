@@ -6,10 +6,14 @@ import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils';
 
 import type { MappedOffice } from '../maps/office.mapper';
 
-import { upsertMlsMedia } from './media.repository';
+import { purgeUnavailableMlsMedia } from './media-cleanup.repository';
+import {
+  reconcileResourceMediaWithinTransaction,
+  type MlsTransaction,
+} from './resource-media.repository';
 
 export async function upsertSingleOffice(record: MappedOffice): Promise<void> {
-  const { officeMlsId, ...rest } = record;
+  const { officeMlsId, media: _media, mediaSnapshotPresent: _snapshot, ...rest } = record;
   await db
     .insert(offices)
     .values({ officeMlsId, ...rest })
@@ -27,7 +31,10 @@ export async function deactivateOffice(officeKey: string): Promise<void> {
     .where(eq(offices.officeKey, officeKey));
 }
 
-export async function upsertOffices(data: (typeof offices.$inferInsert)[]) {
+export async function upsertOffices(
+  data: (typeof offices.$inferInsert)[],
+  executor: typeof db | MlsTransaction = db,
+) {
   if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.officeMlsId);
@@ -40,7 +47,7 @@ export async function upsertOffices(data: (typeof offices.$inferInsert)[]) {
     return rowTimestamp > max ? rowTimestamp : max;
   }, new Date(0));
 
-  await db.transaction(async (tx) => {
+  await executor.transaction(async (tx) => {
     for (const batch of batches) {
       await tx.insert(offices).values(batch).onConflictDoUpdate({
         target: offices.officeMlsId,
@@ -63,7 +70,7 @@ export async function processMlsOfficesPayload(data: MappedOffice[]) {
   for (const item of data) {
     // Destructure out the relations.
     // 'officeData' now strictly contains ONLY valid columns for the offices table.
-    const { media, ...officeData } = item;
+    const { media, mediaSnapshotPresent: _snapshot, ...officeData } = item;
 
     allOffices.push(officeData);
 
@@ -74,12 +81,20 @@ export async function processMlsOfficesPayload(data: MappedOffice[]) {
   }
 
   // MUST await the parent table first to satisfy foreign key constraints
-  const maxTimestamp = await upsertOffices(allOffices);
-
-  // Children can be upserted concurrently since they don't depend on each other
-  await Promise.all([allMedia.length > 0 ? upsertMlsMedia(allMedia) : Promise.resolve()]);
-
-  return maxTimestamp;
+  const result = await db.transaction(async (tx) => {
+    const maxTimestamp = await upsertOffices(allOffices, tx);
+    for (const item of data) {
+      if (item.mediaSnapshotPresent || item.mlgCanView === false) {
+        await reconcileResourceMediaWithinTransaction(tx, {
+          resourceRecordKey: item.officeMlsId,
+          mediaRecords: item.mlgCanView === false ? [] : item.media,
+        });
+      }
+    }
+    return maxTimestamp;
+  });
+  await purgeUnavailableMlsMedia(data.map((item) => item.officeMlsId));
+  return result;
 }
 
 export async function getLatestOfficeTimestamp(): Promise<Date | string | null> {

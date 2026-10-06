@@ -330,7 +330,7 @@ async function initializeStaticRoutes(directories: string[]): Promise<PreloadRes
           const matchesPattern = isFileEligibleForPreloading(relativePath);
           const withinSizeLimit = file.size <= MAX_PRELOAD_BYTES;
 
-          if (matchesPattern && withinSizeLimit) {
+          if (matchesPattern && withinSizeLimit && !metadata.type.startsWith('video/')) {
             // Preload small files into memory with ETag and Gzip support
             const bytes = new Uint8Array(await file.arrayBuffer());
             const gz = compressDataIfAppropriate(bytes, metadata.type);

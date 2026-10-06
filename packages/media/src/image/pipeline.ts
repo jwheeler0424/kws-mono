@@ -67,6 +67,31 @@ export async function processImage(options: ImagePipelineOptions): Promise<Image
   // can pre-compute output sizes for the resize variants.
   const metadata = await extractImageMetadata(image);
 
+  const fullSource =
+    options.preserveFullWebp && metadata.format === 'webp'
+      ? blob
+      : options.durableFull
+        ? await image.webp(webpOptions).blob()
+        : undefined;
+  const durableFull =
+    options.durableFull && fullSource
+      ? (
+          await writeVariants(
+            [
+              {
+                variantName: 'full',
+                blob: fullSource,
+                width: metadata.width,
+                height: metadata.height,
+              },
+            ],
+            storage,
+            filename,
+            organizationId,
+          )
+        )[0]
+      : undefined;
+
   // ── Step 3b: Produce all three variants concurrently ──────────────────────
   // processVariants() fans out three off-thread encode jobs via Promise.all.
   // Dimensions from metadata allow output sizes to be calculated without an
@@ -75,10 +100,17 @@ export async function processImage(options: ImagePipelineOptions): Promise<Image
     image,
     { width: metadata.width, height: metadata.height },
     webpOptions,
+    fullSource,
   );
 
   // ── Step 4: Write variants to storage ─────────────────────────────────────
-  const storedVariants = await writeVariants(rawVariants, storage, filename, organizationId);
+  const storedVariants = await writeVariants(
+    durableFull ? rawVariants.filter((variant) => variant.variantName !== 'full') : rawVariants,
+    storage,
+    filename,
+    organizationId,
+  );
+  if (durableFull) storedVariants.push(durableFull);
 
   // ── Step 5: Assemble result ────────────────────────────────────────────────
   const variantMap = storedVariants.reduce<Record<string, ImageVariantResult>>((acc, v) => {

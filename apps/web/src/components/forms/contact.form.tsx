@@ -20,9 +20,15 @@ export interface ContactFormProps extends React.PropsWithChildren<
   React.HTMLAttributes<HTMLFormElement>
 > {
   propertyAddress?: string;
+  listingAttribution?: React.ReactNode;
 }
 
-export function ContactForm({ propertyAddress, className, ...props }: ContactFormProps) {
+export function ContactForm({
+  propertyAddress,
+  listingAttribution,
+  className,
+  ...props
+}: ContactFormProps) {
   const form = useForm({
     defaultValues: {
       name: '',
@@ -198,6 +204,7 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
         }}
       />
 
+      {listingAttribution ? <div className='sm:col-span-2'>{listingAttribution}</div> : null}
       <Button
         type='submit'
         disabled={!canSubmit || isSubmitting}

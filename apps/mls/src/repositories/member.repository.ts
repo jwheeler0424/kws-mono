@@ -6,10 +6,14 @@ import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers
 
 import type { MappedMember } from '../maps/member.mapper';
 
-import { upsertMlsMedia } from './media.repository';
+import { purgeUnavailableMlsMedia } from './media-cleanup.repository';
+import {
+  reconcileResourceMediaWithinTransaction,
+  type MlsTransaction,
+} from './resource-media.repository';
 
 export async function upsertSingleMember(record: MappedMember): Promise<void> {
-  const { memberMlsId, ...rest } = record;
+  const { memberMlsId, media: _media, mediaSnapshotPresent: _snapshot, ...rest } = record;
   await db
     .insert(members)
     .values({ memberMlsId, ...rest })
@@ -27,7 +31,10 @@ export async function deactivateMember(memberKey: string): Promise<void> {
     .where(eq(members.memberKey, memberKey));
 }
 
-export async function upsertMembers(data: (typeof members.$inferInsert)[]) {
+export async function upsertMembers(
+  data: (typeof members.$inferInsert)[],
+  executor: typeof db | MlsTransaction = db,
+) {
   if (data.length === 0) return new Date(0);
 
   const deduped = dedupeByKey(data, (row) => row.memberMlsId);
@@ -40,7 +47,7 @@ export async function upsertMembers(data: (typeof members.$inferInsert)[]) {
     return rowTimestamp > max ? rowTimestamp : max;
   }, new Date(0));
 
-  await db.transaction(async (tx) => {
+  await executor.transaction(async (tx) => {
     for (const batch of batches) {
       await tx.insert(members).values(batch).onConflictDoUpdate({
         target: members.memberMlsId,
@@ -63,7 +70,7 @@ export async function processMlsMembersPayload(data: MappedMember[]) {
   for (const item of data) {
     // Destructure out the relations.
     // 'memberData' now strictly contains ONLY valid columns for the members table.
-    const { media, ...memberData } = item;
+    const { media, mediaSnapshotPresent: _snapshot, ...memberData } = item;
 
     allMembers.push(memberData);
 
@@ -74,12 +81,20 @@ export async function processMlsMembersPayload(data: MappedMember[]) {
   }
 
   // MUST await the parent table first to satisfy foreign key constraints
-  const maxTimestamp = await upsertMembers(allMembers);
-
-  // Children can be upserted concurrently since they don't depend on each other
-  await Promise.all([allMedia.length > 0 ? upsertMlsMedia(allMedia) : Promise.resolve()]);
-
-  return maxTimestamp;
+  const result = await db.transaction(async (tx) => {
+    const maxTimestamp = await upsertMembers(allMembers, tx);
+    for (const item of data) {
+      if (item.mediaSnapshotPresent || item.mlgCanView === false) {
+        await reconcileResourceMediaWithinTransaction(tx, {
+          resourceRecordKey: item.memberMlsId,
+          mediaRecords: item.mlgCanView === false ? [] : item.media,
+        });
+      }
+    }
+    return maxTimestamp;
+  });
+  await purgeUnavailableMlsMedia(data.map((item) => item.memberMlsId));
+  return result;
 }
 
 export async function getLatestMemberTimestamp(): Promise<Date | string | null> {
