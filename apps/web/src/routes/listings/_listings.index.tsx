@@ -50,7 +50,7 @@ function RouteComponent() {
         <ListingsSearch search={search} />
         <ListingsMap search={search} />
       </section>
-      <section className='content relative'>
+      <section className='content page-content relative'>
         <ListingsResults params={search} />
       </section>
     </main>

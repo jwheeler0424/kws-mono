@@ -14,6 +14,21 @@ type MediaInsert = typeof mlsMedia.$inferInsert;
 
 export type MappedMedia = Omit<MediaInsert, 'createdAt' | 'searchVector'>;
 
+export function resolveMlsMediaKey(
+  payload: MlsMediaPayload,
+  resourceRecordKey: string,
+  entityType: 'properties' | 'members' | 'offices',
+): string | null {
+  const providedKey = payload.MediaKey?.trim();
+  if (providedKey) return providedKey;
+  if (entityType === 'properties' || !resourceRecordKey) return null;
+  const prefix = entityType === 'members' ? 'member' : 'office';
+  const objectId = payload.MediaObjectID?.trim();
+  return objectId
+    ? `${prefix}:${resourceRecordKey}:object:${objectId}`
+    : `${prefix}:${resourceRecordKey}`;
+}
+
 function mapMediaBase(
   payload: MlsMediaPayload,
   resourceRecordKey: string,
@@ -47,13 +62,13 @@ function mapMediaBase(
 
 /**
  * Property media should keep MLS-provided MediaKey semantics.
- * If MediaKey is absent, skip the row instead of inventing a key.
+ * Missing Property keys invalidate the snapshot rather than inventing identities.
  */
 export function mapPropertyMedia(
   payload: MlsMediaPayload,
   resourceRecordKey: string,
 ): MappedMedia | null {
-  const mediaKey = payload.MediaKey?.trim();
+  const mediaKey = resolveMlsMediaKey(payload, resourceRecordKey, 'properties');
   if (!mediaKey) {
     throw new Error('MLS media snapshot contains a record without MediaKey');
   }
@@ -69,9 +84,9 @@ export function mapMemberMedia(
   payload: MlsMediaPayload,
   resourceRecordKey: string,
 ): MappedMedia | null {
-  const mediaKey = payload.MediaKey?.trim();
+  const mediaKey = resolveMlsMediaKey(payload, resourceRecordKey, 'members');
   if (!mediaKey) {
-    throw new Error('MLS member media snapshot contains a record without MediaKey');
+    return null;
   }
 
   return mapMediaBase(payload, resourceRecordKey, mediaKey);
@@ -85,9 +100,9 @@ export function mapOfficeMedia(
   payload: MlsMediaPayload,
   resourceRecordKey: string,
 ): MappedMedia | null {
-  const mediaKey = payload.MediaKey?.trim();
+  const mediaKey = resolveMlsMediaKey(payload, resourceRecordKey, 'offices');
   if (!mediaKey) {
-    throw new Error('MLS office media snapshot contains a record without MediaKey');
+    return null;
   }
 
   return mapMediaBase(payload, resourceRecordKey, mediaKey);

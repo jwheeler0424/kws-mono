@@ -54,14 +54,14 @@ function RouteComponent() {
         </ParallaxMediaLayer>
         <ParallaxContentLayer>
           <article className='banner banner-title flex'>
-            <main className='py-12'>
+            <main>
               <h1>Buying a Home in Seattle</h1>
             </main>
           </article>
         </ParallaxContentLayer>
       </ParallaxContainer>
 
-      <article className='content guide-content relative'>
+      <article className='content page-content guide-content relative'>
         <p>
           {
             "Buying a home is exciting. It can also be overwhelming—particularly if it's your first time doing it. "

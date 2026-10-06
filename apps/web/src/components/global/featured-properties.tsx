@@ -15,6 +15,7 @@ export interface FeaturedPropertiesProps extends React.ComponentPropsWithoutRef<
 export default function FeaturedProperties({
   autoplay = false,
   autoPlaySpeed = 4000,
+  className,
   ...props
 }: FeaturedPropertiesProps) {
   const { data: featuredProperties } = useSuspenseQuery(featuredPropertiesOptions());
@@ -34,6 +35,7 @@ export default function FeaturedProperties({
       {...props}
       className={cn(
         'relative mb-6 flex h-fit min-h-110 w-full items-center justify-center px-2 xs:w-full xs:p-[0_clamp(0rem,1.6vw+1.2rem,6rem)] md:mb-12! md:p-[0_clamp(1.25rem,1.65vw+2.16rem,6rem)] lg:p-0',
+        className,
       )}>
       <PropertyCarousel
         autoplay={autoplay}

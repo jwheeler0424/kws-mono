@@ -16,6 +16,7 @@ import { fetchFreshParentMedia } from '@/lib/utils/fetch';
 import { downloadMlsMedia, MlsMediaDownloadError } from '@/lib/utils/media-download';
 import { mlsQuotaTracker } from '@/lib/utils/quota';
 import { throttle } from '@/lib/utils/rate-limit';
+import { resolveMlsMediaKey } from '@/maps/media.mapper';
 
 import {
   listMlsMediaSyncCandidates,
@@ -594,7 +595,12 @@ export async function runMlsMediaSync(
                   candidate.resourceRecordKey,
                   candidate.listingId,
                 );
-                const fresh = (await snapshot).find((item) => item.MediaKey === candidate.mediaKey);
+                const matches = (await snapshot).filter(
+                  (item) =>
+                    resolveMlsMediaKey(item, candidate.resourceRecordKey, candidate.entityType) ===
+                    candidate.mediaKey,
+                );
+                const fresh = matches.length === 1 ? matches[0] : undefined;
                 if (
                   !fresh?.MediaURL ||
                   fresh.MlgCanView === false ||

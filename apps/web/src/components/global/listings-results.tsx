@@ -102,7 +102,7 @@ export function ListingsResults({ params }: { params: Partial<TListingsSearch> }
         <div className='relative'>
           <ListingsSection
             properties={{ items: displayedProperties } as CursorResult<TPropertyCard>}
-            title={`Search Results ${titleCount ? `(${titleCount})` : ''}`}
+            title={`Search Results ${titleCount ? `(${titleCount.toLocaleString('en-US')})` : ''}`}
             emptyText={
               isHydrationError
                 ? 'Property cards failed to load. Please refresh and try again.'

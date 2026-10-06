@@ -204,7 +204,9 @@ export function ContactForm({
         }}
       />
 
-      {listingAttribution ? <div className='sm:col-span-2'>{listingAttribution}</div> : null}
+      {listingAttribution ? (
+        <div className='border-t border-neutral-200 pt-5 sm:col-span-2'>{listingAttribution}</div>
+      ) : null}
       <Button
         type='submit'
         disabled={!canSubmit || isSubmitting}

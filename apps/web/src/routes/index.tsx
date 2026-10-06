@@ -87,7 +87,7 @@ function Home() {
       </ParallaxContainer>
 
       {/* Our Properties */}
-      <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden border-b border-neutral-700'>
+      <ParallaxContainer className='relative flex min-h-svh items-center justify-center overflow-hidden border-b border-neutral-700'>
         <ParallaxMediaLayer>
           <img
             src='/assets/images/compass/properties.webp'
@@ -97,45 +97,16 @@ function Home() {
             className='size-full object-cover object-center'
           />
         </ParallaxMediaLayer>
-        <ParallaxContentLayer>
-          <article
-            className='banner banner-title h-full max-h-4/5'
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(0,0,0,0.15)',
-              padding: 'clamp(6rem, 3.25vw - 2.16rem,24rem) 0',
-            }}>
-            <main
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-              <h2
-                style={{
-                  color: 'white',
-                  position: 'relative',
-                  width: '100%',
-                  textAlign: 'left',
-                  fontWeight: '700',
-                  paddingBottom: '0',
-                  marginTop: '2rem',
-                }}>
+        <div className='relative z-10 w-full bg-black/15 py-12 sm:py-16'>
+          <article className='w-full'>
+            <main className='relative mx-auto flex min-h-[calc(100svh-6rem)] w-11/12 flex-col items-center justify-center gap-8 px-2 sm:min-h-[calc(100svh-8rem)] md:px-5 2xl:px-12'>
+              <h2 className='m-0! w-full text-left text-4xl leading-tight font-bold text-white drop-shadow-[1px_2px_2px_rgba(0,0,0,0.65)] sm:text-5xl lg:text-6xl'>
                 Our Exclusive Listings
               </h2>
-              <section className='w-full h-full flex grow items-center justify-center'>
-                <FeaturedProperties autoplay autoPlaySpeed={4000} />
+              <section className='flex w-full min-w-0 items-center justify-center'>
+                <FeaturedProperties className='mb-0! md:mb-0!' autoplay autoPlaySpeed={4000} />
               </section>
-              <section
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'end',
-                  width: '100%',
-                }}>
+              <section className='flex w-full shrink-0 items-center justify-end'>
                 <Link
                   href='/properties'
                   title='View exclusive listings'
@@ -146,7 +117,7 @@ function Home() {
               </section>
             </main>
           </article>
-        </ParallaxContentLayer>
+        </div>
       </ParallaxContainer>
 
       {/* Meet The Team */}

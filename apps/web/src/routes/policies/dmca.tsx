@@ -28,10 +28,10 @@ export const Route = createFileRoute('/policies/dmca')({
 
 function RouteComponent() {
   return (
-    <main className='content relative'>
+    <main className='content page-content guide-content relative'>
       <section>
         <article>
-          <h1>DMCA Policy</h1>
+          <h1 className='m-0 mb-6 sm:mb-8'>DMCA Policy</h1>
           <section>
             <p>
               This Digital Millennium Copyright Act policy (“Policy”) applies to the{' '}

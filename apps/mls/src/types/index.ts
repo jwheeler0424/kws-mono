@@ -30,7 +30,7 @@ export interface ODataPageBatch<T> {
 
 /** Media record — used under Property, Member, and Office expansions */
 export interface MlsMediaPayload {
-  MediaKey: string;
+  MediaKey?: string;
   ListingKey?: string;
   MemberKey?: string;
   OfficeKey?: string;

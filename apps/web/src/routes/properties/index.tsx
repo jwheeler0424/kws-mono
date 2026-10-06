@@ -70,19 +70,19 @@ function RouteComponent() {
         </ParallaxMediaLayer>
         <ParallaxContentLayer>
           <article className='banner banner-title flex'>
-            <main className='py-12'>
+            <main>
               <h1>Our Exclusive Listings</h1>
             </main>
           </article>
         </ParallaxContentLayer>
       </ParallaxContainer>
 
-      <article className='content relative'>
-        <div className='flex justify-center border-b border-neutral-200 py-8'>
+      <article className='content page-content relative'>
+        <div className='flex justify-center border-b border-neutral-200 pb-2 sm:pb-4'>
           <img
             src='/assets/brand/hopper-group-black.png'
             alt='Hopper Group'
-            className='h-28 w-auto max-w-full object-contain sm:h-36'
+            className='h-20 w-auto max-w-full object-contain sm:h-28 lg:h-36'
             loading='lazy'
           />
         </div>

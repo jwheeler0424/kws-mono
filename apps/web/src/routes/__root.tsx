@@ -97,8 +97,16 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               key={pathname}
               data-parallax-scroller
               className={cn('grow w-full min-h-0', isTransparent && 'frontend-home-scroller')}>
-              <div className={cn('flex min-h-full w-full flex-col gap-16')}>
-                <section className={cn('flex w-full grow flex-col')}>{children}</section>
+              <div
+                className={cn(
+                  'flex min-h-full w-full flex-col',
+                  isTransparent ? 'gap-16' : 'gap-8 sm:gap-12',
+                )}>
+                <section
+                  data-interior-page={isTransparent ? undefined : ''}
+                  className={cn('flex w-full grow flex-col')}>
+                  {children}
+                </section>
                 <FrontendFooter />
               </div>
             </ScrollArea>

@@ -4,11 +4,13 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 export const VECTOR_BASEMAP_STYLE =
-  import.meta.env.VITE_BASEMAP_STYLE_URL?.trim() ||
-  'https://vector.openstreetmap.org/styles/shortbread/colorful.json';
+  import.meta.env.VITE_BASEMAP_STYLE_URL?.trim() || 'https://tiles.openfreemap.org/styles/liberty';
 
-const attribution =
+const osmAttribution =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const attribution = VECTOR_BASEMAP_STYLE.startsWith('https://tiles.openfreemap.org/')
+  ? `<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a> | ${osmAttribution}`
+  : osmAttribution;
 
 export function createVectorBasemapLayer() {
   setWorkerUrl(workerUrl);

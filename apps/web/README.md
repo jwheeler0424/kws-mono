@@ -18,15 +18,14 @@ all-in-one JavaScript runtime.
 ## Basemap
 
 Both maps use MapLibre through the Leaflet adapter, retaining the existing markers, clustering,
-popups and map events. The default is OpenStreetMap's hosted Shortbread vector tiles with the
-Colorful style. No API key or self-hosted tile archive is needed. Attribution remains visible in
-Leaflet's map control.
+popups and map events. The default is OpenFreeMap's Liberty style with OpenStreetMap-derived vector
+tiles. Its style and tile metadata support cross-origin requests from both local and production
+sites. No API key or self-hosted tile archive is needed. OpenFreeMap, OpenMapTiles, and
+OpenStreetMap attribution remains visible in Leaflet's map control.
 
 The public service is best-effort, not an SLA-backed production service. Follow its
-[vector tile usage policy](https://operations.osmfoundation.org/policies/vector/): keep attribution,
-allow the browser to send a Referer, honor browser caching, and do not bulk-download, prefetch or
-build offline archives from the service. A small project supporting a business can still be
-commercial use.
+[setup documentation](https://openfreemap.org/quick_start/) for hosted or self-hosted deployment.
+Keep the supplied attribution and honor browser caching.
 
 To select another hosted MapLibre style, set `VITE_BASEMAP_STYLE_URL` in the web app's Vite
 environment configuration. Restart the development server or rebuild the production app after

@@ -1,3 +1,4 @@
+import { PlayIcon } from 'lucide-react';
 import React from 'react';
 
 import { useDeviceSize } from '@/hooks/use-device-size';
@@ -56,11 +57,16 @@ const VideoComponent: React.FC<VideoProps> = ({
   captionsDefault = false,
   sourceType = 'video/mp4',
   controls = false,
+  autoPlay = false,
+  loop = false,
+  muted = false,
+  playsInline = false,
   children,
   ...rest
 }) => {
   const { size, isPortrait } = useDeviceSize();
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [autoplayBlocked, setAutoplayBlocked] = React.useState(false);
 
   const resolvedBreakpoints = React.useMemo(
     () => ({ ...DEFAULT_BREAKPOINTS, ...breakpoints }),
@@ -112,10 +118,45 @@ const VideoComponent: React.FC<VideoProps> = ({
   const desktopMedia = `(min-width: ${resolvedBreakpoints.tabletMax + 1}px)`;
 
   React.useEffect(() => {
-    if (videoRef.current && selectedSrc) {
-      videoRef.current.load();
-    }
-  }, [selectedSrc]);
+    const video = videoRef.current;
+    if (!video) return;
+    let active = true;
+
+    video.autoplay = autoPlay;
+    video.loop = loop;
+    video.defaultMuted = muted;
+    video.muted = muted;
+    video.playsInline = playsInline;
+    if (muted) video.setAttribute('muted', '');
+    else video.removeAttribute('muted');
+
+    const play = () => {
+      if (!autoPlay || document.visibilityState === 'hidden') return;
+      void video.play()?.catch((error: unknown) => {
+        if (active && !(error instanceof DOMException && error.name === 'AbortError')) {
+          setAutoplayBlocked(true);
+        }
+      });
+    };
+    const onPlaying = () => setAutoplayBlocked(false);
+
+    video.addEventListener('loadeddata', play);
+    video.addEventListener('canplay', play);
+    video.addEventListener('playing', onPlaying);
+    document.addEventListener('visibilitychange', play);
+    window.addEventListener('pageshow', play);
+    if (selectedSrc) video.load();
+    play();
+
+    return () => {
+      active = false;
+      video.removeEventListener('loadeddata', play);
+      video.removeEventListener('canplay', play);
+      video.removeEventListener('playing', onPlaying);
+      document.removeEventListener('visibilitychange', play);
+      window.removeEventListener('pageshow', play);
+    };
+  }, [selectedSrc, autoPlay, loop, muted, playsInline]);
 
   React.useEffect(() => {
     if (process.env.NODE_ENV !== 'production' && !effectiveDecorative && !ariaLabel && !controls) {
@@ -126,32 +167,50 @@ const VideoComponent: React.FC<VideoProps> = ({
   }, [ariaLabel, controls, effectiveDecorative]);
 
   return (
-    <video
-      controls={controls}
-      ref={videoRef}
-      src={shouldAutoRenderSources ? undefined : selectedSrc}
-      aria-hidden={ariaHidden}
-      aria-label={effectiveDecorative ? undefined : ariaLabel}
-      role={effectiveDecorative ? 'presentation' : rest.role}
-      className={cn('h-full w-full transform-gpu object-cover will-change-transform', className)}
-      {...rest}>
-      {shouldAutoRenderSources && (
-        <>
-          {useDeviceDetection && selectedSrc && <source src={selectedSrc} type={sourceType} />}
-          {desktopSrc && <source media={desktopMedia} src={desktopSrc} type={sourceType} />}
-          {tabletSrc && <source media={tabletMedia} src={tabletSrc} type={sourceType} />}
-          {mobileSrc && <source media={mobileMedia} src={mobileSrc} type={sourceType} />}
-        </>
-      )}
-      <track
-        kind='captions'
-        src={captionsSrc}
-        srcLang={captionsSrcLang}
-        label={captionsLabel}
-        default={captionsDefault}
-      />
-      {children}
-    </video>
+    <>
+      <video
+        controls={controls}
+        autoPlay={autoPlay}
+        loop={loop}
+        muted={muted}
+        playsInline={playsInline}
+        ref={videoRef}
+        src={shouldAutoRenderSources ? undefined : selectedSrc}
+        aria-hidden={ariaHidden}
+        aria-label={effectiveDecorative ? undefined : ariaLabel}
+        role={effectiveDecorative ? 'presentation' : rest.role}
+        className={cn('h-full w-full transform-gpu object-cover will-change-transform', className)}
+        {...rest}>
+        {shouldAutoRenderSources && (
+          <>
+            {useDeviceDetection && selectedSrc && <source src={selectedSrc} type={sourceType} />}
+            {desktopSrc && <source media={desktopMedia} src={desktopSrc} type={sourceType} />}
+            {tabletSrc && <source media={tabletMedia} src={tabletSrc} type={sourceType} />}
+            {mobileSrc && <source media={mobileMedia} src={mobileSrc} type={sourceType} />}
+          </>
+        )}
+        <track
+          kind='captions'
+          src={captionsSrc}
+          srcLang={captionsSrcLang}
+          label={captionsLabel}
+          default={captionsDefault}
+        />
+        {children}
+      </video>
+      {autoPlay && autoplayBlocked && !controls ? (
+        <button
+          type='button'
+          aria-label='Play video'
+          title='Play video'
+          className='absolute right-6 bottom-6 z-20 flex size-12 items-center justify-center rounded-full border border-white/50 bg-white/90 text-black shadow-sm transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white'
+          onClick={() => {
+            void videoRef.current?.play()?.catch(() => undefined);
+          }}>
+          <PlayIcon className='size-5' />
+        </button>
+      ) : null}
+    </>
   );
 };
 

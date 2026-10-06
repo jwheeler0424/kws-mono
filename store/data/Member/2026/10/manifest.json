@@ -3,7 +3,7 @@
   "resource": "Member",
   "year": "2026",
   "month": "10",
-  "updatedAt": "2026-10-05T23:25:01.555Z",
+  "updatedAt": "2026-10-06T23:07:35.102Z",
   "chunks": [
     {
       "file": "member-2026-10-05T21-02-52-073Z-264nvial.jsonl.gz",
@@ -44,6 +44,38 @@
       "firstTimestamp": "2026-10-05T21:43:14.091Z",
       "lastTimestamp": "2026-10-05T23:13:14.685Z",
       "createdAt": "2026-10-05T23:25:01.550Z"
+    },
+    {
+      "file": "member-2026-10-06T23-00-33-526Z-p0z7jobn.jsonl.gz",
+      "checksumSha256": "3b5bfc0f655f8adfd3242dcea2ea50b83ebd99f7bd607629b643bad89e7cd3e8",
+      "recordCount": 398,
+      "firstTimestamp": "2026-10-05T23:13:12.966Z",
+      "lastTimestamp": "2026-10-06T22:58:12.214Z",
+      "createdAt": "2026-10-06T23:00:33.530Z"
+    },
+    {
+      "file": "member-2026-10-06T23-04-05-554Z-ogh7mzz0.jsonl.gz",
+      "checksumSha256": "3b5bfc0f655f8adfd3242dcea2ea50b83ebd99f7bd607629b643bad89e7cd3e8",
+      "recordCount": 398,
+      "firstTimestamp": "2026-10-05T23:13:12.966Z",
+      "lastTimestamp": "2026-10-06T22:58:12.214Z",
+      "createdAt": "2026-10-06T23:04:05.558Z"
+    },
+    {
+      "file": "member-2026-10-06T23-04-55-019Z-dngpvmsv.jsonl.gz",
+      "checksumSha256": "3b5bfc0f655f8adfd3242dcea2ea50b83ebd99f7bd607629b643bad89e7cd3e8",
+      "recordCount": 398,
+      "firstTimestamp": "2026-10-05T23:13:12.966Z",
+      "lastTimestamp": "2026-10-06T22:58:12.214Z",
+      "createdAt": "2026-10-06T23:04:55.023Z"
+    },
+    {
+      "file": "member-2026-10-06T23-07-35-098Z-kclafxk6.jsonl.gz",
+      "checksumSha256": "3b5bfc0f655f8adfd3242dcea2ea50b83ebd99f7bd607629b643bad89e7cd3e8",
+      "recordCount": 398,
+      "firstTimestamp": "2026-10-05T23:13:12.966Z",
+      "lastTimestamp": "2026-10-06T22:58:12.214Z",
+      "createdAt": "2026-10-06T23:07:35.102Z"
     }
   ]
 }

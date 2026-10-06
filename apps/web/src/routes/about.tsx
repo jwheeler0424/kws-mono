@@ -54,23 +54,23 @@ function RouteComponent() {
         </ParallaxMediaLayer>
         <ParallaxContentLayer>
           <article className='banner banner-title flex'>
-            <main className='py-12'>
+            <main>
               <h1>About Me</h1>
             </main>
           </article>
         </ParallaxContentLayer>
       </ParallaxContainer>
-      <article className='about-story mx-auto flow-root w-11/12 max-w-[100rem] px-2 py-16 md:px-5 2xl:px-12'>
-        <header className='mb-8'>
+      <article className='about-story page-content flow-root'>
+        <header className='mb-6 sm:mb-8'>
           <span className='font-sans text-sm text-neutral-600'>Seattle Real Estate · Compass</span>
-          <h2 className='mt-3! mb-0! text-4xl'>Kyle Weber</h2>
+          <h2 className='mt-2! mb-0! text-3xl sm:text-4xl'>Kyle Weber</h2>
         </header>
         <img
           src='/assets/images/compass/kyle-white.jpg'
           width={1200}
           height={1800}
           alt='Kyle Weber at Compass'
-          className='mx-auto mb-8 h-auto w-full max-w-56 lg:float-left lg:mr-12 lg:w-2/5 lg:max-w-72 2xl:max-w-sm'
+          className='mx-auto mb-6 h-auto w-full max-w-56 sm:mb-8 lg:float-left lg:mr-12 lg:w-2/5 lg:max-w-72 2xl:max-w-sm'
         />
         <p>
           {

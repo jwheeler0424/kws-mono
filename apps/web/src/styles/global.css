@@ -407,18 +407,27 @@
   .content {
     @apply mx-auto flex w-11/12 flex-col gap-8 px-2 md:px-5 2xl:px-12;
   }
+  .page-content {
+    @apply mx-auto w-11/12 max-w-[100rem] gap-6 px-2 py-8 sm:gap-8 sm:py-12 md:px-5 lg:py-16 2xl:px-12;
+  }
+  .page-content > :first-child {
+    @apply mt-0!;
+  }
+  .page-content > :last-child {
+    @apply mb-0!;
+  }
   .guide-content {
-    @apply max-w-[100rem] gap-0 py-16;
+    @apply max-w-[100rem] gap-0;
   }
   .guide-content p,
   .about-story p {
-    @apply mt-5 text-base leading-8;
+    @apply mt-5 text-base leading-7 sm:leading-8;
   }
   .guide-content h2 {
-    @apply mt-14 mb-6 text-3xl leading-tight sm:text-4xl;
+    @apply mt-10 mb-4 text-2xl leading-tight sm:mt-12 sm:mb-6 sm:text-3xl lg:text-4xl;
   }
   .guide-content h3 {
-    @apply mt-8 mb-4 text-xl leading-snug sm:text-2xl;
+    @apply mt-6 mb-3 text-xl leading-snug sm:mt-8 sm:mb-4 sm:text-2xl;
   }
   .guide-content li {
     @apply leading-8;
@@ -430,7 +439,19 @@
     @apply mt-0;
   }
   .banner-short {
-    @apply relative w-full portrait:h-[60svh] landscape:h-[60svh] landscape:lg:h-[calc(80svh-4rem)];
+    @apply relative h-64 w-full sm:h-80 lg:h-96;
+  }
+  .banner-short article.banner.banner-title > main {
+    @apply py-8 sm:py-10 lg:py-12;
+  }
+  .banner-short article.banner.banner-title > main > h1 {
+    @apply m-0;
+  }
+  [data-interior-page] .property-results-section {
+    @apply mt-0!;
+  }
+  [data-interior-page] .property-results-section > h2 {
+    @apply mb-6! text-3xl! leading-tight! sm:mb-8! sm:text-4xl! lg:text-5xl!;
   }
 
   section h1 {

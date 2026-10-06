@@ -160,7 +160,7 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
           </div>
         </section>
       </main>
-      <footer className={cn('flex w-full flex-col items-start gap-2 pt-2')}>
+      <footer className={cn('box-border flex w-full flex-col items-start gap-3 px-2 pt-3')}>
         <ListingAttribution
           firm={listing.officeName}
           broker={listing.memberFullName}

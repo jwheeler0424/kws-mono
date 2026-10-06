@@ -59,17 +59,17 @@ function RouteComponent() {
         </ParallaxMediaLayer>
         <ParallaxContentLayer>
           <article className='banner banner-title flex'>
-            <main className='py-12'>
+            <main>
               <h1>Let's Discover Seattle</h1>
             </main>
           </article>
         </ParallaxContentLayer>
       </ParallaxContainer>
 
-      <article className='content relative'>
-        <section className='flex flex-col w-full gap-4 mt-8'>
-          <h2 className='m-0 text-4xl sm:text-5xl lg:text-6xl'>Recent Blog Posts</h2>
-          <p>
+      <article className='content page-content relative'>
+        <section className='flex w-full flex-col gap-4'>
+          <h2 className='m-0 text-3xl sm:text-4xl lg:text-5xl'>Recent Blog Posts</h2>
+          <p className='m-0'>
             {`Welcome to the blog! Here you'll find a collection of articles
 				covering a variety of topics, from the latest market updates to the
 				best places to eat in Seattle. Check back often for new posts!`}
@@ -101,8 +101,9 @@ function RouteComponent() {
 								<BeatLoader color='#ee2127' />
 							</main>
 						))} */}
-          <main className={cn('flex h-full w-full flex-1 items-center justify-center py-20')}>
-            <p className='text-neutral-600'>New posts are coming soon.</p>
+          <main
+            className={cn('flex h-full w-full flex-1 items-center justify-center py-10 sm:py-16')}>
+            <p className='m-0 text-neutral-600'>New posts are coming soon.</p>
           </main>
         </section>
       </article>

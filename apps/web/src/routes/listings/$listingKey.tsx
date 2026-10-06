@@ -68,9 +68,9 @@ function RouteComponent() {
       </section>
       <header
         className={cn(
-          'relative mx-auto flex h-full w-11/12 flex-col items-start justify-between px-2 text-white md:flex-row md:gap-4 md:px-5 2xl:px-12',
+          'page-content relative flex flex-col items-start justify-between gap-6 text-white md:flex-row md:gap-8',
         )}>
-        <section className={cn('my-2 flex w-full flex-col mdmb:mb-4')}>
+        <section className={cn('flex w-full flex-col')}>
           <main className={cn('-ml-px flex h-fit flex-col gap-1')}>
             <h1 className={cn('m-0! font-sans! text-2xl! font-bold! text-gray-900!')}>
               {property.internetAddressDisplayYN === false
@@ -178,7 +178,7 @@ function RouteComponent() {
       </header>
       <section
         className={cn(
-          'mx-auto mt-8 flex h-full w-11/12 flex-col items-start justify-between gap-8 px-2 md:flex-row-reverse md:px-5 2xl:px-12',
+          'page-content flex h-full flex-col items-start justify-between gap-8 pt-0 md:flex-row-reverse',
         )}>
         {/* Map Component */}
         <div className={cn('aspect-5/6 h-full max-h-80 w-full px-0.5 lg:basis-2/5')}>
