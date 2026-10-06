@@ -91,6 +91,8 @@ services:
 
   mls:
     image: ${MLS_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com-mls:latest}
+    env_file:
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     depends_on:
       - db
       - redis
