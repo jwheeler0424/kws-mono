@@ -42,7 +42,9 @@ export const ContactRequestEmail = ({
         <Preview>
           {subject ?? `You've received a new contact message!`} for {appName}
         </Preview>
-        <Card className='mx-auto max-w-[560px] border border-solid border-border px-4 py-0'>
+        <Card
+          className='mx-auto border border-solid border-border px-4 py-0'
+          style={{ maxWidth: '560px' }}>
           <CardHeader className='px-4 pt-12 pb-0 sm:px-8'>
             {logoSrc ? (
               <Img
