@@ -56,7 +56,6 @@ function RouteComponent() {
           <article className='banner banner-title flex'>
             <main className='py-12'>
               <h1>About Me</h1>
-              <p className='mt-4! font-sans text-lg text-white!'>Kyle Weber at Compass</p>
             </main>
           </article>
         </ParallaxContentLayer>

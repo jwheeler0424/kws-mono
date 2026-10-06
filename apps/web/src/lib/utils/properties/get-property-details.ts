@@ -176,3 +176,28 @@ export const getPropertyStatus = (status: string): string => {
   };
   return statusMap[status] ?? 'Unavailable';
 };
+
+export function parseNwmBooleanFlag(value: unknown): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value === 1;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return (
+      normalized === 'true' || normalized === '1' || normalized === 't' || normalized === 'yes'
+    );
+  }
+
+  return false;
+}
+
+export const getPropertyStatusClassName = (status: string) => {
+  if (status === 'Available') return 'bg-green-600';
+  if (status === 'Pending') return 'bg-orange-500';
+  return undefined;
+};

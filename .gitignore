@@ -30,7 +30,6 @@ dist
 
 # media
 apps/web/public/media
-New Website
 
 # Debug
 npm-debug.log*

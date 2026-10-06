@@ -956,9 +956,11 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
             />
             {searchQueryLocal ? (
               <Button
-                className='absolute top-1/2 right-1 size-8 -translate-y-1/2 shrink-0 p-1'
+                variant='ghost'
+                aria-label='Clear search'
+                className='absolute top-1/2 right-1 size-8 -translate-y-1/2 shrink-0 rounded-full p-1'
                 onClick={handleClearSearchQuery}>
-                <X className='size-5 text-polaris-primary drop-shadow transition-colors duration-200 ease-linear hover:text-polaris-primary-600' />
+                <X className='size-5 text-neutral-700' />
               </Button>
             ) : null}
           </div>

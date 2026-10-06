@@ -31,9 +31,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       defaultDescription:
         'Explore Seattle real estate with Kyle Weber at Compass, from finding your next home to selling with confidence.',
       defaultImage: {
-        url: 'https://kyleweberseattle.com/assets/images/blog-page.jpg',
-        width: 2048,
-        height: 1080,
+        url: 'https://kyleweberseattle.com/assets/images/compass/seattle.webp',
+        width: 1672,
+        height: 941,
       },
       twitterHandle: '@kyleweberseattle',
       twitterSite: '@kyleweberseattle',
@@ -90,7 +90,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ApplicationProvider>
           <div
             className={cn([
-              'flex h-full min-h-0 w-full flex-col overflow-clip bg-white font-sans antialiased select-none',
+              'flex h-full min-h-0 w-full flex-col overflow-clip bg-white font-sans antialiased',
             ])}>
             <FrontendHeader />
             <ScrollArea

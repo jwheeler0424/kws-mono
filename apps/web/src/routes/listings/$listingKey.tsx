@@ -26,7 +26,9 @@ import {
   getBedroomCount,
   getPropertyLevels,
   getPropertyStatus,
+  getPropertyStatusClassName,
   numberFormat,
+  parseNwmBooleanFlag,
 } from '@/lib/utils/properties';
 
 export const Route = createFileRoute('/listings/$listingKey')({
@@ -41,25 +43,6 @@ export const Route = createFileRoute('/listings/$listingKey')({
   },
   component: RouteComponent,
 });
-
-function parseNwmBooleanFlag(value: unknown): boolean {
-  if (typeof value === 'boolean') {
-    return value;
-  }
-
-  if (typeof value === 'number') {
-    return value === 1;
-  }
-
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    return (
-      normalized === 'true' || normalized === '1' || normalized === 't' || normalized === 'yes'
-    );
-  }
-
-  return false;
-}
 
 function RouteComponent() {
   const { listingKey } = Route.useParams();
@@ -107,8 +90,7 @@ function RouteComponent() {
               <Badge
                 className={cn(
                   'font-semibold text-white',
-                  propertyStatus === 'Available' && 'bg-green-600',
-                  propertyStatus === 'Pending' && 'bg-orange-500',
+                  getPropertyStatusClassName(propertyStatus),
                 )}>
                 {propertyStatus}
               </Badge>
@@ -176,7 +158,13 @@ function RouteComponent() {
             'flex h-fit w-full items-start justify-start gap-1 py-1 sm:w-fit sm:justify-end md:my-4 md:mt-8 lgtb:mt-9 xsdt:mt-9.5 smdt:mt-11.5 xldt:mt-12',
           )}>
           <Link
-            href={'/contact?property=' + property.listingId}
+            to='/contact'
+            search={{
+              address:
+                property.internetAddressDisplayYN === false
+                  ? `MLS# ${property.listingId?.replace(/^\D+/g, '')}`
+                  : `${getAddressStreet(property)}, ${getAddressCityStateZip(property)}`,
+            }}
             variant={'outlinePrimary'}
             size={'md'}
             className={cn('ml-0.5 drop-shadow-none')}>

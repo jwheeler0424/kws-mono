@@ -14,10 +14,11 @@ import {
   getPropertyStatus,
   getYearsOld,
   numberFormat,
+  parseNwmBooleanFlag,
 } from '@/lib/utils/properties';
 
 import { Badge } from './badge';
-import { Button } from './button';
+import { buttonVariants } from './button';
 
 interface PropertyCardProps extends React.ComponentPropsWithRef<typeof Link> {
   listing: TPropertyCard;
@@ -31,6 +32,10 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
     listing.primaryPhotoFullUrl ||
     listing.primaryPhotoUrl ||
     PROPERTY_IMAGE_PLACEHOLDER_URL;
+  const shouldHidePhoto =
+    parseNwmBooleanFlag(listing.NWM_IDXMustRemovePhotosYN) ||
+    parseNwmBooleanFlag(listing.NWM_IDXMustRemovePrimaryPhotoYN);
+  const status = getPropertyStatus(listing.standardStatus ?? 'Coming Soon');
 
   return (
     <Link
@@ -47,13 +52,7 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
         className={cn(
           'relative aspect-video h-auto w-full overflow-hidden rounded-t object-cover object-center',
         )}>
-        {cardImageUrl &&
-        listing.NWM_IDXMustRemovePhotosYN !== null &&
-        listing.NWM_IDXMustRemovePhotosYN !== undefined &&
-        Boolean(listing.NWM_IDXMustRemovePhotosYN) !== false &&
-        listing.NWM_IDXMustRemovePrimaryPhotoYN !== null &&
-        listing.NWM_IDXMustRemovePrimaryPhotoYN !== undefined &&
-        Boolean(listing.NWM_IDXMustRemovePrimaryPhotoYN) !== false ? (
+        {!shouldHidePhoto ? (
           <img
             src={cardImageUrl}
             alt={listing.unparsedAddress ?? 'Property Photo'}
@@ -65,7 +64,7 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
           />
         ) : null}
         <Badge className={cn('absolute top-0 right-0 rounded-none rounded-bl text-xs font-normal')}>
-          {getPropertyStatus(listing.standardStatus ?? 'Coming Soon')}
+          {status}
         </Badge>
         <aside className='absolute bottom-0 left-0 h-auto w-full bg-black/25 p-1'>
           <p className='m-0 max-w-full text-xs whitespace-normal text-white'>
@@ -166,15 +165,15 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
         </section>
       </main>
       <footer className={cn('flex w-full items-center justify-end pt-2')}>
-        <Button
+        <span
           data-type='property-card-cta'
           data-property={listing.listingId}
-          variant={'outlinePrimary'}
-          size={'sm'}
-          className={cn('w-full group-hover:bg-polaris-primary group-hover:text-white')}
-          onClick={(e) => e.stopPropagation()}>
+          className={cn(
+            buttonVariants({ variant: 'outlinePrimary', size: 'sm' }),
+            'w-full group-hover:bg-black group-hover:text-white',
+          )}>
           View Property
-        </Button>
+        </span>
       </footer>
     </Link>
   );

@@ -24,7 +24,7 @@ export function FrontendHeader({ slug, ref, ...props }: FrontendHeaderProps) {
   return (
     <header
       className={cn(
-        'relative flex h-16 w-full items-center justify-between bg-white font-sans shadow-md transition-all duration-200 ease-linear before:absolute before:top-0 before:left-0 before:z-40 before:h-0 before:w-full before:bg-transparent sm:h-24 md:py-5 2xsdt:h-20',
+        'relative flex h-16 w-full shrink-0 items-center justify-between bg-white font-sans shadow-md transition-all duration-200 ease-linear before:absolute before:top-0 before:left-0 before:z-40 before:h-0 before:w-full before:bg-transparent sm:h-20 md:py-5',
         isTransparent &&
           'absolute top-0 left-0 z-50 bg-transparent shadow-none before:h-40 before:bg-linear-to-b before:from-black/50 after:absolute after:top-0 after:right-0 after:z-40 after:h-full after:w-full after:origin-bottom after:bg-polaris-primary after:opacity-0 after:transition-opacity after:duration-300 after:ease-linear',
         menuOpen && !isTransparent && 'bg-polaris-primary 2xsdt:bg-white',
@@ -74,8 +74,8 @@ export function FrontendHeader({ slug, ref, ...props }: FrontendHeaderProps) {
 
         <nav
           className={cn(
-            'absolute top-16 right-0 z-50 flex w-full origin-top scale-y-0 flex-col bg-polaris-primary px-5 pt-0 pb-3 shadow-md transition-transform duration-300 sm:top-24 sm:max-w-72',
-            menuOpen ? 'scale-y-100' : 'scale-y-0',
+            'absolute top-16 right-0 z-50 flex w-full origin-top scale-y-0 flex-col bg-polaris-primary px-5 pt-0 pb-3 shadow-md transition-transform duration-300 sm:top-20 sm:max-w-72',
+            menuOpen ? 'scale-y-100' : 'invisible scale-y-0 2xsdt:visible',
             '2xsdt:relative 2xsdt:top-auto 2xsdt:right-auto 2xsdt:flex 2xsdt:h-full 2xsdt:w-auto 2xsdt:max-w-none 2xsdt:grow 2xsdt:scale-y-100 2xsdt:flex-row 2xsdt:items-center 2xsdt:bg-transparent 2xsdt:p-0 2xsdt:shadow-none 2xsdt:transition-none',
           )}
           id='menu'>
@@ -86,6 +86,8 @@ export function FrontendHeader({ slug, ref, ...props }: FrontendHeaderProps) {
               '2xsdt:flex 2xsdt:grow 2xsdt:flex-row 2xsdt:items-center 2xsdt:justify-end 2xsdt:gap-5 2xsdt:p-0 2xsdt:opacity-100',
             )}>
             {mainNav.navLinks.map((link, i) => {
+              const isActive =
+                link.slug === '/' ? pathname === '/' : pathname.startsWith(link.slug);
               return (
                 <li
                   key={i}
@@ -101,13 +103,13 @@ export function FrontendHeader({ slug, ref, ...props }: FrontendHeaderProps) {
                       'block py-3 text-left font-sans! text-lg! font-medium text-white no-underline! transition-colors duration-200 group-hover:text-neutral-300 2xsdt:block 2xsdt:p-0 2xsdt:text-center 2xsdt:text-sm! 2xsdt:text-gray-600 2xsdt:group-hover:text-polaris-primary',
                       isTransparent &&
                         'font-medium 2xsdt:block 2xsdt:p-0 2xsdt:text-center 2xsdt:text-sm 2xsdt:text-white 2xsdt:drop-shadow-[1px_1px_1px_rgba(0,0,0,0.5)] 2xsdt:group-hover:text-neutral-300',
-                      pathname === link.slug && 'text-white 2xsdt:text-polaris-primary',
-                      pathname === link.slug && menuOpen && 'text-white 2xsdt:text-polaris-primary',
-                      pathname === link.slug && isTransparent && '2xsdt:text-white',
+                      isActive && 'text-white 2xsdt:text-polaris-primary',
+                      isActive && menuOpen && 'text-white 2xsdt:text-polaris-primary',
+                      isActive && isTransparent && '2xsdt:text-white',
                     )}>
                     {link.label}
                   </Link>
-                  {pathname === link.slug && pathname !== '/' && (
+                  {isActive && pathname !== '/' && (
                     <Separator
                       className={cn(
                         'h-[1.5px] w-full bg-polaris-primary transition-all duration-200 ease-linear group-hover:bg-polaris-primary',

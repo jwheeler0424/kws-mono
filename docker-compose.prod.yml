@@ -53,11 +53,14 @@ services:
 
   web:
     image: ${APP_IMAGE:-ghcr.io/jwheeler0424/kyleweberseattle.com:latest}
+    env_file:
+      - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     depends_on:
       - db
       - redis
     environment:
       NODE_ENV: production
+      PORT: ${PORT:-3000}
       DB_HOST: db
       DB_PORT: ${DB_PORT:-5432}
       DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}
@@ -66,11 +69,15 @@ services:
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
       WEB_MEDIA_SOURCE: /store/media
       WEB_MEDIA_TARGET: /app/apps/web/public/media
+      MLS_RESOURCE_CRON_SCHEDULES: '${MLS_RESOURCE_CRON_SCHEDULES}'
+      MLS_CLEANUP_CRON: '${MLS_CLEANUP_CRON}'
+      MLS_MEDIA_SYNC_CRON: '${MLS_MEDIA_SYNC_CRON}'
+      MLS_MEDIA_RECONCILE_CRON: '${MLS_MEDIA_RECONCILE_CRON}'
     volumes:
       - ${STORE_PATH}/media:/store/media
     stop_grace_period: 30s
     healthcheck:
-      test: ['CMD', 'wget', '-q', '-O', '-', 'http://127.0.0.1:${APP_PORT:-3443}/sitemap.xml']
+      test: ['CMD', 'wget', '-q', '-O', '-', 'http://127.0.0.1:${PORT:-3000}/sitemap.xml']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -98,6 +105,7 @@ services:
       - redis
     environment:
       NODE_ENV: production
+      PORT: ${PORT:-3000}
       LOG_PRETTY: 'false'
       DB_HOST: db
       DB_PORT: ${DB_PORT:-5432}
@@ -106,6 +114,10 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
       MLS_MEDIA_STORE_PATH: /store/media
+      MLS_RESOURCE_CRON_SCHEDULES: '${MLS_RESOURCE_CRON_SCHEDULES}'
+      MLS_CLEANUP_CRON: '${MLS_CLEANUP_CRON}'
+      MLS_MEDIA_SYNC_CRON: '${MLS_MEDIA_SYNC_CRON}'
+      MLS_MEDIA_RECONCILE_CRON: '${MLS_MEDIA_RECONCILE_CRON}'
     volumes:
       - ${STORE_PATH}/media:/store/media
       - ${STORE_PATH}/data:/store/data
@@ -120,7 +132,7 @@ services:
       - ${COMPOSE_ENV_FILE:-./packages/config/.env}
     environment:
       CERTBOT_DOMAIN_FALLBACK: ${CERTBOT_DOMAIN_FALLBACK:-kyleweberseattle.com}
-      APP_PORT: ${WEB_INTERNAL_PORT:-3443}
+      APP_PORT: ${PORT:-3000}
     ports:
       - '80:80'
       - '443:443'

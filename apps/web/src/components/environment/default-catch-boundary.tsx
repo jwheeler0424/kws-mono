@@ -1,6 +1,9 @@
 import type { ErrorComponentProps } from '@tanstack/react-router';
 
-import { ErrorComponent, Link, useRouter, useRouterState } from '@tanstack/react-router';
+import { ErrorComponent, useRouter, useRouterState } from '@tanstack/react-router';
+
+import { Button } from '@/components/global/button';
+import { Link } from '@/components/global/link';
 
 export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
   const router = useRouter();
@@ -13,30 +16,23 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
   return (
     <div className='flex min-w-0 flex-1 flex-col items-center justify-center gap-6 p-4'>
       <ErrorComponent error={error} />
-      <div className='flex flex-wrap items-center gap-2'>
-        <button
+      <div className='flex flex-wrap items-center gap-3'>
+        <Button
+          variant='solidPrimary'
+          size='md'
           onClick={() => {
             void router.invalidate();
-          }}
-          className={`rounded-sm bg-gray-600 px-2 py-1 font-extrabold text-white uppercase dark:bg-gray-700`}>
-          Try Again
-        </button>
+          }}>
+          Try again
+        </Button>
         {isRoot ? (
-          <Link
-            to='/'
-            className={`rounded-sm bg-gray-600 px-2 py-1 font-extrabold text-white uppercase dark:bg-gray-700`}>
+          <Link to='/' variant='outlinePrimary' size='md'>
             Home
           </Link>
         ) : (
-          <Link
-            to='/'
-            className={`rounded-sm bg-gray-600 px-2 py-1 font-extrabold text-white uppercase dark:bg-gray-700`}
-            onClick={(e) => {
-              e.preventDefault();
-              window.history.back();
-            }}>
-            Go Back
-          </Link>
+          <Button variant='outlinePrimary' size='md' onClick={() => window.history.back()}>
+            Go back
+          </Button>
         )}
       </div>
     </div>

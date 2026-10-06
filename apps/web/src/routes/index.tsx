@@ -19,6 +19,7 @@ export const Route = createFileRoute('/')({
 function Home() {
   return (
     <main className='min-h-full w-full overflow-hidden bg-neutral-900 text-white'>
+      <h1 className='sr-only'>Kyle Weber, Seattle Real Estate at Compass</h1>
       {/* Hero */}
       <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden'>
         <ParallaxContentLayer speed={1}>
@@ -58,7 +59,7 @@ function Home() {
                 top: 'clamp(15vh, calc(10vh - 4rem), 25vh)',
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
-              <h1
+              <h2
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -67,7 +68,7 @@ function Home() {
                   fontWeight: '700',
                 }}>
                 Search Active Listings
-              </h1>
+              </h2>
               <section
                 style={{
                   display: 'flex',
@@ -113,7 +114,7 @@ function Home() {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-              <h1
+              <h2
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -124,7 +125,7 @@ function Home() {
                   marginTop: '2rem',
                 }}>
                 Our Exclusive Listings
-              </h1>
+              </h2>
               <section className='w-full h-full flex grow items-center justify-center'>
                 <FeaturedProperties autoplay autoPlaySpeed={4000} />
               </section>
@@ -173,7 +174,7 @@ function Home() {
                 top: 'clamp(15vh, calc(10vh - 4rem), 25vh)',
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
-              <h1
+              <h2
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -182,7 +183,7 @@ function Home() {
                   fontWeight: '700',
                 }}>
                 About Me
-              </h1>
+              </h2>
               <section
                 style={{
                   display: 'flex',
@@ -225,7 +226,7 @@ function Home() {
                 top: 'clamp(15vh, calc(10vh - 4rem), 25vh)',
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
-              <h1
+              <h2
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -234,7 +235,7 @@ function Home() {
                   fontWeight: '700',
                 }}>
                 Buying Your New Home
-              </h1>
+              </h2>
               <section
                 style={{
                   display: 'flex',
@@ -276,7 +277,7 @@ function Home() {
                 top: 'clamp(15vh, calc(10vh - 4rem), 25vh)',
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
-              <h1
+              <h2
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -285,7 +286,7 @@ function Home() {
                   fontWeight: '700',
                 }}>
                 Selling Your Home in Seattle
-              </h1>
+              </h2>
               <section
                 style={{
                   display: 'flex',
@@ -328,7 +329,7 @@ function Home() {
                 top: 'clamp(15vh, calc(10vh - 4rem), 25vh)',
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
-              <h1
+              <h2
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -337,7 +338,7 @@ function Home() {
                   fontWeight: '700',
                 }}>
                 Let's Discover Seattle
-              </h1>
+              </h2>
               <section
                 style={{
                   display: 'flex',

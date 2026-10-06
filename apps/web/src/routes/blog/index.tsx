@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
 import React from 'react';
-import { BeatLoader } from 'react-spinners';
 
 import {
   ParallaxContainer,
@@ -52,8 +51,8 @@ function RouteComponent() {
         <ParallaxMediaLayer>
           <img
             className='h-full w-full object-cover'
-            src='/assets/images/blog-page.jpg'
-            alt='Blog Banner - Seattle Night time'
+            src='/assets/images/compass/seattle.webp'
+            alt='Seattle skyline at dusk'
             fetchPriority='high'
             loading='eager'
           />
@@ -69,7 +68,7 @@ function RouteComponent() {
 
       <article className='content relative'>
         <section className='flex flex-col w-full gap-4 mt-8'>
-          <h1 className='m-0'>Recent Blog Posts</h1>
+          <h2 className='m-0 text-4xl sm:text-5xl lg:text-6xl'>Recent Blog Posts</h2>
           <p>
             {`Welcome to the blog! Here you'll find a collection of articles
 				covering a variety of topics, from the latest market updates to the
@@ -103,7 +102,7 @@ function RouteComponent() {
 							</main>
 						))} */}
           <main className={cn('flex h-full w-full flex-1 items-center justify-center py-20')}>
-            <BeatLoader color='#171717' loading={true} size={15} />
+            <p className='text-neutral-600'>New posts are coming soon.</p>
           </main>
         </section>
       </article>

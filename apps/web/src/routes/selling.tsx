@@ -38,8 +38,8 @@ function RouteComponent() {
         <ParallaxMediaLayer>
           <img
             className='h-full w-full object-cover'
-            src='/assets/images/selling-page.jpg'
-            alt='Selling your home - Seattle Skyline at night'
+            src='/assets/images/compass/selling.webp'
+            alt='A modern Seattle home surrounded by trees'
             fetchPriority='high'
             loading='eager'
           />

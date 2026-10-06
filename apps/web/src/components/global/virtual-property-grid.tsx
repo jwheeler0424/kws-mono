@@ -330,7 +330,7 @@ export function VirtualPropertyGrid({
 
   return (
     <section className='mt-12 w-full' ref={parentRef}>
-      <h1 className='my-0! mb-8! text-5xl 2xsdt:mb-12!'>{title}</h1>
+      <h2 className='my-0! mb-8! text-5xl 2xsdt:mb-12!'>{title}</h2>
       {!isLayoutReady ? (
         <main className='m-0! min-h-16 p-0!' aria-busy='true' />
       ) : items.length ? (

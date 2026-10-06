@@ -46,8 +46,8 @@ function RouteComponent() {
         <ParallaxMediaLayer>
           <img
             className='h-full w-full object-cover'
-            src='/assets/images/buying-page.jpg'
-            alt='Buying your home - Seattle Skyline'
+            src='/assets/images/compass/buying.webp'
+            alt='A waterfront home in Seattle'
             fetchPriority='high'
             loading='eager'
           />

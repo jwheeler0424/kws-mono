@@ -62,8 +62,8 @@ function RouteComponent() {
         <ParallaxMediaLayer>
           <img
             className='h-full w-full object-cover'
-            src='/assets/images/our-properties-page.jpg'
-            alt='Our Properties Banner - Incredible View'
+            src='/assets/images/compass/properties.webp'
+            alt='Downtown Seattle towers'
             fetchPriority='high'
             loading='eager'
           />

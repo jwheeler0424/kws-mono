@@ -129,6 +129,7 @@ if [ ! -s "$PGDATA/PG_VERSION" ]; then
 
 	echo "[db-entrypoint] Starting temporary server"
 	gosu postgres pg_ctl -D "$PGDATA" -o "-c listen_addresses='' -c unix_socket_directories=/var/run/postgresql" -w start
+	trap 'gosu postgres pg_ctl -D "$PGDATA" -m fast -w stop || true' EXIT
 
 	echo "[db-entrypoint] Configuring role and database from DB_* variables"
 	ensure_role_and_database
@@ -155,14 +156,16 @@ if [ ! -s "$PGDATA/PG_VERSION" ]; then
 
 	echo "[db-entrypoint] Stopping temporary server"
 	gosu postgres pg_ctl -D "$PGDATA" -m fast -w stop
+	trap - EXIT
 else
-	echo "[db-entrypoint] Existing cluster detected; reconciling role/database from DB_* variables"
+	echo "[db-entrypoint] Existing cluster detected; keeping existing role/database configuration"
 	ensure_network_hba_rules
 	gosu postgres pg_ctl -D "$PGDATA" -o "-c listen_addresses='' -c unix_socket_directories=/var/run/postgresql" -w start
-	ensure_role_and_database
+	trap 'gosu postgres pg_ctl -D "$PGDATA" -m fast -w stop || true' EXIT
 	apply_pending_migrations
 	ensure_migration_function_ownership
 	gosu postgres pg_ctl -D "$PGDATA" -m fast -w stop
+	trap - EXIT
 fi
 
 echo "[db-entrypoint] Starting postgres"

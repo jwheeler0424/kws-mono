@@ -45,6 +45,7 @@ function RouteComponent() {
 
   return (
     <main className='w-full'>
+      <h1 className='sr-only'>Search Active Listings</h1>
       <section className='relative w-full'>
         <ListingsSearch search={search} />
         <ListingsMap search={search} />
