@@ -86,6 +86,15 @@ function getTriggerButton() {
 }
 
 describe('DatePicker', () => {
+  it('synchronizes an externally changed value while closed', () => {
+    const { rerender } = render(React.createElement(DatePicker, { value: new Date(2026, 0, 2) }));
+
+    rerender(React.createElement(DatePicker, { value: new Date(2027, 1, 3) }));
+
+    expect(getTriggerButton().textContent).toContain('2027');
+    expect(screen.getByText('Wed, February 3')).toBeDefined();
+  });
+
   it('stages changes until apply in uncontrolled mode', () => {
     render(React.createElement(DatePicker, { placeholder: 'Pick a date' }));
 

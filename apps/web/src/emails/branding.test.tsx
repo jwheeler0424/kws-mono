@@ -55,23 +55,32 @@ describe('Compass email presentation', () => {
     },
   );
 
-  it.each([undefined, '842-513'])(
-    'preserves magic links and optional code %s',
-    async (loginCode) => {
-      const html = await render(
-        <MagicLinkEmail
-          email='buyer@example.test'
-          magicLink='https://example.test/magic?token=abc'
-          loginCode={loginCode}
-        />,
-      );
-      expectCompassBrand(html);
-      expect(html).toContain('https://example.test/magic?token=abc');
-      expect(html).toContain('buyer@example.test');
-      if (loginCode) expect(html).toContain(loginCode);
-      else expect(html).not.toContain('temporary login code');
-    },
-  );
+  it.each(['842-513'])('preserves magic links and code %s', async (loginCode) => {
+    const html = await render(
+      <MagicLinkEmail
+        email='buyer@example.test'
+        magicLink='https://example.test/magic?token=abc'
+        loginCode={loginCode}
+      />,
+    );
+    expectCompassBrand(html);
+    expect(html).toContain('https://example.test/magic?token=abc');
+    expect(html).toContain('buyer@example.test');
+    expect(html).toContain(loginCode);
+  });
+
+  it('omits the optional magic-link code when absent', async () => {
+    const html = await render(
+      <MagicLinkEmail
+        email='buyer@example.test'
+        magicLink='https://example.test/magic?token=abc'
+      />,
+    );
+    expectCompassBrand(html);
+    expect(html).toContain('https://example.test/magic?token=abc');
+    expect(html).toContain('buyer@example.test');
+    expect(html).not.toContain('temporary login code');
+  });
 
   it('preserves verification, reset and sign-in action URLs', async () => {
     const templates = [
@@ -128,8 +137,8 @@ describe('Compass email presentation', () => {
     }
   });
 
-  it.each([undefined, '123 Test Street'])(
-    'preserves contact details and optional address %s',
+  it.each(['123 Test Street'])(
+    'preserves contact details and address %s',
     async (propertyAddress) => {
       const html = await render(
         <ContactRequestEmail
@@ -151,8 +160,30 @@ describe('Compass email presentation', () => {
       ]) {
         expect(html).toContain(value);
       }
-      if (propertyAddress) expect(html).toContain(propertyAddress);
-      else expect(html).not.toContain('Property Address');
+      expect(html).toContain(propertyAddress);
     },
   );
+
+  it('preserves contact details without an optional address', async () => {
+    const html = await render(
+      <ContactRequestEmail
+        name='Test Buyer'
+        email='buyer@example.test'
+        phone='2065550100'
+        message='Please contact me about this home.'
+      />,
+    );
+    expectCompassBrand(html);
+    for (const value of [
+      'Test Buyer',
+      'buyer@example.test',
+      'tel:2065550100',
+      'Please contact me about this home.',
+      '700 110th Ave NE #270',
+      'kweber@compass.com',
+    ]) {
+      expect(html).toContain(value);
+    }
+    expect(html).not.toContain('Property Address');
+  });
 });

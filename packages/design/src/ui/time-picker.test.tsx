@@ -117,8 +117,7 @@ describe('TimePicker segmented mode', () => {
       }),
     );
 
-    const option15Buttons = screen.getAllByRole('button', { name: 'option-15' });
-    fireEvent.click(option15Buttons[option15Buttons.length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: '09:15' }));
 
     expect(onValueChange).toHaveBeenCalled();
     expect(screen.getAllByRole('button')[0]?.textContent).toContain('09:10');
@@ -135,8 +134,7 @@ describe('TimePicker segmented mode', () => {
       }),
     );
 
-    const option45Buttons = screen.getAllByRole('button', { name: 'option-45' });
-    fireEvent.click(option45Buttons[option45Buttons.length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: '08:45' }));
 
     expect(onValueChange).toHaveBeenLastCalledWith(
       expect.objectContaining({

@@ -154,11 +154,10 @@ function TextareaDebounced({
     return { resolvedLeading: leading, resolvedTrailing: trailing };
   }, [mode, leading, trailing]);
 
-  const debouncer = React.useMemo(() => {
+  const [debouncer] = React.useState(() => {
     const fn = (next: string) => {
       setDebouncedValue(next);
       setIsDebouncing(false);
-      onDebounceEndRef.current?.();
     };
 
     return new Debouncer(fn, {
@@ -167,7 +166,17 @@ function TextareaDebounced({
       leading: resolvedLeading,
       trailing: resolvedTrailing,
     });
-  }, [waitMs, delay, devKey, resolvedLeading, resolvedTrailing]);
+  });
+
+  useIsoLayoutEffect(() => {
+    debouncer.setOptions({
+      key: devKey,
+      wait: delay ?? waitMs,
+      leading: resolvedLeading,
+      trailing: resolvedTrailing,
+      onExecute: () => onDebounceEndRef.current?.(),
+    });
+  }, [debouncer, waitMs, delay, devKey, resolvedLeading, resolvedTrailing]);
 
   // Push latest textarea value through the debouncer.
   useIsoLayoutEffect(() => {
@@ -177,7 +186,16 @@ function TextareaDebounced({
     return () => {
       if (cancelOnUnmount) debouncer.cancel();
     };
-  }, [textareaValue, debouncer, cancelOnUnmount]);
+  }, [
+    textareaValue,
+    debouncer,
+    cancelOnUnmount,
+    waitMs,
+    delay,
+    devKey,
+    resolvedLeading,
+    resolvedTrailing,
+  ]);
 
   // Fire consumer callback when the debounced value updates.
   const emitDebouncedChange = React.useCallback((nextValue: string) => {

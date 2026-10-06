@@ -399,7 +399,22 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
     [buildSearchPatchFromLocal, commitSearchPatch, runListingsSearchMutation, search],
   );
 
-  React.useEffect(() => {
+  const routeFilterKey = JSON.stringify([
+    search.query,
+    search.price?.min,
+    search.price?.max,
+    search.sqFt?.min,
+    search.sqFt?.max,
+    search.bedrooms?.min,
+    search.bedrooms?.max,
+    search.bathrooms?.min,
+    search.bathrooms?.max,
+    search.useMapBounds,
+  ]);
+  const [previousRouteFilterKey, setPreviousRouteFilterKey] = React.useState(routeFilterKey);
+
+  if (previousRouteFilterKey !== routeFilterKey) {
+    setPreviousRouteFilterKey(routeFilterKey);
     setSearchQueryLocal(search.query ?? undefined);
     setPriceValuesLocal([search.price?.min ?? null, search.price?.max ?? null]);
     setSqFtValuesLocal([search.sqFt?.min ?? null, search.sqFt?.max ?? null]);
@@ -407,18 +422,7 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
     setBathroomValuesLocal([search.bathrooms?.min ?? null, search.bathrooms?.max ?? null]);
     setUseBoundsLocal(Boolean(search.useMapBounds));
     setIsSearchLoading(false);
-  }, [
-    search.bathrooms?.max,
-    search.bathrooms?.min,
-    search.bedrooms?.max,
-    search.bedrooms?.min,
-    search.price?.max,
-    search.price?.min,
-    search.query,
-    search.sqFt?.max,
-    search.sqFt?.min,
-    search.useMapBounds,
-  ]);
+  }
 
   React.useEffect(() => {
     if (!search.useMapBounds || !normalizedMapBounds) {

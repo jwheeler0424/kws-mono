@@ -1,6 +1,6 @@
 import type { TPropertyCard } from '@kws/schema';
 
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import React from 'react';
 import { BeatLoader } from 'react-spinners';
 
@@ -133,11 +133,14 @@ export function VirtualPropertyGrid({
   onLoadMore,
   virtualization,
 }: VirtualPropertyGridProps) {
+  'use no memo';
+
   const [containerWidth, setContainerWidth] = React.useState(0);
   const [scrollMargin, setScrollMargin] = React.useState(0);
   const [isLayoutReady, setIsLayoutReady] = React.useState(false);
   const [showLoadingUi, setShowLoadingUi] = React.useState(false);
   const parentRef = React.useRef<HTMLDivElement>(null);
+  const gridRef = React.useRef<HTMLElement>(null);
   const fallbackLoadMoreRef = React.useRef<HTMLDivElement>(null);
   const lastLoadTriggerAtRef = React.useRef(0);
 
@@ -158,6 +161,11 @@ export function VirtualPropertyGrid({
     virtualization?.getOverscanRows?.(layout.columns) ??
     Math.max(4, Math.min(10, layout.columns + 2));
 
+  const getScrollElement = React.useCallback(
+    () => parentRef.current?.closest<HTMLElement>('[data-slot="scroll-area-viewport"]') ?? null,
+    [],
+  );
+
   const syncContainerMetrics = React.useCallback(() => {
     const observedElement = parentRef.current;
     if (!observedElement) {
@@ -165,14 +173,18 @@ export function VirtualPropertyGrid({
     }
 
     const nextWidth = observedElement.offsetWidth;
-    const nextScrollMargin = observedElement.getBoundingClientRect().top + window.scrollY;
+    const scrollElement = getScrollElement();
+    const gridTop = (gridRef.current ?? observedElement).getBoundingClientRect().top;
+    const nextScrollMargin = scrollElement
+      ? gridTop - scrollElement.getBoundingClientRect().top + scrollElement.scrollTop
+      : gridTop + window.scrollY;
 
     setContainerWidth((currentWidth) => (currentWidth === nextWidth ? currentWidth : nextWidth));
     setIsLayoutReady(nextWidth > 0);
     setScrollMargin((currentMargin) =>
       currentMargin === nextScrollMargin ? currentMargin : nextScrollMargin,
     );
-  }, []);
+  }, [getScrollElement]);
 
   const getItemKey = React.useCallback(
     (index: number) => {
@@ -186,7 +198,9 @@ export function VirtualPropertyGrid({
     [items, layout.columns, loaderRowIndex, totalRows],
   );
 
-  const rowVirtualizer = useWindowVirtualizer({
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual requires the component's explicit "use no memo" opt-out.
+  const rowVirtualizer = useVirtualizer({
+    getScrollElement,
     count: totalRows + (hasLoaderRow ? 1 : 0),
     estimateSize: (index) => (index === loaderRowIndex ? LOADER_ROW_ESTIMATE : estimatedRowHeight),
     overscan: overscanRows,
@@ -255,6 +269,7 @@ export function VirtualPropertyGrid({
     syncContainerMetrics();
   }, [
     items.length,
+    isLayoutReady,
     layout.columnGap,
     layout.columns,
     layout.paddingX,
@@ -355,6 +370,7 @@ export function VirtualPropertyGrid({
             </main>
           ) : (
             <main
+              ref={gridRef}
               className='m-0! p-0!'
               style={{
                 height: `${rowVirtualizer.getTotalSize()}px`,

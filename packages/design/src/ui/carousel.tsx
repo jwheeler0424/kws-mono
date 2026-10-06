@@ -17,6 +17,30 @@ type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
 type CarouselOptions = UseCarouselParameters[0];
 type CarouselPlugin = UseCarouselParameters[1];
 
+export function useCarouselValue<T extends string | number | boolean | null | undefined>(
+  api: CarouselApi,
+  selector: (api: NonNullable<CarouselApi>) => T,
+  fallback: T,
+): T {
+  const subscribe = React.useCallback(
+    (notify: () => void) => {
+      if (!api) return () => {};
+      api.on('select', notify);
+      api.on('reInit', notify);
+      return () => {
+        api.off('select', notify);
+        api.off('reInit', notify);
+      };
+    },
+    [api],
+  );
+  return React.useSyncExternalStore(
+    subscribe,
+    () => (api ? selector(api) : fallback),
+    () => fallback,
+  );
+}
+
 type CarouselProps = {
   opts?: CarouselOptions;
   plugins?: CarouselPlugin;
@@ -61,14 +85,8 @@ function Carousel({
     },
     plugins,
   );
-  const [canScrollPrev, setCanScrollPrev] = React.useState(false);
-  const [canScrollNext, setCanScrollNext] = React.useState(false);
-
-  const onSelect = React.useCallback((carouselApi: CarouselApi) => {
-    if (!carouselApi) return;
-    setCanScrollPrev(carouselApi.canScrollPrev());
-    setCanScrollNext(carouselApi.canScrollNext());
-  }, []);
+  const canScrollPrev = useCarouselValue(api, (instance) => instance.canScrollPrev(), false);
+  const canScrollNext = useCarouselValue(api, (instance) => instance.canScrollNext(), false);
 
   const scrollPrev = React.useCallback(() => {
     api?.scrollPrev();
@@ -95,21 +113,6 @@ function Carousel({
     if (!api || !setApi) return;
     setApi(api);
   }, [api, setApi]);
-
-  React.useEffect(() => {
-    if (!api) return;
-
-    onSelect(api);
-    api.on('init', onSelect);
-    api.on('reInit', onSelect);
-    api.on('select', onSelect);
-
-    return () => {
-      api.off('init', onSelect);
-      api.off('reInit', onSelect);
-      api.off('select', onSelect);
-    };
-  }, [api, onSelect]);
 
   return (
     <CarouselContext.Provider

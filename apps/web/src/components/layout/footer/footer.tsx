@@ -11,7 +11,7 @@ export function FrontendFooter({ className, ...props }: FrontendFooterProps) {
   const [propertiesUpdated, _setPropertiesUpdated] = React.useState<Date | null>(null);
   const needsDisclaimer =
     pathname === '/' || pathname.includes('listings') || pathname.includes('properties');
-  const year = new Date().getFullYear();
+  const [year] = React.useState(() => new Date().getFullYear());
 
   return (
     <footer className={cn('relative w-full bg-white shadow-md', className)} {...props}>

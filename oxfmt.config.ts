@@ -33,6 +33,7 @@ export default defineConfig({
     preserveWhitespace: true,
   },
   ignorePatterns: [
+    '**/routeTree.gen.ts',
     '**/node_modules/**',
     '**/dist/**',
     '**/build/**',

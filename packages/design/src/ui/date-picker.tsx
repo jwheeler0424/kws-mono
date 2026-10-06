@@ -234,19 +234,32 @@ export function DatePicker({
   );
   const hiddenInputRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    if (isOpen) return;
-    setDraftValue(committedValue);
-    const anchor = getAnchorDate(committedValue, mode);
-    if (anchor) {
-      setCurrentMonth(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+  const [previousCommittedValue, setPreviousCommittedValue] = React.useState(committedValue);
+  const [previousIsOpen, setPreviousIsOpen] = React.useState(isOpen);
+  const [previousMode, setPreviousMode] = React.useState(mode);
+  const [today] = React.useState(() => new Date());
+
+  if (
+    previousCommittedValue !== committedValue ||
+    previousIsOpen !== isOpen ||
+    previousMode !== mode
+  ) {
+    setPreviousCommittedValue(committedValue);
+    setPreviousIsOpen(isOpen);
+    setPreviousMode(mode);
+    if (!isOpen) {
+      setDraftValue(committedValue);
+      const anchor = getAnchorDate(committedValue, mode);
+      if (anchor) {
+        setCurrentMonth(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+      }
     }
-  }, [committedValue, isOpen, mode]);
+  }
 
   const effectivePlaceholder =
     placeholder ?? (mode === 'range' ? 'Pick a date range' : 'Pick a date');
   const headerFallbackDate =
-    getAnchorDate(draftValue, mode) ?? getAnchorDate(committedValue, mode) ?? new Date();
+    getAnchorDate(draftValue, mode) ?? getAnchorDate(committedValue, mode) ?? today;
   const headerContent = getHeaderContent(draftValue, mode, headerFallbackDate);
 
   const emitChange = React.useCallback(

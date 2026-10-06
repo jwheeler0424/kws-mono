@@ -108,7 +108,9 @@ export function OverflowGroup(props: OverflowGroupProps) {
   // Keep in ref so calc() can read the latest value without needing
   // `overscan` in its own dependency array.
   const overscanRef = React.useRef(overscan);
-  overscanRef.current = overscan;
+  useIsoLayoutEffect(() => {
+    overscanRef.current = overscan;
+  }, [overscan]);
 
   const ctx = useOverflowContext(CONTAINER_NAME);
 
@@ -549,7 +551,9 @@ export function OverflowGroup(props: OverflowGroupProps) {
     calc();
   }, [calc]);
 
-  scheduleCalcRef.current = scheduleCalc;
+  useIsoLayoutEffect(() => {
+    scheduleCalcRef.current = scheduleCalc;
+  }, [scheduleCalc]);
 
   // Schedule on orientation / strategy change (deferred to rAF to prevent
   // forced reflow during React's commit phase).

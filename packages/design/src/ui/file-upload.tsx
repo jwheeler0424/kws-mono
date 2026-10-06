@@ -42,24 +42,35 @@ const FILE_UPLOAD_ERRORS = {
   [CLEAR_NAME]: `\`${CLEAR_NAME}\` must be within \`${ROOT_NAME}\``,
 } as const;
 
+function createObjectUrlStore(file?: File) {
+  let url: string | null = null;
+  return {
+    getSnapshot: () => url,
+    subscribe: (notify: () => void) => {
+      if (!file) return () => {};
+      const nextUrl = URL.createObjectURL(file);
+      url = nextUrl;
+      notify();
+      return () => {
+        URL.revokeObjectURL(nextUrl);
+        url = null;
+      };
+    },
+  };
+}
+
 function useObjectUrl(file?: File) {
-  const [url, setUrl] = React.useState<string | null>(null);
+  const store = React.useMemo(() => createObjectUrlStore(file), [file]);
+  return React.useSyncExternalStore(store.subscribe, store.getSnapshot, () => null);
+}
 
-  React.useEffect(() => {
-    if (!file) {
-      setUrl(null);
-      return;
-    }
-
-    const nextUrl = URL.createObjectURL(file);
-    setUrl(nextUrl);
-
-    return () => {
-      URL.revokeObjectURL(nextUrl);
-    };
-  }, [file]);
-
-  return url;
+function setDroppedFiles(input: HTMLInputElement, files: File[]) {
+  const dataTransfer = new DataTransfer();
+  for (const file of files) {
+    dataTransfer.items.add(file);
+  }
+  input.files = dataTransfer.files;
+  input.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 type Direction = 'ltr' | 'rtl';
@@ -710,7 +721,7 @@ const FileUploadDropzone = React.forwardRef<HTMLDivElement, FileUploadDropzonePr
   (props, forwardedRef) => {
     const { render, className, ...dropzoneProps } = props;
 
-    const context = useFileUploadContext(DROPZONE_NAME);
+    const { inputRef, ...context } = useFileUploadContext(DROPZONE_NAME);
     const store = useStoreContext(DROPZONE_NAME);
     const dragOver = useStore((state) => state.dragOver);
     const invalid = useStore((state) => state.invalid);
@@ -732,10 +743,10 @@ const FileUploadDropzone = React.forwardRef<HTMLDivElement, FileUploadDropzonePr
           target instanceof HTMLElement && target.closest('[data-slot="file-upload-trigger"]');
 
         if (!isFromTrigger) {
-          context.inputRef.current?.click();
+          inputRef.current?.click();
         }
       },
-      [context.inputRef, propsRef],
+      [inputRef, propsRef],
     );
 
     const onDragOver = React.useCallback(
@@ -784,18 +795,12 @@ const FileUploadDropzone = React.forwardRef<HTMLDivElement, FileUploadDropzonePr
         store.dispatch({ variant: 'SET_DRAG_OVER', dragOver: false });
 
         const files = Array.from(event.dataTransfer.files);
-        const inputElement = context.inputRef.current;
+        const inputElement = inputRef.current;
         if (!inputElement) return;
 
-        const dataTransfer = new DataTransfer();
-        for (const file of files) {
-          dataTransfer.items.add(file);
-        }
-
-        inputElement.files = dataTransfer.files;
-        inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+        setDroppedFiles(inputElement, files);
       },
-      [store, context.inputRef, propsRef],
+      [store, inputRef, propsRef],
     );
 
     const onKeyDown = React.useCallback(
@@ -804,38 +809,40 @@ const FileUploadDropzone = React.forwardRef<HTMLDivElement, FileUploadDropzonePr
 
         if (!event.defaultPrevented && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
-          context.inputRef.current?.click();
+          inputRef.current?.click();
         }
       },
-      [context.inputRef, propsRef],
+      [inputRef, propsRef],
     );
 
     return useRender({
       defaultTagName: 'div',
       render,
       ref: forwardedRef,
-      props: mergeProps<'div'>(
-        {
-          role: 'region',
-          id: context.dropzoneId,
-          'aria-controls': `${context.inputId} ${context.listId}`,
-          'aria-disabled': context.disabled,
-          'aria-invalid': invalid,
-          dir: context.dir,
-          tabIndex: context.disabled ? undefined : 0,
-          className: cn(
-            'group/dropzone relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/40 p-6 transition-colors outline-none select-none hover:border-chart-3/60 hover:bg-secondary/30 focus-visible:border-ring/50 data-[disabled]:pointer-events-none data-[dragging]:border-primary data-[invalid]:border-destructive data-[invalid]:ring-destructive/20',
-            className,
-          ),
-          onClick,
-          onDragEnter,
-          onDragLeave,
-          onDragOver,
-          onDrop,
-          onKeyDown,
-        },
-        dropzoneProps,
-      ),
+      props: {
+        ...mergeProps<'div'>(
+          {
+            role: 'region',
+            id: context.dropzoneId,
+            'aria-controls': `${context.inputId} ${context.listId}`,
+            'aria-disabled': context.disabled,
+            'aria-invalid': invalid,
+            dir: context.dir,
+            tabIndex: context.disabled ? undefined : 0,
+            className: cn(
+              'group/dropzone relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/40 p-6 transition-colors outline-none select-none hover:border-chart-3/60 hover:bg-secondary/30 focus-visible:border-ring/50 data-[disabled]:pointer-events-none data-[dragging]:border-primary data-[invalid]:border-destructive data-[invalid]:ring-destructive/20',
+              className,
+            ),
+          },
+          dropzoneProps,
+        ),
+        onClick,
+        onDragEnter,
+        onDragLeave,
+        onDragOver,
+        onDrop,
+        onKeyDown,
+      },
       state: {
         slot: 'file-upload-dropzone',
         disabled: context.disabled,
@@ -874,15 +881,17 @@ const FileUploadTrigger = React.forwardRef<HTMLButtonElement, FileUploadTriggerP
       defaultTagName: 'button',
       render,
       ref: forwardedRef,
-      props: mergeProps<'button'>(
-        {
-          type: 'button',
-          'aria-controls': context.inputId,
-          disabled: context.disabled,
-          onClick,
-        },
-        triggerProps,
-      ),
+      props: {
+        ...mergeProps<'button'>(
+          {
+            type: 'button',
+            'aria-controls': context.inputId,
+            disabled: context.disabled,
+          },
+          triggerProps,
+        ),
+        onClick,
+      },
       state: {
         slot: 'file-upload-trigger',
         disabled: context.disabled,
@@ -987,15 +996,15 @@ const FileUploadItem = React.forwardRef<HTMLDivElement, FileUploadItemProps>(
       [id, fileState, statusId, nameId, sizeId, messageId],
     );
 
-    if (!fileState) return null;
-
-    const statusText = fileState.error
-      ? `Error: ${fileState.error}`
-      : fileState.status === 'uploading'
-        ? `Uploading: ${fileState.progress}% complete`
-        : fileState.status === 'success'
-          ? 'Upload complete'
-          : 'Ready to upload';
+    const statusText = !fileState
+      ? ''
+      : fileState.error
+        ? `Error: ${fileState.error}`
+        : fileState.status === 'uploading'
+          ? `Uploading: ${fileState.progress}% complete`
+          : fileState.status === 'success'
+            ? 'Upload complete'
+            : 'Ready to upload';
 
     const describedBy = fileState
       ? `${nameId} ${sizeId} ${statusId} ${fileState.error ? messageId : ''}`
@@ -1033,8 +1042,8 @@ const FileUploadItem = React.forwardRef<HTMLDivElement, FileUploadItemProps>(
           ),
           state: {
             slot: 'file-upload-item',
-            status: fileState.status,
-            error: !!fileState.error,
+            status: fileState?.status,
+            error: !!fileState?.error,
           },
           enabled: !!fileState,
         })}
@@ -1321,15 +1330,17 @@ const FileUploadItemDelete = React.forwardRef<HTMLButtonElement, FileUploadItemD
       defaultTagName: 'button',
       render,
       ref: forwardedRef,
-      props: mergeProps<'button'>(
-        {
-          type: 'button',
-          'aria-controls': itemContext.id ?? undefined,
-          'aria-describedby': itemContext.nameId ?? undefined,
-          onClick,
-        },
-        deleteProps,
-      ),
+      props: {
+        ...mergeProps<'button'>(
+          {
+            type: 'button',
+            'aria-controls': itemContext.id ?? undefined,
+            'aria-describedby': itemContext.nameId ?? undefined,
+          },
+          deleteProps,
+        ),
+        onClick,
+      },
       state: {
         slot: 'file-upload-item-delete',
       },
@@ -1374,15 +1385,17 @@ const FileUploadClear = React.forwardRef<HTMLButtonElement, FileUploadClearProps
       defaultTagName: 'button',
       render,
       ref: forwardedRef,
-      props: mergeProps<'button'>(
-        {
-          type: 'button',
-          'aria-controls': context.listId,
-          disabled: isDisabled,
-          onClick,
-        },
-        clearProps,
-      ),
+      props: {
+        ...mergeProps<'button'>(
+          {
+            type: 'button',
+            'aria-controls': context.listId,
+            disabled: isDisabled,
+          },
+          clearProps,
+        ),
+        onClick,
+      },
       state: {
         slot: 'file-upload-clear',
         disabled: isDisabled,

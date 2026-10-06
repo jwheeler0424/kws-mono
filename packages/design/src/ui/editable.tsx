@@ -313,7 +313,7 @@ function Editable(props: EditableProps) {
 
   const renderedRoot = useRender({
     defaultTagName: 'div',
-    ref: [ref, handleRootRef].filter(Boolean) as Array<React.Ref<HTMLDivElement>>,
+    ref: [ref ?? null, handleRootRef],
     render,
     props: mergeProps<'div'>(defaultProps, rootProps),
   });
@@ -365,7 +365,7 @@ function EditableLabel(props: EditableLabelProps) {
 
   return useRender({
     defaultTagName: 'label',
-    ref: [ref].filter(Boolean) as Array<React.Ref<HTMLLabelElement>>,
+    ref,
     render,
     props: mergeProps<'label'>(defaultProps, labelProps),
   });
@@ -396,7 +396,7 @@ function EditableArea(props: EditableAreaProps) {
 
   return useRender({
     defaultTagName: 'div',
-    ref: [ref].filter(Boolean) as Array<React.Ref<HTMLDivElement>>,
+    ref,
     render,
     props: mergeProps<'div'>(defaultProps, areaProps),
   });
@@ -421,22 +421,6 @@ function EditablePreview(props: EditablePreviewProps) {
   const value = useStore((state) => state.value);
   const editing = useStore((state) => state.editing);
 
-  const propsRef = React.useRef({
-    onClick: onClickProp,
-    onDoubleClick: onDoubleClickProp,
-    onFocus: onFocusProp,
-    onKeyDown: onKeyDownProp,
-  });
-
-  useIsoLayoutEffect(() => {
-    propsRef.current = {
-      onClick: onClickProp,
-      onDoubleClick: onDoubleClickProp,
-      onFocus: onFocusProp,
-      onKeyDown: onKeyDownProp,
-    };
-  });
-
   const onTrigger = React.useCallback(() => {
     if (context.disabled || context.readOnly) return;
     context.onEdit();
@@ -444,34 +428,34 @@ function EditablePreview(props: EditablePreviewProps) {
 
   const onClick = React.useCallback(
     (event: React.MouseEvent<PreviewElement>) => {
-      propsRef.current.onClick?.(event);
+      onClickProp?.(event);
       if (event.defaultPrevented || context.triggerMode !== 'click') return;
       onTrigger();
     },
-    [onTrigger, context.triggerMode],
+    [onClickProp, onTrigger, context.triggerMode],
   );
 
   const onDoubleClick = React.useCallback(
     (event: React.MouseEvent<PreviewElement>) => {
-      propsRef.current.onDoubleClick?.(event);
+      onDoubleClickProp?.(event);
       if (event.defaultPrevented || context.triggerMode !== 'dblclick') return;
       onTrigger();
     },
-    [onTrigger, context.triggerMode],
+    [onDoubleClickProp, onTrigger, context.triggerMode],
   );
 
   const onFocus = React.useCallback(
     (event: React.FocusEvent<PreviewElement>) => {
-      propsRef.current.onFocus?.(event);
+      onFocusProp?.(event);
       if (event.defaultPrevented || context.triggerMode !== 'focus') return;
       onTrigger();
     },
-    [onTrigger, context.triggerMode],
+    [onFocusProp, onTrigger, context.triggerMode],
   );
 
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<PreviewElement>) => {
-      propsRef.current.onKeyDown?.(event);
+      onKeyDownProp?.(event);
       if (event.defaultPrevented) return;
 
       if (event.key === 'Enter') {
@@ -483,7 +467,7 @@ function EditablePreview(props: EditablePreviewProps) {
         onTrigger();
       }
     },
-    [onTrigger, context],
+    [onKeyDownProp, onTrigger, context],
   );
 
   if (editing || context.readOnly) return null;
@@ -514,7 +498,7 @@ function EditablePreview(props: EditablePreviewProps) {
 
   return useRender({
     defaultTagName: 'div',
-    ref: [ref].filter(Boolean) as Array<React.Ref<HTMLDivElement>>,
+    ref,
     render,
     props: mergeProps<'div'>(defaultProps, previewProps),
   });
@@ -543,20 +527,6 @@ function EditableInput(props: EditableInputProps) {
   const editing = useStore((state) => state.editing);
   const inputRef = React.useRef<InputElement>(null);
 
-  const propsRef = React.useRef({
-    onBlur: onBlurProp,
-    onChange: onChangeProp,
-    onKeyDown: onKeyDownProp,
-  });
-
-  useIsoLayoutEffect(() => {
-    propsRef.current = {
-      onBlur: onBlurProp,
-      onChange: onChangeProp,
-      onKeyDown: onKeyDownProp,
-    };
-  });
-
   const isDisabled = disabled || context.disabled;
   const isReadOnly = readOnly || context.readOnly;
   const isRequired = required || context.required;
@@ -580,7 +550,7 @@ function EditableInput(props: EditableInputProps) {
     (event: React.FocusEvent<InputElement>) => {
       if (isDisabled || isReadOnly) return;
 
-      propsRef.current.onBlur?.(event);
+      onBlurProp?.(event);
       if (event.defaultPrevented) return;
 
       const relatedTarget = event.relatedTarget;
@@ -593,27 +563,27 @@ function EditableInput(props: EditableInputProps) {
         context.onSubmit(value);
       }
     },
-    [value, context, isDisabled, isReadOnly],
+    [onBlurProp, value, context, isDisabled, isReadOnly],
   );
 
   const onChange = React.useCallback(
     (event: React.ChangeEvent<InputElement>) => {
       if (isDisabled || isReadOnly) return;
 
-      propsRef.current.onChange?.(event);
+      onChangeProp?.(event);
       if (event.defaultPrevented) return;
 
       store.setState('value', event.target.value);
       onAutosize(event.target);
     },
-    [store, onAutosize, isDisabled, isReadOnly],
+    [onChangeProp, store, onAutosize, isDisabled, isReadOnly],
   );
 
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<InputElement>) => {
       if (isDisabled || isReadOnly) return;
 
-      propsRef.current.onKeyDown?.(event);
+      onKeyDownProp?.(event);
       if (event.defaultPrevented) return;
 
       if (event.key === 'Escape') {
@@ -627,7 +597,7 @@ function EditableInput(props: EditableInputProps) {
         context.onSubmit(value);
       }
     },
-    [value, context, isDisabled, isReadOnly],
+    [onKeyDownProp, value, context, isDisabled, isReadOnly],
   );
 
   useIsoLayoutEffect(() => {
@@ -678,7 +648,7 @@ function EditableInput(props: EditableInputProps) {
 
   return useRender({
     defaultTagName: 'input',
-    ref: [ref, inputRef].filter(Boolean) as Array<React.Ref<HTMLInputElement>>,
+    ref: [ref ?? null, inputRef],
     render,
     props: mergeProps<'input'>(defaultProps, inputProps),
   });
@@ -717,7 +687,7 @@ function EditableTrigger(props: EditableTriggerProps) {
 
   return useRender({
     defaultTagName: 'button',
-    ref: [ref].filter(Boolean) as Array<React.Ref<HTMLButtonElement>>,
+    ref,
     render,
     props: mergeProps<'button'>(defaultProps, triggerProps),
   });
@@ -746,7 +716,7 @@ function EditableToolbar(props: EditableToolbarProps) {
 
   return useRender({
     defaultTagName: 'div',
-    ref: [ref].filter(Boolean) as Array<React.Ref<HTMLDivElement>>,
+    ref,
     render,
     props: mergeProps<'div'>(defaultProps, toolbarProps),
   });
@@ -759,26 +729,16 @@ function EditableCancel(props: EditableCancelProps) {
   const context = useEditableContext(CANCEL_NAME);
   const editing = useStore((state) => state.editing);
 
-  const propsRef = React.useRef({
-    onClick: onClickProp,
-  });
-
-  useIsoLayoutEffect(() => {
-    propsRef.current = {
-      onClick: onClickProp,
-    };
-  });
-
   const onClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       if (context.disabled || context.readOnly) return;
 
-      propsRef.current.onClick?.(event);
+      onClickProp?.(event);
       if (event.defaultPrevented) return;
 
       context.onCancel();
     },
-    [context],
+    [onClickProp, context],
   );
 
   if (!editing && !context.readOnly) return null;
@@ -796,7 +756,7 @@ function EditableCancel(props: EditableCancelProps) {
 
   return useRender({
     defaultTagName: 'button',
-    ref: [ref].filter(Boolean) as Array<React.Ref<HTMLButtonElement>>,
+    ref,
     render,
     props: mergeProps<'button'>(defaultProps, cancelProps),
   });
@@ -810,26 +770,16 @@ function EditableSubmit(props: EditableSubmitProps) {
   const value = useStore((state) => state.value);
   const editing = useStore((state) => state.editing);
 
-  const propsRef = React.useRef({
-    onClick: onClickProp,
-  });
-
-  useIsoLayoutEffect(() => {
-    propsRef.current = {
-      onClick: onClickProp,
-    };
-  });
-
   const onClick = React.useCallback(
     (event: React.MouseEvent<SubmitElement>) => {
       if (context.disabled || context.readOnly) return;
 
-      propsRef.current.onClick?.(event);
+      onClickProp?.(event);
       if (event.defaultPrevented) return;
 
       context.onSubmit(value);
     },
-    [context, value],
+    [onClickProp, context, value],
   );
 
   if (!editing && !context.readOnly) return null;
@@ -847,7 +797,7 @@ function EditableSubmit(props: EditableSubmitProps) {
 
   return useRender({
     defaultTagName: 'button',
-    ref: [ref].filter(Boolean) as Array<React.Ref<HTMLButtonElement>>,
+    ref,
     render,
     props: mergeProps<'button'>(defaultProps, submitProps),
   });

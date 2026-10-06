@@ -157,7 +157,7 @@ function Home() {
             alt='Pike Place Market in Seattle'
             fetchPriority='high'
             loading='eager'
-            className='size-full object-cover object-center brightness-75'
+            className='size-full object-cover object-[62%_center] brightness-75 md:object-center'
           />
         </ParallaxMediaLayer>
         <ParallaxContentLayer>

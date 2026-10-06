@@ -455,15 +455,14 @@ function Cropper(props: CropperProps) {
   });
 
   const rootRef = React.useRef<RootElement | null>(null);
+  const isBatchingRef = React.useRef(false);
+  const cropAreaFrameRef = React.useRef<number | null>(null);
 
   const store = React.useMemo<Store>(() => {
-    let isBatching = false;
-    let raf: number | null = null;
-
     function notifyCropAreaChange() {
-      if (raf != null) return;
-      raf = requestAnimationFrame(() => {
-        raf = null;
+      if (cropAreaFrameRef.current != null) return;
+      cropAreaFrameRef.current = requestAnimationFrame(() => {
+        cropAreaFrameRef.current = null;
         const s = stateRef.current;
         if (s?.mediaSize && s.cropSize && propsRef.current.onCropAreaChange) {
           const { croppedAreaPercentages, croppedAreaPixels } = getCroppedArea(
@@ -540,7 +539,7 @@ function Cropper(props: CropperProps) {
           notifyCropAreaChange();
         }
 
-        if (!isBatching) {
+        if (!isBatchingRef.current) {
           store.notify();
         }
       },
@@ -550,15 +549,15 @@ function Cropper(props: CropperProps) {
         }
       },
       batch: (fn: () => void) => {
-        if (isBatching) {
+        if (isBatchingRef.current) {
           fn();
           return;
         }
-        isBatching = true;
+        isBatchingRef.current = true;
         try {
           fn();
         } finally {
-          isBatching = false;
+          isBatchingRef.current = false;
           store.notify();
         }
       },
@@ -966,10 +965,13 @@ function CropperImpl(props: CropperImplProps) {
     [onZoomChange, store],
   );
 
-  const onGestureEnd = React.useCallback(() => {
-    document.removeEventListener('gesturechange', onGestureChange as EventListener);
-    document.removeEventListener('gestureend', onGestureEnd as EventListener);
-  }, [onGestureChange]);
+  const onGestureEnd = React.useCallback(
+    function handleGestureEnd() {
+      document.removeEventListener('gesturechange', onGestureChange as EventListener);
+      document.removeEventListener('gestureend', handleGestureEnd as EventListener);
+    },
+    [onGestureChange],
+  );
 
   const onGestureStart = React.useCallback(
     (event: GestureEvent) => {
@@ -991,14 +993,17 @@ function CropperImpl(props: CropperImplProps) {
     document.removeEventListener('gestureend', onGestureEnd as EventListener);
   }, [onMouseMove, onTouchMove, onGestureChange, onGestureEnd]);
 
-  const onDragStopped = React.useCallback(() => {
-    isTouchingRef.current = false;
-    store.setState('isDragging', false);
-    onRefsCleanup();
-    document.removeEventListener('mouseup', onDragStopped);
-    document.removeEventListener('touchend', onDragStopped);
-    onEventsCleanup();
-  }, [store, onEventsCleanup, onRefsCleanup]);
+  const onDragStopped = React.useCallback(
+    function handleDragStopped() {
+      isTouchingRef.current = false;
+      store.setState('isDragging', false);
+      onRefsCleanup();
+      document.removeEventListener('mouseup', handleDragStopped);
+      document.removeEventListener('touchend', handleDragStopped);
+      onEventsCleanup();
+    },
+    [store, onEventsCleanup, onRefsCleanup],
+  );
 
   const getWheelDelta = React.useCallback((event: WheelEvent) => {
     let deltaX = event.deltaX;
@@ -1196,20 +1201,22 @@ function CropperImpl(props: CropperImplProps) {
     defaultTagName: 'div',
     render,
     ref: composedRef,
-    props: mergeProps<'div'>(
-      {
-        tabIndex: 0,
-        className: cn(
-          'absolute inset-0 flex cursor-move touch-none items-center justify-center overflow-hidden outline-none select-none',
-          className,
-        ),
-        onKeyUp,
-        onKeyDown,
-        onMouseDown,
-        onTouchStart,
-      },
-      rootImplProps,
-    ),
+    props: {
+      ...mergeProps<'div'>(
+        {
+          tabIndex: 0,
+          className: cn(
+            'absolute inset-0 flex cursor-move touch-none items-center justify-center overflow-hidden outline-none select-none',
+            className,
+          ),
+        },
+        rootImplProps,
+      ),
+      onKeyUp,
+      onKeyDown,
+      onMouseDown,
+      onTouchStart,
+    },
     state: {
       slot: 'cropper',
     },
@@ -1245,9 +1252,10 @@ function useMediaComputation<T extends HTMLImageElement | HTMLVideoElement>({
   rotation,
   getNaturalDimensions,
 }: UseMediaComputationProps<T>) {
+  const rootRef = context.rootRef;
   const computeSizes = React.useCallback(() => {
     const media = mediaRef.current;
-    const content = context.rootRef?.current;
+    const content = rootRef?.current;
     if (!media || !content) return;
 
     const contentRect = content.getBoundingClientRect();
@@ -1352,7 +1360,7 @@ function useMediaComputation<T extends HTMLImageElement | HTMLVideoElement>({
   }, [
     mediaRef,
     context.aspectRatio,
-    context.rootRef,
+    rootRef,
     context.objectFit,
     store,
     rotation,
@@ -1470,24 +1478,26 @@ function CropperImage(props: CropperImageProps) {
     defaultTagName: 'img',
     render,
     ref: composedRef,
-    props: mergeProps<'img'>(
-      {
-        className: cn(
-          cropperMediaVariants({
-            objectFit: objectFit ?? context.objectFit,
-            className,
-          }),
-        ),
-        style: {
-          transform: snapPixels
-            ? `translate(${snapToDevicePixel(crop.x)}px, ${snapToDevicePixel(crop.y)}px) rotate(${rotation}deg) scale(${zoom})`
-            : `translate(${crop.x}px, ${crop.y}px) rotate(${rotation}deg) scale(${zoom})`,
-          ...style,
+    props: {
+      ...mergeProps<'img'>(
+        {
+          className: cn(
+            cropperMediaVariants({
+              objectFit: objectFit ?? context.objectFit,
+              className,
+            }),
+          ),
+          style: {
+            transform: snapPixels
+              ? `translate(${snapToDevicePixel(crop.x)}px, ${snapToDevicePixel(crop.y)}px) rotate(${rotation}deg) scale(${zoom})`
+              : `translate(${crop.x}px, ${crop.y}px) rotate(${rotation}deg) scale(${zoom})`,
+            ...style,
+          },
         },
-        onLoad: onMediaLoad,
-      },
-      imageProps,
-    ),
+        imageProps,
+      ),
+      onLoad: onMediaLoad,
+    },
     state: {
       slot: 'cropper-image',
     },
@@ -1597,29 +1607,31 @@ function CropperVideo(props: CropperVideoProps) {
     defaultTagName: 'video',
     render,
     ref: composedRef,
-    props: mergeProps<'video'>(
-      {
-        autoPlay: true,
-        playsInline: true,
-        loop: true,
-        muted: true,
-        controls: false,
-        className: cn(
-          cropperMediaVariants({
-            objectFit: objectFit ?? context.objectFit,
-            className,
-          }),
-        ),
-        style: {
-          transform: snapPixels
-            ? `translate(${snapToDevicePixel(crop.x)}px, ${snapToDevicePixel(crop.y)}px) rotate(${rotation}deg) scale(${zoom})`
-            : `translate(${crop.x}px, ${crop.y}px) rotate(${rotation}deg) scale(${zoom})`,
-          ...style,
+    props: {
+      ...mergeProps<'video'>(
+        {
+          autoPlay: true,
+          playsInline: true,
+          loop: true,
+          muted: true,
+          controls: false,
+          className: cn(
+            cropperMediaVariants({
+              objectFit: objectFit ?? context.objectFit,
+              className,
+            }),
+          ),
+          style: {
+            transform: snapPixels
+              ? `translate(${snapToDevicePixel(crop.x)}px, ${snapToDevicePixel(crop.y)}px) rotate(${rotation}deg) scale(${zoom})`
+              : `translate(${crop.x}px, ${crop.y}px) rotate(${rotation}deg) scale(${zoom})`,
+            ...style,
+          },
         },
-        onLoadedMetadata: onMediaLoad,
-      },
-      videoProps,
-    ),
+        videoProps,
+      ),
+      onLoadedMetadata: onMediaLoad,
+    },
     state: {
       slot: 'cropper-video',
     },

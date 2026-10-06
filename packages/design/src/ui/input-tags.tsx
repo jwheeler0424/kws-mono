@@ -258,6 +258,8 @@ function InputTags({ className, ...props }: InputTagsProps) {
   const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
   const [isInvalidInput, setIsInvalidInput] = React.useState(false);
   const collectionRef = React.useRef<HTMLFieldSetElement>(null);
+  const [collectionNode, setCollectionNode] = React.useState<HTMLFieldSetElement | null>(null);
+  const collectionRefs = useMergedRefs(collectionRef, setCollectionNode);
   const inputRef = React.useRef<InputElement>(null);
   const reactId = React.useId();
   const reactInputId = React.useId();
@@ -268,9 +270,7 @@ function InputTags({ className, ...props }: InputTagsProps) {
   const valuesId = `${id}-values`;
   const resolvedDirection = useDirection() || dirProp || 'ltr';
   const { getEnabledItems } = useItemCollection(collectionRef);
-  const isFormControl = collectionRef.current
-    ? Boolean(collectionRef.current.closest('form'))
-    : true;
+  const isFormControl = collectionNode ? Boolean(collectionNode.closest('form')) : true;
 
   const onItemAdd = React.useCallback(
     (textValue: string, options?: { viaPaste?: boolean }) => {
@@ -585,8 +585,10 @@ function InputTags({ className, ...props }: InputTagsProps) {
         dir={resolvedDirection}
         className={cn('m-0 flex w-95 min-w-0 flex-col gap-2 border-0 p-0', className)}
         {...rootProps}
-        ref={collectionRef}
-        onClick={composeEventHandlers(onClick, (event) => {
+        ref={collectionRefs}
+        onClick={(event) => {
+          onClick?.(event);
+          if (event.defaultPrevented) return;
           const target = event.target;
           if (!(target instanceof HTMLElement)) return;
 
@@ -594,8 +596,10 @@ function InputTags({ className, ...props }: InputTagsProps) {
             event.currentTarget.focus();
             inputRef.current?.focus();
           }
-        })}
-        onKeyDown={composeEventHandlers(onKeyDownProp, (event) => {
+        }}
+        onKeyDown={(event) => {
+          onKeyDownProp?.(event);
+          if (event.defaultPrevented) return;
           if (disabled || readOnly) return;
           if (event.key !== 'Enter' && event.key !== ' ') return;
 
@@ -606,28 +610,32 @@ function InputTags({ className, ...props }: InputTagsProps) {
             event.preventDefault();
             inputRef.current?.focus();
           }
-        })}
-        onMouseDown={composeEventHandlers(onMouseDown, (event) => {
+        }}
+        onMouseDown={(event) => {
+          onMouseDown?.(event);
+          if (event.defaultPrevented) return;
           const target = event.target;
           if (!(target instanceof HTMLElement)) return;
 
           if (getIsClickedInEmptyRoot(target)) {
             event.preventDefault();
           }
-        })}
-        onBlur={composeEventHandlers(onBlur, (event) => {
+        }}
+        onBlur={(event) => {
+          onBlur?.(event);
+          if (event.defaultPrevented) return;
           if (
             event.relatedTarget !== inputRef.current &&
             !collectionRef.current?.contains(event.relatedTarget)
           ) {
             requestAnimationFrame(() => setHighlightedIndex(null));
           }
-        })}>
+        }}>
         {typeof children === 'function' ? children({ value }) : children}
         {isFormControl && name && (
           <InputHidden
             type='hidden'
-            control={collectionRef.current}
+            control={collectionNode}
             name={name}
             value={value}
             disabled={disabled}
@@ -862,13 +870,17 @@ function InputTagsItem({
           className,
         )}
         {...props}
-        onClick={composeEventHandlers(props.onClick, (event) => {
+        onClick={(event) => {
+          props.onClick?.(event);
+          if (event.defaultPrevented) return;
           event.stopPropagation();
           if (!isEditing && pointerTypeRef.current !== 'mouse') {
             onItemSelect();
           }
-        })}
-        onKeyDown={composeEventHandlers(props.onKeyDown, (event) => {
+        }}
+        onKeyDown={(event) => {
+          props.onKeyDown?.(event);
+          if (event.defaultPrevented) return;
           if (itemDisabled) return;
           if (event.key !== 'Enter' && event.key !== ' ') return;
 
@@ -881,21 +893,29 @@ function InputTagsItem({
           }
 
           onItemSelect();
-        })}
-        onDoubleClick={composeEventHandlers(props.onDoubleClick, () => {
+        }}
+        onDoubleClick={(event) => {
+          props.onDoubleClick?.(event);
+          if (event.defaultPrevented) return;
           if (context.editable && !itemDisabled) {
             requestAnimationFrame(() => context.setEditingIndex(index));
           }
-        })}
-        onPointerUp={composeEventHandlers(props.onPointerUp, () => {
+        }}
+        onPointerUp={(event) => {
+          props.onPointerUp?.(event);
+          if (event.defaultPrevented) return;
           if (pointerTypeRef.current === 'mouse') {
             onItemSelect();
           }
-        })}
-        onPointerDown={composeEventHandlers(props.onPointerDown, (event) => {
+        }}
+        onPointerDown={(event) => {
+          props.onPointerDown?.(event);
+          if (event.defaultPrevented) return;
           pointerTypeRef.current = event.pointerType;
-        })}
-        onPointerMove={composeEventHandlers(props.onPointerMove, (event) => {
+        }}
+        onPointerMove={(event) => {
+          props.onPointerMove?.(event);
+          if (event.defaultPrevented) return;
           pointerTypeRef.current = event.pointerType;
 
           if (itemDisabled) {
@@ -903,12 +923,14 @@ function InputTagsItem({
           } else if (pointerTypeRef.current === 'mouse') {
             event.currentTarget.focus({ preventScroll: true });
           }
-        })}
-        onPointerLeave={composeEventHandlers(props.onPointerLeave, (event) => {
+        }}
+        onPointerLeave={(event) => {
+          props.onPointerLeave?.(event);
+          if (event.defaultPrevented) return;
           if (event.currentTarget === document.activeElement) {
             context.onItemLeave();
           }
-        })}>
+        }}>
         <InputTagsItemText className='truncate'>{children}</InputTagsItemText>
         {itemDisabled && (
           <span id={statusId} className='sr-only'>

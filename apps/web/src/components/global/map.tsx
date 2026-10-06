@@ -112,10 +112,6 @@ const MarkerLayer = React.memo(function MarkerLayer({
     zoomend: syncViewport,
   });
 
-  useEffect(() => {
-    syncViewport();
-  }, [index, syncViewport]);
-
   const clusters = useMemo(
     () =>
       index.getClusters(viewport.bounds, viewport.zoom) as Array<
@@ -174,7 +170,11 @@ type SharedPopupHostProps = {
 function SharedPopupHost({ openPopup, onClose }: SharedPopupHostProps) {
   const map = useMap();
   const popupRef = useRef<L.Popup | null>(null);
-  const containerRef = useRef<HTMLElement | null>(null);
+  const [container] = useState(() => {
+    const node = document.createElement('div');
+    node.className = 'w-72';
+    return node;
+  });
   const [PopupCardComponent, setPopupCardComponent] = useState<React.ComponentType<{
     listingKey: string;
   }> | null>(null);
@@ -218,7 +218,6 @@ function SharedPopupHost({ openPopup, onClose }: SharedPopupHostProps) {
       map.off('popupclose', handlePopupClose);
       popupRef.current?.remove();
       popupRef.current = null;
-      containerRef.current = null;
     };
   }, [map, onClose]);
 
@@ -232,19 +231,10 @@ function SharedPopupHost({ openPopup, onClose }: SharedPopupHostProps) {
       return;
     }
 
-    if (!containerRef.current) {
-      const container = document.createElement('div');
-      container.className = 'w-72';
-      containerRef.current = container;
-    }
+    popupRef.current.setLatLng([openPopup.lat, openPopup.lng]).setContent(container).openOn(map);
+  }, [map, openPopup, container]);
 
-    popupRef.current
-      .setLatLng([openPopup.lat, openPopup.lng])
-      .setContent(containerRef.current)
-      .openOn(map);
-  }, [map, openPopup]);
-
-  if (!openPopup || !containerRef.current) {
+  if (!openPopup) {
     return null;
   }
 
@@ -254,7 +244,7 @@ function SharedPopupHost({ openPopup, onClose }: SharedPopupHostProps) {
     ) : (
       POPUP_SKELETON_NODE
     ),
-    containerRef.current,
+    container,
   );
 }
 
@@ -381,7 +371,8 @@ export function MapView({
 }: MapProps) {
   const [mapLoading, setMapLoading] = React.useState(true);
   const [mapReady, setMapReady] = React.useState(false);
-  const [markersReady, setMarkersReady] = React.useState(false);
+  const markersReady = mapReady && !markersLoading;
+  const [mountedAt] = useState(() => Date.now());
   const [openPopup, setOpenPopup] = useState<OpenPopupState | null>(null);
   const initialMarkersRenderedRef = useRef(false);
   const markerIconCacheRef = useRef(new Map<string, L.DivIcon>());
@@ -395,7 +386,7 @@ export function MapView({
   const displayedProperties = properties;
 
   const initialCenter = useMemo<[number, number]>(() => {
-    const timestamp = Date.now() - mapTimestamp;
+    const timestamp = mountedAt - mapTimestamp;
     const millisecondsInOneDay = 24 * 60 * 60 * 1000;
 
     if (timestamp < millisecondsInOneDay && mapPosition.lat && mapPosition.lng) {
@@ -403,13 +394,13 @@ export function MapView({
     }
 
     return [DEFAULT_POSITION.lat, DEFAULT_POSITION.lng];
-  }, [mapPosition.lat, mapPosition.lng, mapTimestamp]);
+  }, [mapPosition.lat, mapPosition.lng, mapTimestamp, mountedAt]);
 
   const initialZoom = useMemo(() => {
-    const timestamp = Date.now() - mapTimestamp;
+    const timestamp = mountedAt - mapTimestamp;
     const millisecondsInOneDay = 24 * 60 * 60 * 1000;
     return timestamp < millisecondsInOneDay && zoom ? zoom : DEFAULT_POSITION.zoom;
-  }, [mapTimestamp, zoom]);
+  }, [mapTimestamp, zoom, mountedAt]);
 
   const handleMarkerClick = React.useCallback((property: PropertySearchMarker) => {
     if (!property.listingKey) {
@@ -428,6 +419,10 @@ export function MapView({
       lat: latitude,
       lng: longitude,
     });
+  }, []);
+
+  const handlePopupClose = React.useCallback(() => {
+    setOpenPopup(null);
   }, []);
 
   const clusterMarkerFactory = React.useCallback((_count: number) => {
@@ -511,22 +506,14 @@ export function MapView({
   }, [clusterPoints]);
 
   useEffect(() => {
-    if (!mapReady) {
-      setMapLoading(true);
-    }
-  }, [mapReady]);
-
-  useEffect(() => {
     if (markersLoading) {
       initialMarkersRenderedRef.current = false;
-      setMarkersReady(false);
     }
   }, [markersLoading]);
 
   useEffect(() => {
     if (mapReady && !markersLoading && !initialMarkersRenderedRef.current) {
       initialMarkersRenderedRef.current = true;
-      setMarkersReady(true);
       onInitialMarkersRendered?.();
     }
   }, [mapReady, markersLoading, onInitialMarkersRendered, displayedProperties.length]);
@@ -575,12 +562,7 @@ export function MapView({
           onMarkerClick={handleMarkerClick}
         />
 
-        <SharedPopupHost
-          openPopup={openPopup}
-          onClose={() => {
-            setOpenPopup(null);
-          }}
-        />
+        <SharedPopupHost openPopup={openPopup} onClose={handlePopupClose} />
       </MapContainer>
 
       {mapLoading || !mapReady || markersLoading || !markersReady ? <Loader /> : null}

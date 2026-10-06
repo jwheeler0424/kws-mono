@@ -165,11 +165,10 @@ function InputDebounced({
     return { resolvedLeading: leading, resolvedTrailing: trailing };
   }, [mode, leading, trailing]);
 
-  const debouncer = React.useMemo(() => {
+  const [debouncer] = React.useState(() => {
     const fn = (next: string) => {
       setDebouncedValue(normalizeDebouncedValue(next));
       setIsDebouncing(false);
-      onDebounceEndRef.current?.();
     };
 
     return new Debouncer(fn, {
@@ -178,7 +177,17 @@ function InputDebounced({
       leading: resolvedLeading,
       trailing: resolvedTrailing,
     });
-  }, [waitMs, delay, devKey, resolvedLeading, resolvedTrailing]);
+  });
+
+  useIsoLayoutEffect(() => {
+    debouncer.setOptions({
+      key: devKey,
+      wait: delay ?? waitMs,
+      leading: resolvedLeading,
+      trailing: resolvedTrailing,
+      onExecute: () => onDebounceEndRef.current?.(),
+    });
+  }, [debouncer, waitMs, delay, devKey, resolvedLeading, resolvedTrailing]);
 
   // Push latest input value through the debouncer.
   useIsoLayoutEffect(() => {
@@ -189,7 +198,16 @@ function InputDebounced({
     return () => {
       if (cancelOnUnmount) debouncer.cancel();
     };
-  }, [inputValue, debouncer, cancelOnUnmount]);
+  }, [
+    inputValue,
+    debouncer,
+    cancelOnUnmount,
+    waitMs,
+    delay,
+    devKey,
+    resolvedLeading,
+    resolvedTrailing,
+  ]);
 
   // Fire consumer callback when the debounced value updates.
   const emitDebouncedChange = React.useCallback((nextValue: string | undefined) => {

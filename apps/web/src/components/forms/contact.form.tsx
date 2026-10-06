@@ -4,7 +4,7 @@ import { Field, FieldError, FieldLabel } from '@kws/design/ui/field';
 import { Spinner } from '@kws/design/ui/spinner';
 import { Textarea } from '@kws/design/ui/textarea';
 import { toast } from '@kws/design/ui/toast';
-import { useForm } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import React from 'react';
 
@@ -38,23 +38,26 @@ export function ContactForm({ propertyAddress, className, ...props }: ContactFor
     onSubmit: async ({ value }) => {
       const { name, email, phone, message } = value;
 
-      useMutation({
-        mutationFn: async () =>
-          submitContactFn({ data: { name, email, phone, message, propertyAddress } }),
-        onError: (error) => {
-          console.error('Error submitting contact form:', error);
-          toast.error('There was an error submitting your request. Please try again later.');
-        },
-        onSuccess: () => {
-          toast.success('Your message has been sent successfully');
-
-          form.reset();
-        },
-      }).mutate();
+      await contactMutation
+        .mutateAsync({ data: { name, email, phone, message, propertyAddress } })
+        .catch(() => undefined);
     },
   });
 
-  const { canSubmit, isSubmitting } = form.state;
+  const contactMutation = useMutation({
+    mutationFn: (request: Parameters<typeof submitContactFn>[0]) => submitContactFn(request),
+    onError: (error) => {
+      console.error('Error submitting contact form:', error);
+      toast.error('There was an error submitting your request. Please try again later.');
+    },
+    onSuccess: () => {
+      toast.success('Your message has been sent successfully');
+      form.reset();
+    },
+  });
+
+  const canSubmit = useSelector(form.store, (state) => state.canSubmit);
+  const isSubmitting = useSelector(form.store, (state) => state.isSubmitting);
 
   return (
     <form

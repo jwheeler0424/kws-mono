@@ -11,6 +11,7 @@ import {
   MapPinnedIcon,
   RulerDimensionLineIcon,
 } from 'lucide-react';
+import { useState } from 'react';
 
 import { Badge } from '@/components/global/badge';
 import { Link } from '@/components/global/link';
@@ -47,6 +48,7 @@ export const Route = createFileRoute('/listings/$listingKey')({
 function RouteComponent() {
   const { listingKey } = Route.useParams();
   const { data: property } = useSuspenseQuery(listingDetailOptions({ listingKey }));
+  const [fallbackDate] = useState(() => new Date());
 
   if (!property) {
     return <div className='p-6 text-sm text-gray-700'>Property details unavailable.</div>;
@@ -229,7 +231,7 @@ function RouteComponent() {
                 </section>
                 <section>
                   <span className={cn('font-semibold! text-gray-900!')}>
-                    {format(property.onMarketDate ?? new Date(), 'MMMM d, yyyy')}
+                    {format(property.onMarketDate ?? fallbackDate, 'MMMM d, yyyy')}
                   </span>
                   <br />
                   <span className={cn('text-xs! font-medium! text-gray-400! uppercase!')}>

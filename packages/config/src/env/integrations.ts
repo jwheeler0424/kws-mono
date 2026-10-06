@@ -9,6 +9,11 @@ const durationSchema = z.string().regex(durationRegex, {
 });
 
 const envSchema = z.object({
+  ALERT_WEBHOOK_URL: z.union([z.httpUrl(), z.literal('')]).optional(),
+  ALERT_WEBHOOK_SECRET: z.string().optional(),
+  ALERT_SERVICE_NAME: z.string().optional(),
+  ALERT_WEBHOOK_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
+
   // ── Ollama configuration ──────────────────────────────────────────────────
   OLLAMA_MODEL: z.string().min(1),
   OLLAMA_PORT: z.coerce.number().int().positive(),

@@ -65,17 +65,16 @@ export function ListingsResults({ params }: { params: Partial<TListingsSearch> }
   const isResolvingResults =
     isListingsPending || isListingsFetching || isHydrationPending || isHydrationFetching;
   const [displayedProperties, setDisplayedProperties] = React.useState<TPropertyCard[]>([]);
+  const [previousProperties, setPreviousProperties] = React.useState(properties);
+  const [previousResolving, setPreviousResolving] = React.useState(isResolvingResults);
 
-  React.useEffect(() => {
-    if (properties.length > 0) {
+  if (previousProperties !== properties || previousResolving !== isResolvingResults) {
+    setPreviousProperties(properties);
+    setPreviousResolving(isResolvingResults);
+    if (properties.length > 0 || !isResolvingResults) {
       setDisplayedProperties(properties);
-      return;
     }
-
-    if (!isResolvingResults) {
-      setDisplayedProperties([]);
-    }
-  }, [isResolvingResults, properties]);
+  }
 
   const shouldShowPrimaryLoader = isResolvingResults && displayedProperties.length === 0;
   const shouldShowOverlayLoader = isResolvingResults && displayedProperties.length > 0;
