@@ -104,9 +104,7 @@ export const submitContactFn = createServerFn({ method: 'POST' })
     await nodemailerClient.sendMail({
       from: env.EMAIL_FROM,
       to:
-        process.env.NODE_ENV === 'production'
-          ? 'jonathan@designersimage.io'
-          : 'contact@designersimage.io',
+        process.env.NODE_ENV === 'production' ? 'kweber@compass.com' : 'contact@designersimage.io',
       subject,
       html: emailHTML,
     });
