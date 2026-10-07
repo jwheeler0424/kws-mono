@@ -71,16 +71,20 @@ function getPropertyUpdateWhereSql(): string {
 
 export async function reconcileFeaturedListingFlags(memberIds: readonly string[]): Promise<number> {
   const memberScope = [...new Set(memberIds.map((memberId) => memberId.trim()).filter(Boolean))];
+  const memberAssociation =
+    memberScope.length > 0
+      ? sql`(
+          ${inArray(properties.listAgentMlsId, memberScope)} OR
+          ${inArray(properties.coListAgentMlsId, memberScope)} OR
+          ${inArray(properties.buyerAgentMlsId, memberScope)} OR
+          ${inArray(properties.coBuyerAgentMlsId, memberScope)}
+        )`
+      : sql`false`;
   const featuredEligibility = sql<boolean>`COALESCE((
     ${properties.mlgCanView} = true
     AND ${properties.deletedAt} IS NULL
     AND ${inArray(properties.standardStatus, [...FEATURED_PROPERTY_STATUSES])}
-    AND (
-      ${properties.listAgentMlsId} = ANY(${memberScope}) OR
-      ${properties.coListAgentMlsId} = ANY(${memberScope}) OR
-      ${properties.buyerAgentMlsId} = ANY(${memberScope}) OR
-      ${properties.coBuyerAgentMlsId} = ANY(${memberScope})
-    )
+    AND ${memberAssociation}
   ), false)`;
   const updatedRows = await db
     .update(properties)
