@@ -11,6 +11,15 @@ import { Link } from '@/components/global/link';
 import Video from '@/components/global/video';
 import { featuredPropertiesOptions } from '@/features/mls/options';
 
+const mobileVideoSources = [
+  { src: '/assets/videos/intro-mobile-high.mp4', type: 'video/mp4; codecs="hvc1.2.4.L120.90"' },
+  { src: '/assets/videos/intro-mobile-low.mp4', type: 'video/mp4; codecs="avc1.640028"' },
+];
+const desktopVideoSources = [
+  { src: '/assets/videos/intro-desktop-high.mp4', type: 'video/mp4; codecs="hvc1.2.4.L120.90"' },
+  { src: '/assets/videos/intro-desktop-low.mp4', type: 'video/mp4; codecs="avc1.640028"' },
+];
+
 export const Route = createFileRoute('/')({
   loader: ({ context }) => context.queryClient.ensureQueryData(featuredPropertiesOptions()),
   component: Home,
@@ -31,9 +40,9 @@ function Home() {
             preload='metadata'
             poster='/assets/images/compass/search.webp'
             className='size-full object-cover object-center'
-            mobileSrc='/assets/videos/compass/intro-portrait.mp4'
-            tabletSrc='/assets/videos/compass/intro-portrait.mp4'
-            desktopSrc='/assets/videos/compass/intro-landscape.mp4'
+            mobileSrc={mobileVideoSources}
+            tabletSrc={mobileVideoSources}
+            desktopSrc={desktopVideoSources}
           />
         </ParallaxContentLayer>
       </ParallaxContainer>

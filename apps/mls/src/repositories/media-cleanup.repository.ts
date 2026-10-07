@@ -144,11 +144,6 @@ async function listLinkedNamespaceKeys(
       ? or(propertyAssociationMemberClause, propertyAssociationOfficeClause)
       : (propertyAssociationMemberClause ?? propertyAssociationOfficeClause);
 
-  const propertyPrimaryPhotoClause = or(
-    eq(mlsMedia.order, 1),
-    and(isNotNull(mlsMedia.preferredPhotoYN), eq(mlsMedia.preferredPhotoYN, true)),
-  );
-
   const resourceEligibilityClause =
     entityType === 'properties'
       ? and(
@@ -159,7 +154,6 @@ async function listLinkedNamespaceKeys(
               eq(properties.mlgCanView, true),
               isNotNull(properties.standardStatus),
               inArray(properties.standardStatus, [...DEFAULT_ACTIVE_PROPERTY_STATUSES]),
-              propertyPrimaryPhotoClause,
             ),
             propertyAssociatedListingClause,
           ),
@@ -531,17 +525,11 @@ export async function purgeScopedMlsMediaBeforeSync(
     ),
   ];
 
-  const primaryPhotoClause = or(
-    eq(mlsMedia.order, 1),
-    and(isNotNull(mlsMedia.preferredPhotoYN), eq(mlsMedia.preferredPhotoYN, true)),
-  );
-
   const propertyPrimaryActiveViewableClause = and(
     isNotNull(properties.listingKey),
     eq(properties.mlgCanView, true),
     isNotNull(properties.standardStatus),
     inArray(properties.standardStatus, activePropertyStatuses),
-    primaryPhotoClause,
   );
 
   const propertyAssociationMemberClause =

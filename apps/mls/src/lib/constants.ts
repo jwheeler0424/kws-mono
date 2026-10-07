@@ -27,7 +27,14 @@ export const MLS_QUOTA_DEFAULTS = {
   bytesPerHourLimit: 3_221_225_472,
   bytesPerDayLimit: 64_424_509_440,
   quotaWarnThresholdRatio: 0.9,
-  quotaStateFile: '.mls-quota-state.json',
+  // Under data/ so the Docker data volume preserves usage across restarts.
+  quotaStateFile: 'data/.mls-quota-state.json',
+} as const;
+
+export const MLS_MEDIA_BUDGET_DEFAULTS = {
+  // Media stops at this share of the hourly/daily request limits; the rest is reserved for replication.
+  maxQuotaShare: 0.85,
+  parentUnavailableRetryMs: 24 * 60 * 60 * 1000,
 } as const;
 
 export const MLS_HISTORY_DEFAULTS = {
@@ -58,8 +65,8 @@ export const MLS_PROPERTY_DEFAULTS = {
 
 export const MLS_SCHEDULER_DEFAULTS = {
   maxConcurrentScheduledJobs: 2,
-  mediaSyncBatchSize: 64,
-  mediaSyncMaxBatches: 24,
+  mediaSyncBatchSize: 250,
+  mediaSyncMaxBatches: 8,
   mediaSyncProcessConcurrency: 6,
   mediaSyncIncludeMissingFilesRepair: false,
   mediaSyncRepairMaxBatches: 2,

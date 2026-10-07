@@ -83,12 +83,17 @@ export const getPropertyCardQueryConfig = (): TPropertyCardQueryConfig => ({
   with: {
     media: {
       limit: 1,
+      // Best downloaded photo: preferred first, then lowest order (NWMLS Order starts at 0).
       where: {
-        OR: [{ preferredPhotoYN: true }, { order: 1 }],
+        mediaId: { isNotNull: true as const },
         deletedAt: { isNull: true as const },
         RAW: (table) =>
           sql`not (coalesce(${table.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
       },
+      orderBy: (table) => [
+        sql`${table.preferredPhotoYN} is true desc`,
+        sql`${table.order} asc nulls last`,
+      ],
       with: {
         media: {
           where: { deletedAt: { isNull: true as const } },

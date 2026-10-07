@@ -9,11 +9,14 @@ type VideoBreakpoints = {
   tabletMax: number;
 };
 
+type VideoSource = { src: string; type: string };
+type VideoSources = string | readonly VideoSource[];
+
 export interface VideoProps extends Omit<React.ComponentPropsWithoutRef<'video'>, 'src'> {
   // Backward-compatible responsive source props.
-  mobileSrc?: string;
-  tabletSrc?: string;
-  desktopSrc?: string;
+  mobileSrc?: VideoSources;
+  tabletSrc?: VideoSources;
+  desktopSrc?: VideoSources;
   // Optional single source for non-responsive usage.
   src?: string;
   // If true, picks source using device size/orientation when responsive sources are provided.
@@ -76,7 +79,7 @@ const VideoComponent: React.FC<VideoProps> = ({
   const hasResponsiveSources = Boolean(mobileSrc || tabletSrc || desktopSrc);
   const shouldAutoRenderSources = !children && hasResponsiveSources;
 
-  const selectedSrc = React.useMemo(() => {
+  const selectedSource = React.useMemo(() => {
     if (!useDeviceDetection || !hasResponsiveSources) {
       return src ?? desktopSrc ?? tabletSrc ?? mobileSrc ?? '';
     }
@@ -107,6 +110,17 @@ const VideoComponent: React.FC<VideoProps> = ({
     resolvedBreakpoints.mobileMax,
     resolvedBreakpoints.tabletMax,
   ]);
+
+  const selectedSources = React.useMemo(
+    () =>
+      typeof selectedSource === 'string'
+        ? selectedSource
+          ? [{ src: selectedSource, type: sourceType }]
+          : []
+        : selectedSource,
+    [selectedSource, sourceType],
+  );
+  const selectedSrc = selectedSources[0]?.src;
 
   const effectiveDecorative = decorative ?? !controls;
   const ariaLabel = a11yLabel ?? rest['aria-label'];
@@ -145,7 +159,7 @@ const VideoComponent: React.FC<VideoProps> = ({
     video.addEventListener('playing', onPlaying);
     document.addEventListener('visibilitychange', play);
     window.addEventListener('pageshow', play);
-    if (selectedSrc) video.load();
+    if (selectedSources.length) video.load();
     play();
 
     return () => {
@@ -156,7 +170,7 @@ const VideoComponent: React.FC<VideoProps> = ({
       document.removeEventListener('visibilitychange', play);
       window.removeEventListener('pageshow', play);
     };
-  }, [selectedSrc, autoPlay, loop, muted, playsInline]);
+  }, [selectedSources, autoPlay, loop, muted, playsInline]);
 
   React.useEffect(() => {
     if (process.env.NODE_ENV !== 'production' && !effectiveDecorative && !ariaLabel && !controls) {
@@ -183,10 +197,27 @@ const VideoComponent: React.FC<VideoProps> = ({
         {...rest}>
         {shouldAutoRenderSources && (
           <>
-            {useDeviceDetection && selectedSrc && <source src={selectedSrc} type={sourceType} />}
-            {desktopSrc && <source media={desktopMedia} src={desktopSrc} type={sourceType} />}
-            {tabletSrc && <source media={tabletMedia} src={tabletSrc} type={sourceType} />}
-            {mobileSrc && <source media={mobileMedia} src={mobileSrc} type={sourceType} />}
+            {useDeviceDetection
+              ? selectedSources.map((source) => (
+                  <source key={source.src} src={source.src} type={source.type} />
+                ))
+              : [
+                  { sources: desktopSrc, media: desktopMedia },
+                  { sources: tabletSrc, media: tabletMedia },
+                  { sources: mobileSrc, media: mobileMedia },
+                ].flatMap(({ sources, media }) =>
+                  (typeof sources === 'string'
+                    ? [{ src: sources, type: sourceType }]
+                    : (sources ?? [])
+                  ).map((source) => (
+                    <source
+                      key={`${media}:${source.src}`}
+                      media={media}
+                      src={source.src}
+                      type={source.type}
+                    />
+                  )),
+                )}
           </>
         )}
         <track

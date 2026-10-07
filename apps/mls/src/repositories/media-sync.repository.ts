@@ -52,6 +52,15 @@ export async function releaseParentMedia(
     })
     .where(eq(mlsMedia.acquisitionToken, token));
 }
+export async function releaseQuotaDeferredMedia(): Promise<number> {
+  const released = await db
+    .update(mlsMedia)
+    .set({ nextAttemptAt: null, lastAcquisitionError: null })
+    .where(sql`${mlsMedia.lastAcquisitionError} like 'MLS API quota exceeded%'`)
+    .returning({ mediaKey: mlsMedia.mediaKey });
+  return released.length;
+}
+
 export type MlsMediaAssociationMode =
   | 'stale-or-unprocessed'
   | 'stale-only'
@@ -358,7 +367,23 @@ export async function listMlsMediaSyncCandidates(
   const nonPrioritizedPropertyListingClause = prioritizedPropertyMatchClause
     ? and(isNotNull(properties.listingKey), sql`not (${prioritizedPropertyMatchClause})`)
     : isNotNull(properties.listingKey);
-  const primaryPhotoClause = or(eq(mlsMedia.preferredPhotoYN, true), eq(mlsMedia.order, 1));
+  // NWMLS Order starts at 0, so "primary" is the preferred photo, else the lowest order.
+  const primaryPhotoClause = sql`(
+    ${mlsMedia.preferredPhotoYN} = true
+    or (
+      not exists (
+        select 1 from mls_media preferred
+        where preferred.resource_record_key = ${mlsMedia.resourceRecordKey}
+          and preferred.deleted_at is null
+          and preferred.preferred_photo_yn = true
+      )
+      and ${mlsMedia.order} = (
+        select min(first_photo."order") from mls_media first_photo
+        where first_photo.resource_record_key = ${mlsMedia.resourceRecordKey}
+          and first_photo.deleted_at is null
+      )
+    )
+  )`;
 
   const candidateWhereClause = propertyOnlyFilter
     ? primaryOnlyForAllProperties || primaryOnlyForNonPrioritizedProperties
@@ -531,7 +556,14 @@ export async function listMlsMediaSyncCandidates(
     limit > 0
       ? await baseSelect
           .where(finalWhereClause)
-          .orderBy(priorityBucket, asc(mlsMedia.updatedAt), asc(mlsMedia.mediaKey))
+          .orderBy(
+            // A bare integer here would be read by Postgres as a column position.
+            ...(propertyOnlyFilter ? [] : [priorityBucket]),
+            sql`coalesce(${properties.originalEntryTimestamp}, ${properties.onMarketDate}) desc nulls last`,
+            asc(mlsMedia.resourceRecordKey),
+            sql`${mlsMedia.order} asc nulls last`,
+            asc(mlsMedia.mediaKey),
+          )
           .limit(limit)
           .offset(options.offset ?? 0)
       : [];

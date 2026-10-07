@@ -13,7 +13,7 @@ import {
 } from '../repositories/media-cleanup.repository';
 import { runMlsCleanup } from './cleanup';
 import { isMlsDeltaResourceName, runDeltaSyncResource } from './orchestrator';
-import { runMlsMediaSync } from './seed-media';
+import { runPrioritizedMlsMediaSync } from './seed-media';
 
 const MLS_CLEANUP_HOURLY_SCHEDULE_ID = 'mls.cleanup.hourly';
 const MLS_MEDIA_SYNC_SCHEDULE_ID = 'mls.media.sync';
@@ -201,62 +201,23 @@ async function runScheduledMediaPhases(
   const memberKeys = (env.MLS_MEMBER_ID ?? []).filter((key) => key.length > 0);
   const officeKeys = (env.MLS_OFFICE_ID ?? []).filter((key) => key.length > 0);
 
-  const propertySummary = await runMlsMediaSync({
+  const prioritized = await runPrioritizedMlsMediaSync({
     batchSize: input.mediaSyncBatchSize,
     maxBatches: input.mediaSyncMaxBatches,
     processConcurrency: input.mediaSyncProcessConcurrency,
-    prioritizeMemberKeys: memberKeys,
-    prioritizeOfficeKeys: officeKeys,
-    primaryOnlyForAllProperties: true,
-    filterEntityTypes: ['properties'],
     associationMode: options.associationMode,
     includeMissingFilesRepair: options.includeMissingFilesRepair,
     repairMaxBatches: options.repairMaxBatches,
-    enforceEligibilityForNonAssociatedProperties: true,
+    memberKeys,
+    officeKeys,
   });
-
-  let configuredAssociationPropertySummary: Awaited<ReturnType<typeof runMlsMediaSync>> | undefined;
-  if (memberKeys.length > 0 || officeKeys.length > 0) {
-    configuredAssociationPropertySummary = await runMlsMediaSync({
-      batchSize: input.mediaSyncBatchSize,
-      maxBatches: input.mediaSyncMaxBatches,
-      processConcurrency: input.mediaSyncProcessConcurrency,
-      filterEntityTypes: ['properties'],
-      associationMode: options.associationMode,
-      includeMissingFilesRepair: options.includeMissingFilesRepair,
-      repairMaxBatches: options.repairMaxBatches,
-      restrictToMemberPropertyKeys: memberKeys,
-      restrictToOfficePropertyKeys: officeKeys,
-    });
-  }
-
-  let memberSummary: Awaited<ReturnType<typeof runMlsMediaSync>> | undefined;
-  if (memberKeys.length > 0) {
-    memberSummary = await runMlsMediaSync({
-      batchSize: input.mediaSyncBatchSize,
-      maxBatches: input.mediaSyncMaxBatches,
-      processConcurrency: input.mediaSyncProcessConcurrency,
-      filterEntityTypes: ['members'],
-      associationMode: options.associationMode,
-      includeMissingFilesRepair: options.includeMissingFilesRepair,
-      repairMaxBatches: options.repairMaxBatches,
-      restrictToMemberEntityKeys: memberKeys,
-    });
-  }
-
-  let officeSummary: Awaited<ReturnType<typeof runMlsMediaSync>> | undefined;
-  if (officeKeys.length > 0) {
-    officeSummary = await runMlsMediaSync({
-      batchSize: input.mediaSyncBatchSize,
-      maxBatches: input.mediaSyncMaxBatches,
-      processConcurrency: input.mediaSyncProcessConcurrency,
-      filterEntityTypes: ['offices'],
-      associationMode: options.associationMode,
-      includeMissingFilesRepair: options.includeMissingFilesRepair,
-      repairMaxBatches: options.repairMaxBatches,
-      restrictToOfficeEntityKeys: officeKeys,
-    });
-  }
+  const propertySummary = prioritized.listings;
+  const configuredAssociationPropertySummary = {
+    office: prioritized.officeListings,
+    members: prioritized.memberListings,
+  };
+  const memberSummary = prioritized.member;
+  const officeSummary = prioritized.office;
 
   const postSyncCleanup = await purgeScopedMlsMediaBeforeSync({
     memberKeys,

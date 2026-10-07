@@ -10,11 +10,12 @@ import path from 'node:path';
 
 import type { MlsMediaPayload } from '@/types';
 
+import { MLS_MEDIA_BUDGET_DEFAULTS, MLS_QUOTA_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
 import { mlsLogger } from '@/lib/logger';
 import { fetchFreshParentMedia } from '@/lib/utils/fetch';
 import { downloadMlsMedia, MlsMediaDownloadError } from '@/lib/utils/media-download';
-import { mlsQuotaTracker } from '@/lib/utils/quota';
+import { MlsQuotaExceededError, mlsQuotaTracker } from '@/lib/utils/quota';
 import { throttle } from '@/lib/utils/rate-limit';
 import { resolveMlsMediaKey } from '@/maps/media.mapper';
 
@@ -118,6 +119,7 @@ export interface MlsMediaSyncSummary {
   repairProcessed: number;
   repairSkippedHealthy: number;
   repairFailed: number;
+  budgetExhausted: boolean;
 }
 
 interface BatchOutcome {
@@ -252,8 +254,11 @@ async function resolvePipelineSource(
 
   const mediaUrl = await getMediaUrl();
   const budgetedFetch = async (input: string, options: RequestInit): Promise<Response> => {
-    await throttle();
-    mlsQuotaTracker.prepareRequest();
+    // Only MLS Grid requests count toward its limits; the storage redirect target does not.
+    if (new URL(input).hostname.endsWith('mlsgrid.com')) {
+      await throttle();
+      mlsQuotaTracker.prepareRequest();
+    }
     return fetch(input, options);
   };
   const source = await downloadMlsMedia(mediaUrl, env.MLS_ACCESS_KEY, budgetedFetch, {
@@ -288,6 +293,29 @@ function buildMediaTitle(candidate: MlsMediaSyncCandidate): string {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+class MlsMediaUnavailableError extends Error {
+  constructor() {
+    super('Fresh MLS media is absent or private');
+    this.name = 'MlsMediaUnavailableError';
+  }
+}
+
+function isMediaBudgetExhausted(): boolean {
+  const { hour, day } = mlsQuotaTracker.snapshot();
+  const share = MLS_MEDIA_BUDGET_DEFAULTS.maxQuotaShare;
+  return (
+    hour.requests >= MLS_QUOTA_DEFAULTS.requestsPerHourLimit * share ||
+    day.requests >= MLS_QUOTA_DEFAULTS.requestsPerDayLimit * share ||
+    hour.bytes >= MLS_QUOTA_DEFAULTS.bytesPerHourLimit * share ||
+    day.bytes >= MLS_QUOTA_DEFAULTS.bytesPerDayLimit * share
+  );
+}
+
+function getRetryAfterMs(error: unknown): number {
+  const retryAfterMs = (error as { retryAfterMs?: unknown } | null)?.retryAfterMs;
+  return typeof retryAfterMs === 'number' && retryAfterMs > 0 ? retryAfterMs : 3_600_000;
 }
 
 function isPermanentImageProcessingError(error: unknown): boolean {
@@ -491,6 +519,7 @@ export async function runMlsMediaSync(
     repairProcessed: 0,
     repairSkippedHealthy: 0,
     repairFailed: 0,
+    budgetExhausted: false,
   };
 
   const processCandidate = async (
@@ -519,6 +548,19 @@ export async function runMlsMediaSync(
       }
       return 'processed';
     } catch (error) {
+      if (error instanceof MlsQuotaExceededError) {
+        summary.budgetExhausted = true;
+        summary.skipped += 1;
+        return 'skipped';
+      }
+
+      // The fresh snapshot is authoritative: retire this row without blocking the rest of the listing.
+      if (error instanceof MlsMediaUnavailableError) {
+        await markMlsMediaRowAsUnprocessable(candidate).catch(() => false);
+        summary.skipped += 1;
+        return 'skipped';
+      }
+
       onFailure(error);
       const permanent = isPermanentImageProcessingError(error);
       const message = toErrorMessage(error);
@@ -569,6 +611,12 @@ export async function runMlsMediaSync(
         while (nextGroup < groups.length) {
           const group = groups[nextGroup++]!;
           const first = group[0]!;
+          if (summary.budgetExhausted || isMediaBudgetExhausted()) {
+            summary.budgetExhausted = true;
+            summary.skipped += group.length;
+            outcome.skipped += group.length;
+            continue;
+          }
           const token = await claimParentMedia(first.resourceRecordKey);
           if (!token) {
             summary.skipped += group.length;
@@ -583,6 +631,11 @@ export async function runMlsMediaSync(
           };
           try {
             for (const candidate of group) {
+              if (summary.budgetExhausted) {
+                summary.skipped += 1;
+                outcome.skipped += 1;
+                continue;
+              }
               if (failure || Date.now() - started > 600_000) {
                 failure ??= new MlsMediaDownloadError(410);
                 summary.skipped += 1;
@@ -610,7 +663,7 @@ export async function runMlsMediaSync(
                         typeof permission === 'string' && permission.toLowerCase() === 'private',
                     ))
                 ) {
-                  throw new Error('Fresh MLS media is absent or private');
+                  throw new MlsMediaUnavailableError();
                 }
                 if (
                   candidate.mlsUpdatedAt &&
@@ -638,7 +691,7 @@ export async function runMlsMediaSync(
             await releaseParentMedia(
               token,
               failure ? toErrorMessage(failure) : undefined,
-              failure instanceof MlsMediaDownloadError ? failure.retryAfterMs : 3_600_000,
+              getRetryAfterMs(failure),
             );
           }
         }
@@ -726,12 +779,19 @@ export async function runMlsMediaSync(
       stalledBatches = 0;
     }
 
+    if (summary.budgetExhausted) {
+      syncLogger.info('media sync paused to preserve the MLS request budget for replication', {
+        quota: mlsQuotaTracker.snapshot(),
+      });
+      break;
+    }
+
     if (candidates.length < batchSize) {
       break;
     }
   }
 
-  if (includeMissingFilesRepair) {
+  if (includeMissingFilesRepair && !summary.budgetExhausted) {
     let repairStalledBatches = 0;
 
     for (let batch = 0; batch < repairMaxBatches; batch += 1) {
@@ -852,7 +912,7 @@ export async function runMlsMediaSync(
         repairStalledBatches = 0;
       }
 
-      if (repairCandidates.length < batchSize) {
+      if (summary.budgetExhausted || repairCandidates.length < batchSize) {
         break;
       }
     }
@@ -871,27 +931,68 @@ export async function runMlsMediaSync(
     repairProcessed: summary.repairProcessed,
     repairSkippedHealthy: summary.repairSkippedHealthy,
     repairFailed: summary.repairFailed,
+    budgetExhausted: summary.budgetExhausted,
   });
   return summary;
 }
 
+export interface PrioritizedMlsMediaSyncResult {
+  office?: MlsMediaSyncSummary;
+  officeListings?: MlsMediaSyncSummary;
+  member?: MlsMediaSyncSummary;
+  memberListings?: MlsMediaSyncSummary;
+  listings?: MlsMediaSyncSummary;
+  budgetExhausted: boolean;
+}
+
 /**
- * Runs a comprehensive one-time media sync intended for the initial data load.
- *
- * Identical to `runMlsMediaSync` but defaults `maxBatches` to
- * `Number.MAX_SAFE_INTEGER` so the entire backlog is drained in a single run
- * rather than being throttled to the scheduled-job batch limit.
- *
- * The runner uses the same single-phase candidate stream as scheduled sync,
- * but defaults `maxBatches` to drain the entire backlog.
+ * Configured office media and its listing galleries first, then configured members and
+ * their listing galleries, then complete galleries for all eligible listings newest first.
  */
-export async function runInitialMlsMediaSync(
-  options: MlsMediaSyncOptions = {},
-): Promise<MlsMediaSyncSummary> {
-  return runMlsMediaSync({
-    ...options,
-    maxBatches: options.maxBatches ?? Number.MAX_SAFE_INTEGER,
-    primaryOnlyForNonPrioritizedProperties: options.primaryOnlyForNonPrioritizedProperties ?? true,
-    primaryOnlyForAllProperties: options.primaryOnlyForAllProperties ?? false,
+export async function runPrioritizedMlsMediaSync(
+  options: Pick<
+    MlsMediaSyncOptions,
+    | 'batchSize'
+    | 'maxBatches'
+    | 'processConcurrency'
+    | 'associationMode'
+    | 'includeMissingFilesRepair'
+    | 'repairMaxBatches'
+  > & { memberKeys: readonly string[]; officeKeys: readonly string[] },
+): Promise<PrioritizedMlsMediaSyncResult> {
+  const { memberKeys, officeKeys, ...shared } = options;
+  const result: PrioritizedMlsMediaSyncResult = { budgetExhausted: false };
+  const runPhase = async (phase: MlsMediaSyncOptions) => {
+    if (result.budgetExhausted) return undefined;
+    const summary = await runMlsMediaSync({ ...shared, ...phase });
+    result.budgetExhausted = summary.budgetExhausted;
+    return summary;
+  };
+
+  if (officeKeys.length > 0) {
+    result.office = await runPhase({
+      filterEntityTypes: ['offices'],
+      restrictToOfficeEntityKeys: [...officeKeys],
+    });
+    result.officeListings = await runPhase({
+      filterEntityTypes: ['properties'],
+      restrictToOfficePropertyKeys: [...officeKeys],
+    });
+  }
+  if (memberKeys.length > 0) {
+    result.member = await runPhase({
+      filterEntityTypes: ['members'],
+      restrictToMemberEntityKeys: [...memberKeys],
+    });
+    result.memberListings = await runPhase({
+      filterEntityTypes: ['properties'],
+      restrictToMemberPropertyKeys: [...memberKeys],
+    });
+  }
+  result.listings = await runPhase({
+    filterEntityTypes: ['properties'],
+    enforceEligibilityForNonAssociatedProperties: true,
   });
+
+  return result;
 }

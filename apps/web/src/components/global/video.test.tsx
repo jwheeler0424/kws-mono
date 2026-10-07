@@ -30,6 +30,51 @@ afterEach(() => {
 });
 
 describe('responsive video autoplay', () => {
+  it('offers the browser only the matching viewport source list and reloads on rotation', () => {
+    const mobileSrc = [
+      { src: '/intro-mobile-high.mp4', type: 'video/mp4; codecs="hvc1.2.4.L120.90"' },
+      { src: '/intro-mobile-low.mp4', type: 'video/mp4; codecs="avc1.640028"' },
+    ];
+    const desktopSrc = [
+      { src: '/intro-desktop-high.mp4', type: 'video/mp4; codecs="hvc1.2.4.L120.90"' },
+      { src: '/intro-desktop-low.mp4', type: 'video/mp4; codecs="avc1.640028"' },
+    ];
+    const { container, rerender } = render(
+      <Video
+        autoPlay
+        muted
+        playsInline
+        mobileSrc={mobileSrc}
+        tabletSrc={mobileSrc}
+        desktopSrc={desktopSrc}
+      />,
+    );
+    const sources = () =>
+      Array.from(container.querySelectorAll('source'), (source) => ({
+        src: source.getAttribute('src'),
+        type: source.getAttribute('type'),
+      }));
+
+    expect(sources()).toEqual(mobileSrc);
+    expect(container.querySelector('video')?.hasAttribute('src')).toBe(false);
+    vi.mocked(useDeviceSize).mockReturnValue({
+      size: { width: 844, height: 390 },
+      isPortrait: false,
+    });
+    rerender(
+      <Video
+        autoPlay
+        muted
+        playsInline
+        mobileSrc={mobileSrc}
+        tabletSrc={mobileSrc}
+        desktopSrc={desktopSrc}
+      />,
+    );
+    expect(sources()).toEqual(desktopSrc);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
   it('sets Safari playback properties before loading the portrait source', () => {
     load.mockImplementation(function (this: HTMLMediaElement) {
       expect(this.autoplay).toBe(true);

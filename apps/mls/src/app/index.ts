@@ -4,8 +4,9 @@ import { writeFile } from 'node:fs/promises';
 import type { SyncSummary } from '@/types';
 
 import { registerMlsSyncJobTypes } from '@/actions/integration';
-import { runDeltaSync, runInitialDataSeed, runInitialMediaSeed } from '@/actions/orchestrator';
+import { runDeltaSync, runInitialDataSeed } from '@/actions/orchestrator';
 import { logger } from '@/lib/logger';
+import { releaseQuotaDeferredMedia } from '@/repositories/media-sync.repository';
 import { hasAnyMlsRecords } from '@/repositories/seed-state.repository';
 
 function isQuarantineOnlyMessage(message?: string): boolean {
@@ -85,17 +86,13 @@ async function runSeedStep(input: {
 export async function main() {
   try {
     const enableInitialDataSeed = true;
-    const enableInitialMediaSeed = true;
     const enableSyncJobRegistration = true;
     const hasExistingMlsRecords = await hasAnyMlsRecords();
 
     if (hasExistingMlsRecords) {
       logger.info(
         'MLS existing records found; startup will run delta sync from per-resource watermarks',
-        {
-          enableInitialDataSeed,
-          enableInitialMediaSeed,
-        },
+        { enableInitialDataSeed },
       );
     }
 
@@ -107,6 +104,8 @@ export async function main() {
             : runInitialDataSeed(env.MLS_ORIGINATING_SYSTEM_NAME),
         phaseLabel: hasExistingMlsRecords ? 'delta sync' : 'initial data seed',
         errorFile: 'mls-seed-errors.json',
+        // Exiting on delta errors (e.g. an exhausted daily quota) would restart-loop; schedules retry instead.
+        failOnSummaryErrors: !hasExistingMlsRecords,
       });
       if (!dataSeedSuccess) {
         logger.error('MLS data sync completed with errors. Please check the logs for details.');
@@ -116,22 +115,12 @@ export async function main() {
       logger.warn('MLS initial data seed skipped by rollout flag');
     }
 
-    if (enableInitialMediaSeed) {
-      const mediaSeedSuccess = await runSeedStep({
-        run: runInitialMediaSeed,
-        phaseLabel: 'initial media seed',
-        errorFile: 'mls-media-seed-errors.json',
-        failOnSummaryErrors: false,
-      });
-      if (!mediaSeedSuccess) {
-        logger.error('MLS initial media seed crashed. Please check the logs for details.');
-        process.exit(1);
-      }
-    } else {
-      logger.warn('MLS initial media seed skipped by rollout flag');
-    }
-
+    // Registration starts a budgeted, prioritized media run immediately.
     if (enableSyncJobRegistration) {
+      const releasedRows = await releaseQuotaDeferredMedia();
+      if (releasedRows > 0) {
+        logger.info('released media rows deferred by an earlier quota stop', { releasedRows });
+      }
       registerMlsSyncJobTypes();
     } else {
       logger.warn('MLS sync job registration skipped by rollout flag');

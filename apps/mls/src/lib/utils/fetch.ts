@@ -15,6 +15,7 @@ import type {
 import {
   DEFAULT_RESOURCE_EXPANDS,
   MAX_RETRIES,
+  MLS_MEDIA_BUDGET_DEFAULTS,
   MLS_SYNC_DEFAULTS,
   REQUEST_TIMEOUT_MS,
 } from '../constants';
@@ -30,8 +31,17 @@ import {
   parseRetryAfterMs,
   sleep,
 } from './helpers';
-import { mlsQuotaTracker } from './quota';
+import { MlsQuotaExceededError, mlsQuotaTracker } from './quota';
 import { throttle } from './rate-limit';
+
+export class MlsParentUnavailableError extends Error {
+  readonly retryAfterMs = MLS_MEDIA_BUDGET_DEFAULTS.parentUnavailableRetryMs;
+
+  constructor() {
+    super('Fresh MLS media snapshot is missing or not authorized for IDX');
+    this.name = 'MlsParentUnavailableError';
+  }
+}
 
 let configuredResourceExpandMap: Readonly<Record<string, readonly string[]>> | null = null;
 
@@ -160,7 +170,7 @@ export async function fetchFreshParentMedia(
     (parent.MlgCanUse && !parent.MlgCanUse.includes('IDX')) ||
     !Array.isArray(parent.Media)
   ) {
-    throw new Error('Fresh MLS media snapshot is missing or not authorized for IDX');
+    throw new MlsParentUnavailableError();
   }
   return parent.Media;
 }
@@ -204,6 +214,9 @@ export async function fetchPage<T>(url: string): Promise<ODataPage<T>> {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
     } catch (err) {
+      if (err instanceof MlsQuotaExceededError) {
+        throw err;
+      }
       // Network-level error (timeout, DNS, etc.)
       if (attempt < MAX_RETRIES) {
         logger.debug('mls api request retrying after transport failure', {

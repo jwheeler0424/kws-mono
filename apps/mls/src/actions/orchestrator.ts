@@ -54,7 +54,7 @@ import {
   getLatestPropertyTimestamp,
   processMlsPropertiesPayload,
 } from '../repositories/property.repository';
-import { runInitialMlsMediaSync, type MlsMediaSyncSummary } from './seed-media';
+import { runPrioritizedMlsMediaSync, type MlsMediaSyncSummary } from './seed-media';
 import { seedResource } from './seed-resource';
 import { syncResource } from './sync-resource';
 
@@ -167,52 +167,6 @@ function propertySeedConfig(osn: string) {
         useSeedStaging: MLS_PROPERTY_DEFAULTS.seedUseStaging,
       }),
   });
-}
-
-async function propertyMediaSeedConfig(osn: string): Promise<SyncResult> {
-  const startedAt = new Date();
-  return runInitialMlsMediaSync({
-    filterEntityTypes: ['properties'],
-    primaryOnlyForAllProperties: true,
-    associationMode: 'unprocessed-only',
-    includeMissingFilesRepair: false,
-    enforceEligibilityForNonAssociatedProperties: true,
-  }).then((summary) => mediaSummaryToSyncResult('Property:PrimaryMedia', osn, summary, startedAt));
-}
-
-async function propertyMediaConfiguredAssociationSeedConfig(
-  osn: string,
-  memberKeys: readonly string[],
-  officeKeys: readonly string[],
-): Promise<SyncResult> {
-  const startedAt = new Date();
-  return runInitialMlsMediaSync({
-    filterEntityTypes: ['properties'],
-    associationMode: 'unprocessed-only',
-    includeMissingFilesRepair: false,
-    restrictToMemberPropertyKeys: [...memberKeys],
-    restrictToOfficePropertyKeys: [...officeKeys],
-  }).then((summary) =>
-    mediaSummaryToSyncResult('Property:ConfiguredAssociations:Media', osn, summary, startedAt),
-  );
-}
-
-async function memberMediaSeedConfig(osn: string): Promise<SyncResult> {
-  const startedAt = new Date();
-  return runInitialMlsMediaSync({
-    filterEntityTypes: ['members'],
-    associationMode: 'unprocessed-only',
-    includeMissingFilesRepair: false,
-  }).then((summary) => mediaSummaryToSyncResult('Member:Media', osn, summary, startedAt));
-}
-
-async function officeMediaSeedConfig(osn: string): Promise<SyncResult> {
-  const startedAt = new Date();
-  return runInitialMlsMediaSync({
-    filterEntityTypes: ['offices'],
-    associationMode: 'unprocessed-only',
-    includeMissingFilesRepair: false,
-  }).then((summary) => mediaSummaryToSyncResult('Office:Media', osn, summary, startedAt));
 }
 
 function openHouseSeedConfig(osn: string) {
@@ -425,39 +379,31 @@ async function runSeedInitialMedia(osn: string): Promise<SyncSummary> {
   const configuredMemberKeys = (env.MLS_MEMBER_ID ?? []).filter((key) => key.length > 0);
   const configuredOfficeKeys = (env.MLS_OFFICE_ID ?? []).filter((key) => key.length > 0);
 
-  const phases: Array<readonly [string, () => Promise<SyncResult>]> = [
-    ['Property:PrimaryMedia', () => propertyMediaSeedConfig(osn)],
-  ];
-  if (configuredMemberKeys.length > 0 || configuredOfficeKeys.length > 0) {
-    phases.push([
-      'Property:ConfiguredAssociations:Media',
-      () =>
-        propertyMediaConfiguredAssociationSeedConfig(
-          osn,
-          configuredMemberKeys,
-          configuredOfficeKeys,
-        ),
-    ]);
-  }
-  // Always run entity media phases. Restricting by configured IDs is reserved
-  // for property-association media scoping only.
-  phases.push(['Member:Media', () => memberMediaSeedConfig(osn)]);
-  phases.push(['Office:Media', () => officeMediaSeedConfig(osn)]);
-
-  const results: SyncResult[] = [];
-  for (const [phase, runPhase] of phases) {
-    const phaseStartedAt = Date.now();
-    const result = await runPhase();
-    results.push(result);
-    logger.info('initial media phase completed', {
-      osn,
-      phase,
-      durationMs: Date.now() - phaseStartedAt,
+  const prioritized = await runPrioritizedMlsMediaSync({
+    maxBatches: Number.MAX_SAFE_INTEGER,
+    associationMode: 'stale-or-unprocessed',
+    memberKeys: configuredMemberKeys,
+    officeKeys: configuredOfficeKeys,
+  });
+  const phaseSummaries = [
+    ['Office:Media', prioritized.office],
+    ['Property:ConfiguredOffice:Media', prioritized.officeListings],
+    ['Member:Media', prioritized.member],
+    ['Property:ConfiguredMembers:Media', prioritized.memberListings],
+    ['Property:Media', prioritized.listings],
+  ] as const;
+  const results: SyncResult[] = phaseSummaries.flatMap(([phase, summary]) =>
+    summary ? [mediaSummaryToSyncResult(phase, osn, summary, startedAt)] : [],
+  );
+  logger.info('initial media phases completed', {
+    osn,
+    budgetExhausted: prioritized.budgetExhausted,
+    phases: results.map((result) => ({
+      resource: result.resource,
       upserted: result.upserted,
       errors: result.errors,
-      resource: result.resource,
-    });
-  }
+    })),
+  });
 
   const postSyncCleanup = await purgeScopedMlsMediaBeforeSync({
     memberKeys: configuredMemberKeys,
