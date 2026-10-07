@@ -1,5 +1,5 @@
 import { mlsMedia, properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
-import { eq, getColumns, sql } from 'drizzle-orm';
+import { eq, getColumns, inArray, sql } from 'drizzle-orm';
 
 import { MLS_PROPERTY_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
@@ -13,6 +13,7 @@ import type {
   MappedPropertyUnitType,
 } from '../maps/property.mapper';
 
+import { FEATURED_PROPERTY_STATUSES } from '../lib/featured-property';
 import { purgeUnavailableMlsMedia } from './media-cleanup.repository';
 import {
   reconcileResourceMediaWithinTransaction,
@@ -64,7 +65,30 @@ function getPropertyUpdateWhereSql(): string {
     'excluded.photos_change_timestamp is distinct from properties.photos_change_timestamp',
     'excluded.deleted_at is distinct from properties.deleted_at',
     'excluded.mlg_can_view is distinct from properties.mlg_can_view',
+    'excluded.featured_listing_yn is distinct from properties.featured_listing_yn',
   ].join(' or ');
+}
+
+export async function reconcileFeaturedListingFlags(memberIds: readonly string[]): Promise<number> {
+  const memberScope = [...new Set(memberIds.map((memberId) => memberId.trim()).filter(Boolean))];
+  const featuredEligibility = sql<boolean>`COALESCE((
+    ${properties.mlgCanView} = true
+    AND ${properties.deletedAt} IS NULL
+    AND ${inArray(properties.standardStatus, [...FEATURED_PROPERTY_STATUSES])}
+    AND (
+      ${properties.listAgentMlsId} = ANY(${memberScope}) OR
+      ${properties.coListAgentMlsId} = ANY(${memberScope}) OR
+      ${properties.buyerAgentMlsId} = ANY(${memberScope}) OR
+      ${properties.coBuyerAgentMlsId} = ANY(${memberScope})
+    )
+  ), false)`;
+  const updatedRows = await db
+    .update(properties)
+    .set({ featuredListingYN: featuredEligibility })
+    .where(sql`${properties.featuredListingYN} IS DISTINCT FROM ${featuredEligibility}`)
+    .returning({ listingKey: properties.listingKey });
+
+  return updatedRows.length;
 }
 
 function getPropertyInsertColumnNames(): string[] {

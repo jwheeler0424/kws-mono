@@ -244,33 +244,23 @@ const preparedFeaturedProperties = db.query.properties
   .findMany({
     ...getPropertyCardQueryConfig(),
     where: {
-      OR: [
+      AND: [
         {
-          featuredListingYN: true,
           mlgCanView: true,
           deletedAt: { isNull: true },
           standardStatus: { in: [...DEFAULT_FEATURED_STATUSES] },
         },
         {
-          AND: [
-            {
-              mlgCanView: true,
-              deletedAt: { isNull: true },
-              standardStatus: { in: [...DEFAULT_FEATURED_STATUSES] },
-            },
-            {
-              RAW: (table) => sql`(
-              ${table.listOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
-              ${table.coListOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
-              ${table.buyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
-              ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
-              ${table.listAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
-              ${table.coListAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
-              ${table.buyerAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
-              ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder('memberIds')})
-            )`,
-            },
-          ],
+          RAW: (table) => sql`(
+          ${table.listOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.coListOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.buyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.coBuyerOfficeMlsId} = ANY(${sql.placeholder('officeIds')}) OR
+          ${table.listAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.coListAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.buyerAgentMlsId} = ANY(${sql.placeholder('memberIds')}) OR
+          ${table.coBuyerAgentMlsId} = ANY(${sql.placeholder('memberIds')})
+        )`,
         },
       ],
     },

@@ -6,9 +6,12 @@ import type {
   StandardStatus,
 } from '@kws/schema';
 
+import { env } from '@kws/config/env';
+
 import type { MlsPropertyPayload, MlsRoomPayload, MlsUnitTypePayload } from '@/types';
 import type { NWM_Property, NWM_PropertyUnitType } from '@/types/property';
 
+import { createFeaturedPropertyMatcher } from '@/lib/featured-property';
 import { computePropertyCells } from '@/lib/h3';
 import {
   parseBoolean,
@@ -30,10 +33,7 @@ type PropertyInsert = typeof properties.$inferInsert;
 type PropertyRoomInsert = typeof propertyRooms.$inferInsert;
 type PropertyUnitTypeInsert = typeof propertyUnitTypes.$inferInsert;
 
-export type MappedProperty = Omit<
-  PropertyInsert,
-  'createdAt' | 'searchVector' | 'featuredListingYN'
-> & {
+export type MappedProperty = Omit<PropertyInsert, 'createdAt' | 'searchVector'> & {
   NWM: NWM_Property | null;
   media: MappedMedia[];
   mediaSnapshotPresent: boolean;
@@ -73,6 +73,8 @@ const STANDARD_STATUS_VALUES: readonly StandardStatus[] = [
   'Withdrawn',
 ] as const;
 
+const isConfiguredFeaturedProperty = createFeaturedPropertyMatcher(env.MLS_MEMBER_ID ?? []);
+
 function normalizeEnumToken(value: string): string {
   return value.replace(/[^a-z0-9]/gi, '').toLowerCase();
 }
@@ -99,6 +101,12 @@ function normalizeStandardStatus(value: string | null | undefined): StandardStat
 
 export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
   const canView = parseBoolean(payload.MlgCanView) === true;
+  const standardStatus = normalizeStandardStatus(payload.StandardStatus);
+  const deletedAt = canView ? null : new Date();
+  const listAgentMlsId = parseNullableString(payload.ListAgentMlsId, 64);
+  const coListAgentMlsId = parseNullableString(payload.CoListAgentMlsId, 64);
+  const buyerAgentMlsId = parseNullableString(payload.BuyerAgentMlsId, 64);
+  const coBuyerAgentMlsId = parseNullableString(payload.CoBuyerAgentMlsId, 25);
   const nwm = parseLocalFields(payload, 'NWM_');
   const now = new Date();
 
@@ -121,11 +129,20 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     listingKey: payload.ListingKey,
     listingId: parseNullableString(payload.ListingId, 64),
     originatingSystemName: parseNullableString(payload.OriginatingSystemName, 32) ?? 'nwmls',
-    standardStatus: normalizeStandardStatus(payload.StandardStatus),
+    standardStatus,
     mlsStatus: parseNullableString(payload.MlsStatus, 64),
     propertyType: normalizePropertyType(payload.PropertyType),
     propertySubType: parseNullableString(payload.PropertySubType, 128),
     mlgCanView: canView,
+    featuredListingYN: isConfiguredFeaturedProperty({
+      standardStatus,
+      mlgCanView: canView,
+      deletedAt,
+      listAgentMlsId,
+      coListAgentMlsId,
+      buyerAgentMlsId,
+      coBuyerAgentMlsId,
+    }),
     modificationTimestamp: parseTimestamp(payload.ModificationTimestamp),
     originalEntryTimestamp: parseTimestamp(payload.OriginalEntryTimestamp),
     majorChangeTimestamp: parseTimestamp(payload.MajorChangeTimestamp),
@@ -333,7 +350,7 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     taxAnnualAmount: parseNumeric(payload.TaxAnnualAmount),
     totalActualRent: parseNumeric(payload.TotalActualRent),
     listAgentKey: parseNullableString(payload.ListAgentKey, 64),
-    listAgentMlsId: parseNullableString(payload.ListAgentMlsId, 64),
+    listAgentMlsId,
     listAgentFullName: parseNullableString(payload.ListAgentFullName, 256),
     listAgentEmail: parseNullableString(payload.ListAgentEmail, 256),
     listAgentPreferredPhone: parseNullableString(payload.ListAgentPreferredPhone, 32),
@@ -344,12 +361,12 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     listOfficeEmail: parseNullableString(payload.ListOfficeEmail, 256),
     listOfficePhone: parseNullableString(payload.ListOfficePhone, 32),
     coListAgentKey: parseNullableString(payload.CoListAgentKey, 64),
-    coListAgentMlsId: parseNullableString(payload.CoListAgentMlsId, 64),
+    coListAgentMlsId,
     coListAgentFullName: parseNullableString(payload.CoListAgentFullName, 256),
     coListAgentPreferredPhone: parseNullableString(payload.CoListAgentPreferredPhone, 32),
     coListAgentEmail: parseNullableString(payload.CoListAgentEmail, 256),
     buyerAgentKey: parseNullableString(payload.BuyerAgentKey, 64),
-    buyerAgentMlsId: parseNullableString(payload.BuyerAgentMlsId, 64),
+    buyerAgentMlsId,
     buyerAgentFullName: parseNullableString(payload.BuyerAgentFullName, 256),
     buyerAgentOfficePhone: parseNullableString(payload.BuyerAgentOfficePhone, 16),
     buyerAgentOfficePhoneExt: parseNullableString(payload.BuyerAgentOfficePhoneExt, 10),
@@ -360,7 +377,7 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     buyerOfficePhoneExt: parseNullableString(payload.BuyerOfficePhoneExt, 10),
     coBuyerAgentFullName: parseNullableString(payload.CoBuyerAgentFullName, 150),
     coBuyerAgentKey: parseNullableString(payload.CoBuyerAgentKey, 255),
-    coBuyerAgentMlsId: parseNullableString(payload.CoBuyerAgentMlsId, 25),
+    coBuyerAgentMlsId,
     coBuyerOfficeKey: parseNullableString(payload.CoBuyerOfficeKey, 255),
     coBuyerOfficeMlsId: parseNullableString(payload.CoBuyerOfficeMlsId, 25),
     coBuyerOfficeName: parseNullableString(payload.CoBuyerOfficeName, 255),
@@ -400,7 +417,7 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     greenBuildingVerificationType: parseStringArray(payload.GreenBuildingVerificationType),
     greenEnergyEfficient: parseStringArray(payload.GreenEnergyEfficient),
     greenEnergyGeneration: parseStringArray(payload.GreenEnergyGeneration),
-    deletedAt: canView ? null : now,
+    deletedAt,
     updatedAt: now,
     /* extensions */
     NWM: nwm,

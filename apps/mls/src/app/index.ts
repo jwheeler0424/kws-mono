@@ -7,6 +7,7 @@ import { registerMlsSyncJobTypes } from '@/actions/integration';
 import { runDeltaSync, runInitialDataSeed } from '@/actions/orchestrator';
 import { logger } from '@/lib/logger';
 import { releaseQuotaDeferredMedia } from '@/repositories/media-sync.repository';
+import { reconcileFeaturedListingFlags } from '@/repositories/property.repository';
 import { hasAnyMlsRecords } from '@/repositories/seed-state.repository';
 
 function isQuarantineOnlyMessage(message?: string): boolean {
@@ -85,6 +86,14 @@ async function runSeedStep(input: {
 
 export async function main() {
   try {
+    const updatedFeaturedListingFlags = await reconcileFeaturedListingFlags(
+      env.MLS_MEMBER_ID ?? [],
+    );
+    logger.info('MLS featured listing flags reconciled', {
+      updated: updatedFeaturedListingFlags,
+      configuredMembers: env.MLS_MEMBER_ID?.length ?? 0,
+    });
+
     const enableInitialDataSeed = true;
     const enableSyncJobRegistration = true;
     const hasExistingMlsRecords = await hasAnyMlsRecords();

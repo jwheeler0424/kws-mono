@@ -19,48 +19,31 @@ const propertyCardQueryParamsSchema = z.object({
   memberIds: z.array(z.string().min(1)).optional(),
 });
 
+const getPropertyScope = (data: z.infer<typeof propertyCardQueryParamsSchema>) => ({
+  officeIds: data.officeIds ?? env.MLS_OFFICE_ID ?? [],
+  memberIds: data.memberIds ?? env.MLS_MEMBER_ID ?? [],
+});
+
 export const getPropertyByListingKeyServerFn = createServerFn({ method: 'GET' })
   .validator(z.object({ listingKey: z.string().min(1) }))
   .handler(({ data }) => getPropertyByListingKey({ listingKey: data.listingKey }));
 
 export const getAvailablePropertiesServerFn = createServerFn({ method: 'GET' })
   .validator(propertyCardQueryParamsSchema)
-  .handler(({ data }) =>
-    getAvailableProperties({
-      officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
-      memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
-      ...data,
-    }),
-  );
+  .handler(({ data }) => getAvailableProperties(getPropertyScope(data)));
 
 export const getFeaturedPropertiesServerFn = createServerFn({ method: 'GET' })
   .validator(propertyCardQueryParamsSchema)
   .handler(async ({ data }) => {
-    const featuredProperties = await getFeaturedProperties({
-      officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
-      memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
-      ...data,
-    });
+    const featuredProperties = await getFeaturedProperties(getPropertyScope(data));
     // Keep payload small for homepage rendering; shuffle only the bounded set.
     return shuffle(featuredProperties.slice(0, MAX_FEATURED_PROPERTIES));
   });
 
 export const getPendingPropertiesServerFn = createServerFn({ method: 'GET' })
   .validator(propertyCardQueryParamsSchema)
-  .handler(({ data }) =>
-    getPendingProperties({
-      officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
-      memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
-      ...data,
-    }),
-  );
+  .handler(({ data }) => getPendingProperties(getPropertyScope(data)));
 
 export const getSoldPropertiesServerFn = createServerFn({ method: 'GET' })
   .validator(propertyCardQueryParamsSchema)
-  .handler(({ data }) =>
-    getSoldProperties({
-      officeIds: data.officeIds ?? (env.MLS_OFFICE_ID ? env.MLS_OFFICE_ID : undefined),
-      memberIds: data.memberIds ?? (env.MLS_MEMBER_ID ? env.MLS_MEMBER_ID : undefined),
-      ...data,
-    }),
-  );
+  .handler(({ data }) => getSoldProperties(getPropertyScope(data)));

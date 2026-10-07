@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
+import { createFeaturedPropertyMatcher } from '@/lib/featured-property';
+
 import type { MlsPropertyPayload } from '../types';
 
 import { mapMemberMedia, mapOfficeMedia, resolveMlsMediaKey } from './media.mapper';
@@ -43,6 +45,35 @@ describe('NWMLS property mapping', () => {
     } as MlsPropertyPayload);
     expect(mapped.media[0]?.mediaURL).toBeNull();
     expect(mapped.media[0]?.deletedAt).toBeInstanceOf(Date);
+  });
+});
+
+describe('featured property member scope', () => {
+  const matchesConfiguredMember = createFeaturedPropertyMatcher([' NWMmember1 ']);
+  const baseProperty = {
+    standardStatus: 'Active',
+    mlgCanView: true,
+    deletedAt: null,
+    listAgentMlsId: null,
+    coListAgentMlsId: null,
+    buyerAgentMlsId: null,
+    coBuyerAgentMlsId: null,
+  };
+
+  it('matches configured members in each listing/buyer agent role', () => {
+    expect(matchesConfiguredMember({ ...baseProperty, listAgentMlsId: 'NWMmember1' })).toBe(true);
+    expect(matchesConfiguredMember({ ...baseProperty, coListAgentMlsId: 'NWMmember1' })).toBe(true);
+    expect(matchesConfiguredMember({ ...baseProperty, buyerAgentMlsId: 'NWMmember1' })).toBe(true);
+    expect(matchesConfiguredMember({ ...baseProperty, coBuyerAgentMlsId: 'NWMmember1' })).toBe(
+      true,
+    );
+  });
+
+  it('rejects unmatched, hidden, deleted, and non-active properties', () => {
+    expect(matchesConfiguredMember({ ...baseProperty, listAgentMlsId: 'NWMother' })).toBe(false);
+    expect(matchesConfiguredMember({ ...baseProperty, mlgCanView: false })).toBe(false);
+    expect(matchesConfiguredMember({ ...baseProperty, deletedAt: new Date() })).toBe(false);
+    expect(matchesConfiguredMember({ ...baseProperty, standardStatus: 'Pending' })).toBe(false);
   });
 });
 
