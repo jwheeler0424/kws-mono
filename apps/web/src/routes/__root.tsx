@@ -26,7 +26,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     const siteConfig = defineSiteConfig({
       siteName: 'KyleWeberSeattle.com',
       siteUrl: 'https://kyleweberseattle.com',
-      defaultTitle: 'KyleWeberSeattle.com - Find Your True North in the Housing Market',
+      defaultTitle: 'KyleWeberSeattle.com - Your guide to Seattle',
       titleTemplate: '%s | KyleWeberSeattle.com',
       defaultDescription:
         'Explore Seattle real estate with Kyle Weber at Compass, from finding your next home to selling with confidence.',
@@ -52,7 +52,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       charsetMeta(),
       viewportMeta(),
       ...seo({
-        title: 'KyleWeberSeattle.com - Find Your True North in the Housing Market',
+        title: 'KyleWeberSeattle.com - Your guide to Seattle',
         description:
           'Explore Seattle real estate with Kyle Weber at Compass, from finding your next home to selling with confidence.',
       }),
