@@ -150,6 +150,29 @@ Notes:
   `kyleweberseattle.com` when unset.
 - `prod-up` deploys swarm stack `kws` by default; override with `STACK_NAME=...`.
 
+### Automatic GHCR Image Updates
+
+The `ghcr-swarm-deploy` GitHub Actions workflow listens for published GHCR container packages and
+updates only the matching `web` or `mls` Swarm service. It currently deploys the `latest` tag, as
+`scripts/deploy-images.sh` does.
+
+Configure these repository Actions secrets and variables:
+
+- `SSH_HOST`, `SSH_PORT`, and `SSH_USERNAME` can be Actions variables or secrets; `SSH_PORT` defaults
+  to `22`. `SSH_PRIVATE_KEY` must be an Actions secret, and `SSH_KNOWN_HOSTS` can be a variable or
+  secret containing the verified host-key line. The SSH user must be allowed to run Docker commands.
+- `GHCR_USERNAME` and `GHCR_TOKEN`, matching the image-publish script's credential names. Add these
+  as Actions secrets with the same values used for publishing; the token needs package read access
+  for the Swarm manager to pull images.
+
+Optional Actions variables are `SWARM_STACK_NAME` (defaults to `kws`) and `GHCR_OWNER` (defaults to
+the GitHub repository owner). The workflow runs on GitHub-hosted runners and cannot read the VPS `.env`
+file, so adding credentials only to that file is not sufficient. The GHCR packages must be associated
+with this repository. If images are pushed from another Actions workflow using its built-in
+`GITHUB_TOKEN`, GitHub may suppress the follow-on package event; use a package-capable PAT for the push
+or deploy in that same build workflow. Existing `SWARM_SSH_HOST`, `SWARM_SSH_USER`,
+`SWARM_SSH_PRIVATE_KEY`, and `SWARM_SSH_KNOWN_HOSTS` secrets are still accepted as fallbacks.
+
 ## Local Production Rehearsal (minimal root env)
 
 Use the root `.env.local.prod` for minimal compose-only variables (images, DB/Redis/app ports,
