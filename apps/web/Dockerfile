@@ -18,6 +18,7 @@ RUN test -f /app/apps/web/dist/server/server.js && test -d /app/apps/web/dist/cl
 
 
 FROM base AS runner
+LABEL org.opencontainers.image.source="https://github.com/jwheeler0424/kws-mono"
 ENV NODE_ENV=production
 ENV PORT=3443
 WORKDIR /app/apps/web

@@ -152,9 +152,9 @@ Notes:
 
 ### Automatic GHCR Image Updates
 
-The `ghcr-swarm-deploy` GitHub Actions workflow listens for published GHCR container packages and
-updates only the matching `web` or `mls` Swarm service. It currently deploys the `latest` tag, as
-`scripts/deploy-images.sh` does.
+The `ghcr-swarm-deploy` GitHub Actions workflow listens for published or updated GHCR container
+packages and updates only the matching `web` or `mls` Swarm service. It currently deploys the `latest`
+tag, as `scripts/deploy-images.sh` does.
 
 Configure these repository Actions secrets and variables:
 
@@ -163,12 +163,14 @@ Configure these repository Actions secrets and variables:
   secret containing the verified host-key line. The SSH user must be allowed to run Docker commands.
 - `GHCR_USERNAME` and `GHCR_TOKEN`, matching the image-publish script's credential names. Add these
   as Actions secrets with the same values used for publishing; the token needs package read access
-  for the Swarm manager to pull images.
+  for the Swarm manager to pull images and package write access if used by `deploy-images.sh`.
 
 Optional Actions variables are `SWARM_STACK_NAME` (defaults to `kws`) and `GHCR_OWNER` (defaults to
 the GitHub repository owner). The workflow runs on GitHub-hosted runners and cannot read the VPS `.env`
 file, so adding credentials only to that file is not sufficient. The GHCR packages must be associated
-with this repository. If images are pushed from another Actions workflow using its built-in
+with this repository. The web and MLS Dockerfiles include the OCI source label for future CLI pushes.
+For packages already published, connect each package to this repository in its GHCR package settings;
+then publish a new image to generate a package event. If images are pushed from another Actions workflow using its built-in
 `GITHUB_TOKEN`, GitHub may suppress the follow-on package event; use a package-capable PAT for the push
 or deploy in that same build workflow. Existing `SWARM_SSH_HOST`, `SWARM_SSH_USER`,
 `SWARM_SSH_PRIVATE_KEY`, and `SWARM_SSH_KNOWN_HOSTS` secrets are still accepted as fallbacks.
