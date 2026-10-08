@@ -10,12 +10,16 @@ import path from 'node:path';
 
 import type { MlsMediaPayload } from '@/types';
 
-import { MLS_MEDIA_BUDGET_DEFAULTS, MLS_QUOTA_DEFAULTS } from '@/lib/constants';
+import { MLS_MEDIA_BUDGET_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
 import { mlsLogger } from '@/lib/logger';
 import { fetchFreshParentMedia } from '@/lib/utils/fetch';
 import { downloadMlsMedia, MlsMediaDownloadError } from '@/lib/utils/media-download';
-import { MlsQuotaExceededError, mlsQuotaTracker } from '@/lib/utils/quota';
+import {
+  isMlsMediaBudgetExhausted,
+  MlsQuotaExceededError,
+  mlsQuotaTracker,
+} from '@/lib/utils/quota';
 import { throttle } from '@/lib/utils/rate-limit';
 import { resolveMlsMediaKey } from '@/maps/media.mapper';
 
@@ -307,17 +311,6 @@ class MlsMediaUnavailableError extends Error {
   }
 }
 
-function isMediaBudgetExhausted(): boolean {
-  const { hour, day } = mlsQuotaTracker.snapshot();
-  const share = MLS_MEDIA_BUDGET_DEFAULTS.maxQuotaShare;
-  return (
-    hour.requests >= MLS_QUOTA_DEFAULTS.requestsPerHourLimit * share ||
-    day.requests >= MLS_QUOTA_DEFAULTS.requestsPerDayLimit * share ||
-    hour.bytes >= MLS_QUOTA_DEFAULTS.bytesPerHourLimit * share ||
-    day.bytes >= MLS_QUOTA_DEFAULTS.bytesPerDayLimit * share
-  );
-}
-
 function getRetryAfterMs(error: unknown): number {
   const retryAfterMs = (error as { retryAfterMs?: unknown } | null)?.retryAfterMs;
   return typeof retryAfterMs === 'number' && retryAfterMs > 0 ? retryAfterMs : 3_600_000;
@@ -594,7 +587,10 @@ export async function runMlsMediaSync(
     }
   };
 
-  const runBatch = async (candidates: MlsMediaSyncCandidate[]): Promise<BatchOutcome> => {
+  const runBatch = async (
+    candidates: MlsMediaSyncCandidate[],
+    maxQuotaShare: number = MLS_MEDIA_BUDGET_DEFAULTS.maxQuotaShare,
+  ): Promise<BatchOutcome> => {
     summary.scanned += candidates.length;
     const outcome: BatchOutcome = {
       processed: 0,
@@ -616,7 +612,10 @@ export async function runMlsMediaSync(
         while (nextGroup < groups.length) {
           const group = groups[nextGroup++]!;
           const first = group[0]!;
-          if (summary.budgetExhausted || isMediaBudgetExhausted()) {
+          if (
+            summary.budgetExhausted ||
+            isMlsMediaBudgetExhausted(mlsQuotaTracker.snapshot(), maxQuotaShare)
+          ) {
             summary.budgetExhausted = true;
             summary.skipped += group.length;
             outcome.skipped += group.length;
@@ -887,7 +886,10 @@ export async function runMlsMediaSync(
       let repairOutcome: BatchOutcome = { processed: 0, skipped: 0, failed: 0 };
       if (missingFilesOnlyCandidates.length > 0) {
         const repairBatchStartedAt = Date.now();
-        repairOutcome = await runBatch(missingFilesOnlyCandidates);
+        repairOutcome = await runBatch(
+          missingFilesOnlyCandidates,
+          MLS_MEDIA_BUDGET_DEFAULTS.repairMaxQuotaShare,
+        );
         summary.repairProcessed += repairOutcome.processed;
         summary.repairFailed += repairOutcome.failed;
         syncLogger.info('media repair batch complete', {

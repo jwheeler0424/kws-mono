@@ -34,6 +34,8 @@ export const MLS_QUOTA_DEFAULTS = {
 export const MLS_MEDIA_BUDGET_DEFAULTS = {
   // Media stops at this share of the hourly/daily request limits; the rest is reserved for replication.
   maxQuotaShare: 0.85,
+  // Repair can use part of the reserve for missing published photos, while leaving 5% for replication.
+  repairMaxQuotaShare: 0.95,
   parentUnavailableRetryMs: 24 * 60 * 60 * 1000,
 } as const;
 

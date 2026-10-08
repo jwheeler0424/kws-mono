@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-import { DAY_MS, HOUR_MS, MLS_QUOTA_DEFAULTS } from '@/lib/constants';
+import { DAY_MS, HOUR_MS, MLS_MEDIA_BUDGET_DEFAULTS, MLS_QUOTA_DEFAULTS } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 
 import { startOfUtcDay, startOfUtcHour } from './helpers';
@@ -17,6 +17,18 @@ export interface QuotaWindowState {
 export interface QuotaSnapshot {
   hour: QuotaWindowState;
   day: QuotaWindowState;
+}
+
+export function isMlsMediaBudgetExhausted(
+  snapshot: QuotaSnapshot,
+  maxQuotaShare: number = MLS_MEDIA_BUDGET_DEFAULTS.maxQuotaShare,
+): boolean {
+  return (
+    snapshot.hour.requests >= MLS_QUOTA_DEFAULTS.requestsPerHourLimit * maxQuotaShare ||
+    snapshot.day.requests >= MLS_QUOTA_DEFAULTS.requestsPerDayLimit * maxQuotaShare ||
+    snapshot.hour.bytes >= MLS_QUOTA_DEFAULTS.bytesPerHourLimit * maxQuotaShare ||
+    snapshot.day.bytes >= MLS_QUOTA_DEFAULTS.bytesPerDayLimit * maxQuotaShare
+  );
 }
 
 interface QuotaTrackerConfig {
