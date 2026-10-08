@@ -27,6 +27,11 @@ import {
   type MlsMediaEntityType,
   type MlsMediaSyncCandidate,
 } from '../repositories/media-sync.repository';
+import {
+  advanceMediaRepairOffset,
+  readMediaRepairOffset,
+  writeMediaRepairOffset,
+} from './media-repair-cursor';
 
 const syncLogger = mlsLogger.child('media-sync');
 const MAX_STALLED_BATCHES_PER_PHASE = 3;
@@ -793,12 +798,30 @@ export async function runMlsMediaSync(
 
   if (includeMissingFilesRepair && !summary.budgetExhausted) {
     let repairStalledBatches = 0;
+    const repairCursorKey = createHash('sha256')
+      .update(
+        JSON.stringify({
+          prioritizeMemberKeys: [...prioritizeMemberKeys].sort(),
+          prioritizeOfficeKeys: [...prioritizeOfficeKeys].sort(),
+          primaryOnlyForNonPrioritizedProperties,
+          primaryOnlyForAllProperties,
+          filterEntityTypes: [...(filterEntityTypes ?? [])].sort(),
+          restrictToMemberPropertyKeys: [...(restrictToMemberPropertyKeys ?? [])].sort(),
+          restrictToOfficePropertyKeys: [...(restrictToOfficePropertyKeys ?? [])].sort(),
+          restrictToMemberEntityKeys: [...(restrictToMemberEntityKeys ?? [])].sort(),
+          restrictToOfficeEntityKeys: [...(restrictToOfficeEntityKeys ?? [])].sort(),
+          enforceEligibilityForNonAssociatedProperties,
+          activePropertyStatuses: [...(activePropertyStatuses ?? [])].sort(),
+        }),
+      )
+      .digest('hex');
+    let repairOffset = await readMediaRepairOffset(repairCursorKey);
 
     for (let batch = 0; batch < repairMaxBatches; batch += 1) {
       const repairSelectionStartedAt = Date.now();
 
       const repairCandidates = await listMlsMediaSyncCandidates(batchSize, {
-        offset: batch * batchSize,
+        offset: repairOffset,
         prioritizeMemberKeys,
         prioritizeOfficeKeys,
         primaryOnlyForNonPrioritizedProperties,
@@ -829,6 +852,10 @@ export async function runMlsMediaSync(
       }
 
       if (repairCandidates.length === 0) {
+        if (repairOffset > 0) {
+          repairOffset = 0;
+          await writeMediaRepairOffset(repairCursorKey, repairOffset);
+        }
         break;
       }
 
@@ -857,34 +884,46 @@ export async function runMlsMediaSync(
         });
       }
 
-      if (missingFilesOnlyCandidates.length === 0) {
-        if (repairCandidates.length < batchSize) {
-          break;
-        }
-        continue;
+      let repairOutcome: BatchOutcome = { processed: 0, skipped: 0, failed: 0 };
+      if (missingFilesOnlyCandidates.length > 0) {
+        const repairBatchStartedAt = Date.now();
+        repairOutcome = await runBatch(missingFilesOnlyCandidates);
+        summary.repairProcessed += repairOutcome.processed;
+        summary.repairFailed += repairOutcome.failed;
+        syncLogger.info('media repair batch complete', {
+          phase: 'repair',
+          batchNumber: batch + 1,
+          maxBatches: repairMaxBatches,
+          candidateCount: missingFilesOnlyCandidates.length,
+          processedInBatch: repairOutcome.processed,
+          skippedInBatch: repairOutcome.skipped,
+          failedInBatch: repairOutcome.failed,
+          repairScannedTotal: summary.repairScanned,
+          repairProcessedTotal: summary.repairProcessed,
+          repairSkippedHealthyTotal: summary.repairSkippedHealthy,
+          repairFailedTotal: summary.repairFailed,
+          scannedTotal: summary.scanned,
+          processedTotal: summary.processed,
+          skippedTotal: summary.skipped,
+          failedTotal: summary.failed,
+          elapsedMsBatch: Date.now() - repairBatchStartedAt,
+          elapsedMsRun: Date.now() - runStartedAt,
+        });
       }
 
-      const repairBatchStartedAt = Date.now();
-      const repairOutcome = await runBatch(missingFilesOnlyCandidates);
-      summary.repairProcessed += repairOutcome.processed;
-      summary.repairFailed += repairOutcome.failed;
-      syncLogger.info('media repair batch complete', {
+      const nextRepairOffset = advanceMediaRepairOffset(
+        repairOffset,
+        repairCandidates.length,
+        batchSize,
+      );
+      await writeMediaRepairOffset(repairCursorKey, nextRepairOffset);
+      repairOffset = nextRepairOffset;
+      syncLogger.info('media repair cursor advanced', {
         phase: 'repair',
         batchNumber: batch + 1,
-        maxBatches: repairMaxBatches,
-        candidateCount: missingFilesOnlyCandidates.length,
-        processedInBatch: repairOutcome.processed,
-        skippedInBatch: repairOutcome.skipped,
-        failedInBatch: repairOutcome.failed,
-        repairScannedTotal: summary.repairScanned,
-        repairProcessedTotal: summary.repairProcessed,
-        repairSkippedHealthyTotal: summary.repairSkippedHealthy,
-        repairFailedTotal: summary.repairFailed,
-        scannedTotal: summary.scanned,
-        processedTotal: summary.processed,
-        skippedTotal: summary.skipped,
-        failedTotal: summary.failed,
-        elapsedMsBatch: Date.now() - repairBatchStartedAt,
+        scannedInBatch: repairCandidates.length,
+        missingFilesInBatch: missingFilesOnlyCandidates.length,
+        cursorOffset: repairOffset,
         elapsedMsRun: Date.now() - runStartedAt,
       });
 

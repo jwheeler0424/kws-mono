@@ -69,7 +69,7 @@ export const MLS_SCHEDULER_DEFAULTS = {
   mediaSyncMaxBatches: 8,
   mediaSyncProcessConcurrency: 6,
   mediaSyncIncludeMissingFilesRepair: true,
-  mediaSyncRepairMaxBatches: 2,
+  mediaSyncRepairMaxBatches: 8,
 } as const;
 
 export const DEFAULT_RESOURCE_EXPANDS: Readonly<Record<string, readonly string[]>> = {

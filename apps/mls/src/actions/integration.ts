@@ -265,7 +265,7 @@ function resolveMlsMediaSyncSchedule() {
 
 function resolveMlsMediaReconcileSchedule() {
   const enabled = true;
-  const cronExpression = env.MLS_MEDIA_RECONCILE_CRON || '0 */6 * * *';
+  const cronExpression = env.MLS_MEDIA_RECONCILE_CRON || '0 * * * *';
 
   return {
     scheduleId: MLS_MEDIA_RECONCILE_SCHEDULE_ID,
