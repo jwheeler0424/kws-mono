@@ -999,52 +999,53 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
                       Boolean(result.listingKey),
                     )
                     .map((result) => (
-                      <Link
-                        key={result.listingKey}
-                        className='group -m-1 flex w-full items-start p-1 gap-1 rounded-none text-left text-black no-underline hover:no-underline'
-                        to={`/listings/$listingKey`}
-                        preload='intent'
-                        params={{
-                          listingKey: result.listingKey,
-                        }}>
-                        <Item className='items-center px-2.5 group-hover:bg-muted'>
-                          <ItemMedia className='-mt-0.5 aspect-video h-10 w-fit overflow-clip rounded-sm bg-muted shadow transition-all duration-200 ease-linear group-hover:ring-2 group-hover:ring-polaris-primary group-hover:ring-offset-2 group-hover:ring-offset-white'>
-                            <img
-                              src={
-                                result.primaryPhotoThumbnailUrl ||
-                                result.primaryPhotoPreviewUrl ||
-                                result.primaryPhotoFullUrl ||
-                                result.primaryPhotoUrl ||
-                                PROPERTY_IMAGE_PLACEHOLDER_URL
-                              }
-                              alt={result.unparsedAddress ?? 'Property image'}
-                              className='object-cover object-center'
-                            />
-                          </ItemMedia>
-                          <ItemContent className='h-10 justify-center py-0'>
-                            <ItemTitle className='line-clamp-1 w-full truncate text-sm font-bold transition-colors duration-200 ease-linear group-hover:text-polaris-primary'>
-                              <span className='block w-full truncate'>
-                                {getAddressStreet(result)}
-                              </span>
-                            </ItemTitle>
-                            <ItemDescription className='text-xs font-normal'>
-                              <span>
-                                {Number(result.listPrice ?? 0) > 0
-                                  ? numberFormat({ value: Number(result.listPrice) })
-                                  : 'Unavailable'}
-                              </span>
-                              <span className='hidden @sm:inline'>
-                                {' '}
-                                | {result.propertySubType ?? result.propertyType}
-                              </span>
-                              <span>
-                                {' '}
-                                | {result.city}, {result.stateOrProvince}
-                              </span>
-                            </ItemDescription>
-                          </ItemContent>
-                        </Item>
-                      </Link>
+                      <li key={result.listingKey} className='list-none'>
+                        <Link
+                          className='group -m-1 flex w-full items-start p-1 gap-1 rounded-none text-left text-black no-underline hover:no-underline'
+                          to={`/listings/$listingKey`}
+                          preload='intent'
+                          params={{
+                            listingKey: result.listingKey,
+                          }}>
+                          <Item className='items-center px-2.5 group-hover:bg-muted'>
+                            <ItemMedia className='-mt-0.5 aspect-video h-10 w-fit overflow-clip rounded-sm bg-muted shadow transition-all duration-200 ease-linear group-hover:ring-2 group-hover:ring-polaris-primary group-hover:ring-offset-2 group-hover:ring-offset-white'>
+                              <img
+                                src={
+                                  result.primaryPhotoThumbnailUrl ||
+                                  result.primaryPhotoPreviewUrl ||
+                                  result.primaryPhotoFullUrl ||
+                                  result.primaryPhotoUrl ||
+                                  PROPERTY_IMAGE_PLACEHOLDER_URL
+                                }
+                                alt={result.unparsedAddress ?? 'Property image'}
+                                className='object-cover object-center'
+                              />
+                            </ItemMedia>
+                            <ItemContent className='h-10 justify-center py-0'>
+                              <ItemTitle className='line-clamp-1 w-full truncate text-sm font-bold transition-colors duration-200 ease-linear group-hover:text-polaris-primary'>
+                                <span className='block w-full truncate'>
+                                  {getAddressStreet(result)}
+                                </span>
+                              </ItemTitle>
+                              <ItemDescription className='text-xs font-normal'>
+                                <span>
+                                  {Number(result.listPrice ?? 0) > 0
+                                    ? numberFormat({ value: Number(result.listPrice) })
+                                    : 'Unavailable'}
+                                </span>
+                                <span className='hidden @sm:inline'>
+                                  {' '}
+                                  | {result.propertySubType ?? result.propertyType}
+                                </span>
+                                <span>
+                                  {' '}
+                                  | {result.city}, {result.stateOrProvince}
+                                </span>
+                              </ItemDescription>
+                            </ItemContent>
+                          </Item>
+                        </Link>
+                      </li>
                     ))}
                 </ItemGroup>
               </ScrollArea>

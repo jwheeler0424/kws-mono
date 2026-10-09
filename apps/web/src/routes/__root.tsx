@@ -7,6 +7,7 @@ import {
   Scripts,
   createRootRouteWithContext,
   useLocation,
+  useRouterState,
   type AnyRouteMatch,
 } from '@tanstack/react-router';
 import * as React from 'react';
@@ -80,6 +81,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
+  const isRoutePending = useRouterState({ select: (state) => state.status === 'pending' });
   const isTransparent = pathname === '/';
   return (
     <html lang='en' suppressHydrationWarning style={{ width: '100%', height: '100%' }}>
@@ -107,7 +109,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                   className={cn('flex w-full grow flex-col')}>
                   {children}
                 </section>
-                <FrontendFooter />
+                {!isRoutePending ? <FrontendFooter /> : null}
               </div>
             </ScrollArea>
           </div>
