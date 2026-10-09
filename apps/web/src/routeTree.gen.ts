@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as BuyingRouteImport } from './routes/buying'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SellingRouteImport } from './routes/selling'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
@@ -22,7 +23,6 @@ import { Route as ListingsListingsRouteRouteImport } from './routes/listings/_li
 import { Route as PoliciesDmcaRouteImport } from './routes/policies/dmca'
 import { Route as PoliciesPrivacyRouteImport } from './routes/policies/privacy'
 import { Route as PropertiesIndexRouteImport } from './routes/properties/index'
-import { Route as RobotsDotTxtRouteImport } from './routes/robots[.].txt'
 import { Route as ApiListingsIndexRouteImport } from './routes/api/listings/index'
 import { Route as ListingsListingsIndexRouteImport } from './routes/listings/_listings.index'
 import { Route as BlogCategoryChar123CategoryChar125Char123SlugChar125RouteImport } from './routes/blog/category.{-$category}.{-$slug}'
@@ -47,6 +47,11 @@ const BuyingRoute = BuyingRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellingRoute = SellingRouteImport.update({
@@ -94,11 +99,6 @@ const PropertiesIndexRoute = PropertiesIndexRouteImport.update({
   path: '/properties/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RobotsDotTxtRoute = RobotsDotTxtRouteImport.update({
-  id: '/robots./txt',
-  path: '/robots./txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiListingsIndexRoute = ApiListingsIndexRouteImport.update({
   id: '/api/listings/',
   path: '/api/listings/',
@@ -135,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/buying': typeof BuyingRoute
   '/contact': typeof ContactRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/selling': typeof SellingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/listings': typeof ListingsListingsRouteRouteWithChildren
@@ -142,7 +143,6 @@ export interface FileRoutesByFullPath {
   '/listings/$listingKey': typeof ListingsListingKeyRoute
   '/policies/dmca': typeof PoliciesDmcaRoute
   '/policies/privacy': typeof PoliciesPrivacyRoute
-  '/robots./txt': typeof RobotsDotTxtRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
   '/api/listings/': typeof ApiListingsIndexRoute
@@ -156,13 +156,13 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/buying': typeof BuyingRoute
   '/contact': typeof ContactRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/selling': typeof SellingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/listings/$listingKey': typeof ListingsListingKeyRoute
   '/policies/dmca': typeof PoliciesDmcaRoute
   '/policies/privacy': typeof PoliciesPrivacyRoute
-  '/robots./txt': typeof RobotsDotTxtRoute
   '/blog': typeof BlogIndexRoute
   '/properties': typeof PropertiesIndexRoute
   '/api/listings': typeof ApiListingsIndexRoute
@@ -177,6 +177,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/buying': typeof BuyingRoute
   '/contact': typeof ContactRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/selling': typeof SellingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/listings/_listings': typeof ListingsListingsRouteRouteWithChildren
@@ -184,7 +185,6 @@ export interface FileRoutesById {
   '/listings/$listingKey': typeof ListingsListingKeyRoute
   '/policies/dmca': typeof PoliciesDmcaRoute
   '/policies/privacy': typeof PoliciesPrivacyRoute
-  '/robots./txt': typeof RobotsDotTxtRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
   '/api/listings/': typeof ApiListingsIndexRoute
@@ -200,6 +200,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/buying'
     | '/contact'
+    | '/robots.txt'
     | '/selling'
     | '/sitemap.xml'
     | '/listings'
@@ -207,7 +208,6 @@ export interface FileRouteTypes {
     | '/listings/$listingKey'
     | '/policies/dmca'
     | '/policies/privacy'
-    | '/robots./txt'
     | '/blog/'
     | '/properties/'
     | '/api/listings/'
@@ -221,13 +221,13 @@ export interface FileRouteTypes {
     | '/about'
     | '/buying'
     | '/contact'
+    | '/robots.txt'
     | '/selling'
     | '/sitemap.xml'
     | '/blog/$slug'
     | '/listings/$listingKey'
     | '/policies/dmca'
     | '/policies/privacy'
-    | '/robots./txt'
     | '/blog'
     | '/properties'
     | '/api/listings'
@@ -241,6 +241,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/buying'
     | '/contact'
+    | '/robots.txt'
     | '/selling'
     | '/sitemap.xml'
     | '/listings/_listings'
@@ -248,7 +249,6 @@ export interface FileRouteTypes {
     | '/listings/$listingKey'
     | '/policies/dmca'
     | '/policies/privacy'
-    | '/robots./txt'
     | '/blog/'
     | '/properties/'
     | '/api/listings/'
@@ -263,6 +263,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   BuyingRoute: typeof BuyingRoute
   ContactRoute: typeof ContactRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SellingRoute: typeof SellingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ListingsListingsRouteRoute: typeof ListingsListingsRouteRouteWithChildren
@@ -270,7 +271,6 @@ export interface RootRouteChildren {
   ListingsListingKeyRoute: typeof ListingsListingKeyRoute
   PoliciesDmcaRoute: typeof PoliciesDmcaRoute
   PoliciesPrivacyRoute: typeof PoliciesPrivacyRoute
-  RobotsDotTxtRoute: typeof RobotsDotTxtRoute
   BlogIndexRoute: typeof BlogIndexRoute
   PropertiesIndexRoute: typeof PropertiesIndexRoute
   ApiListingsIndexRoute: typeof ApiListingsIndexRoute
@@ -307,6 +307,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/selling': {
@@ -372,13 +379,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropertiesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/robots./txt': {
-      id: '/robots./txt'
-      path: '/robots./txt'
-      fullPath: '/robots./txt'
-      preLoaderRoute: typeof RobotsDotTxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/listings/': {
       id: '/api/listings/'
       path: '/api/listings'
@@ -435,6 +435,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   BuyingRoute: BuyingRoute,
   ContactRoute: ContactRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SellingRoute: SellingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ListingsListingsRouteRoute: ListingsListingsRouteRouteWithChildren,
@@ -442,7 +443,6 @@ const rootRouteChildren: RootRouteChildren = {
   ListingsListingKeyRoute: ListingsListingKeyRoute,
   PoliciesDmcaRoute: PoliciesDmcaRoute,
   PoliciesPrivacyRoute: PoliciesPrivacyRoute,
-  RobotsDotTxtRoute: RobotsDotTxtRoute,
   BlogIndexRoute: BlogIndexRoute,
   PropertiesIndexRoute: PropertiesIndexRoute,
   ApiListingsIndexRoute: ApiListingsIndexRoute,

@@ -164,14 +164,7 @@ export type TListingMarker = Pick<
 
 export type PropertySearchMarker = Pick<
   PropertyListing,
-  | 'id'
-  | 'listingKey'
-  | 'listPrice'
-  | 'bedroomsTotal'
-  | 'bathroomsTotalInteger'
-  | 'livingArea'
-  | 'latitude'
-  | 'longitude'
+  'id' | 'listingKey' | 'listPrice' | 'latitude' | 'longitude'
 >;
 
 export type PropertyMapMarker = TListingMarker;

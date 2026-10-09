@@ -99,9 +99,6 @@ const listingsForSearchAndFilterColumns = {
   id: true,
   listingKey: true,
   listPrice: true,
-  bedroomsTotal: true,
-  bathroomsTotalInteger: true,
-  livingArea: true,
   latitude: true,
   longitude: true,
 } as const;

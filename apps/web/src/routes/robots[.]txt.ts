@@ -1,9 +1,8 @@
-// src/routes/robots[.]txt.ts
 import { env } from '@kws/config';
 import { buildRobotsTxt } from '@kws/seo';
 import { createFileRoute } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/robots./txt')({
+export const Route = createFileRoute('/robots.txt')({
   server: {
     handlers: {
       GET: async () => {
@@ -15,7 +14,7 @@ export const Route = createFileRoute('/robots./txt')({
                 rules: [{ userAgent: '*', allow: ['/'], disallow: ['/admin', '/api'] }],
                 sitemapUrls: [`${env.APP_URL}/sitemap.xml`],
               }
-            : { rules: [{ userAgent: '*', disallow: ['/'] }] }, // block crawlers on non-prod
+            : { rules: [{ userAgent: '*', disallow: ['/'] }] },
         );
 
         return new Response(body, { headers: { 'Content-Type': 'text/plain' } });

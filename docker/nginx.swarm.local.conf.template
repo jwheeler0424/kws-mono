@@ -3,6 +3,13 @@ map $http_upgrade $connection_upgrade {
   '' close;
 }
 
+gzip on;
+gzip_vary on;
+gzip_proxied any;
+gzip_min_length 1024;
+gzip_comp_level 4;
+gzip_types application/json application/javascript application/xml text/css text/plain text/xml image/svg+xml;
+
 upstream app_cluster {
   server web:${APP_PORT} max_fails=1 fail_timeout=5s;
   keepalive 32;
