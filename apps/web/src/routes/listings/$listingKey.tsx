@@ -1,5 +1,4 @@
 import { Separator } from '@kws/design/ui/separator';
-import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
@@ -66,8 +65,7 @@ export const Route = createFileRoute('/listings/$listingKey')({
 });
 
 function RouteComponent() {
-  const { listingKey } = Route.useParams();
-  const { data: property } = useSuspenseQuery(listingDetailOptions({ listingKey }));
+  const { property } = Route.useLoaderData();
 
   if (!property) {
     return <div className='p-6 text-sm text-gray-700'>Property details unavailable.</div>;

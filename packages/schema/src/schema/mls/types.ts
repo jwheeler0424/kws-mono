@@ -165,7 +165,8 @@ export type TListingMarker = Pick<
 export type PropertySearchMarker = Pick<
   PropertyListing,
   'id' | 'listingKey' | 'listPrice' | 'latitude' | 'longitude'
->;
+> &
+  Partial<Pick<PropertyListing, 'listingId'>>;
 
 export type PropertyMapMarker = TListingMarker;
 

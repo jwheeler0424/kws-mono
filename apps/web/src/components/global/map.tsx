@@ -1,4 +1,5 @@
 import type { PropertySearchMarker } from '@kws/schema';
+import type { TMapBounds } from '@kws/types';
 
 import { DEFAULT_POSITION } from '@kws/config/constants/properties';
 import L, { DivIcon, type LeafletEvent, type PopupEvent } from 'leaflet';
@@ -75,6 +76,12 @@ const isClusterFeature = (
   return (feature.properties as Partial<ClusterProperties>).cluster === true;
 };
 
+function setMarkerAccessibleName(event: LeafletEvent, label: string) {
+  const element = (event.target as L.Marker).getElement();
+  element?.setAttribute('aria-label', label);
+  element?.setAttribute('title', label);
+}
+
 const MarkerLayer = React.memo(function MarkerLayer({
   index,
   showPriceLabels,
@@ -134,7 +141,13 @@ const MarkerLayer = React.memo(function MarkerLayer({
               key={`cluster-${clusterId}`}
               position={[lat, lng]}
               icon={clusterIconFactory(pointCount)}
+              title={`${pointCount} ${pointCount === 1 ? 'property' : 'properties'}; activate to zoom in`}
               eventHandlers={{
+                add: (event) =>
+                  setMarkerAccessibleName(
+                    event,
+                    `${pointCount} ${pointCount === 1 ? 'property' : 'properties'}; activate to zoom in`,
+                  ),
                 click: () => {
                   const nextZoom = Math.min(index.getClusterExpansionZoom(clusterId), 18);
                   map.setView([lat, lng], nextZoom, { animate: true });
@@ -150,7 +163,10 @@ const MarkerLayer = React.memo(function MarkerLayer({
             key={property.id}
             position={[Number(property.latitude), Number(property.longitude)]}
             icon={markerIconFactory(property.listPrice, showPriceLabels)}
+            title={getPropertyMarkerAccessibleName(property)}
             eventHandlers={{
+              add: (event) =>
+                setMarkerAccessibleName(event, getPropertyMarkerAccessibleName(property)),
               click: () => {
                 onMarkerClick(property);
               },
@@ -161,6 +177,14 @@ const MarkerLayer = React.memo(function MarkerLayer({
     </>
   );
 });
+
+function getPropertyMarkerAccessibleName(property: PropertySearchMarker): string {
+  const listingId = property.listingId?.replace(/^\D+/, '') || property.listingKey;
+  const price = Number(property.listPrice);
+  const priceLabel =
+    Number.isFinite(price) && price > 0 ? `, listed for $${price.toLocaleString()}` : '';
+  return `Property listing ${listingId}${priceLabel}; activate to view details`;
+}
 
 type SharedPopupHostProps = {
   openPopup: OpenPopupState | null;
@@ -252,6 +276,7 @@ type MapProps = {
   properties: PropertySearchMarker[];
   markersLoading?: boolean;
   onInitialMarkersRendered?: () => void;
+  onViewportBoundsChange?: (bounds: TMapBounds) => void;
 };
 
 type MapEventsProps = {
@@ -269,6 +294,7 @@ type MapEventsProps = {
   setZoom: (zoom: number) => void;
   setMapLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setMapReady: React.Dispatch<React.SetStateAction<boolean>>;
+  onViewportBoundsChange?: (bounds: TMapBounds) => void;
 };
 
 function MapEvents({
@@ -283,6 +309,7 @@ function MapEvents({
   setZoom,
   setMapLoading,
   setMapReady,
+  onViewportBoundsChange,
 }: MapEventsProps) {
   const map = useMap();
   const initializedRef = useRef(false);
@@ -304,10 +331,11 @@ function MapEvents({
       };
 
       setBounds(bounds);
+      onViewportBoundsChange?.(bounds);
       setZoom(currentZoom);
       setMapPosition({ lat, lng });
     },
-    [setBounds, setMapPosition, setZoom],
+    [onViewportBoundsChange, setBounds, setMapPosition, setZoom],
   );
 
   useMapEvents({
@@ -368,6 +396,7 @@ export function MapView({
   properties,
   markersLoading = false,
   onInitialMarkersRendered,
+  onViewportBoundsChange,
 }: MapProps) {
   const [mapLoading, setMapLoading] = React.useState(true);
   const [mapReady, setMapReady] = React.useState(false);
@@ -550,6 +579,7 @@ export function MapView({
           setZoom={setZoom}
           setMapLoading={setMapLoading}
           setMapReady={setMapReady}
+          onViewportBoundsChange={onViewportBoundsChange}
         />
 
         <MapLifecycleTracker />

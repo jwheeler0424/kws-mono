@@ -97,10 +97,6 @@ export async function getListingDetailByKey({
 
 const listingsForSearchAndFilterColumns = {
   id: true,
-  listingKey: true,
-  listPrice: true,
-  latitude: true,
-  longitude: true,
 } as const;
 
 const listingsExcludedTypesSql = (table: { propertyType: unknown; propertySubType: unknown }) =>
@@ -209,6 +205,7 @@ const livingAreaWithinRangeSql = (table: LivingAreaSqlFields, min: SQLWrapper, m
 type ListingsSortBy = NonNullable<TListingsSearch['sortBy']>;
 
 type ListingsSearchInput = Partial<TListingsSearch> | undefined;
+type ListingsSearchSessionMarker = Pick<PropertySearchMarker, 'id'>;
 
 type ListingsPreparedParams = {
   limit?: number;
@@ -261,7 +258,6 @@ type ListingsSearchSessionLegacy = ListingsSearchSessionMeta & {
 export type ListingsSearchWithSessionResult = {
   sessionId: string;
   total: number;
-  markers: PropertySearchMarker[];
 };
 
 type HydratedListingsCachePage = CursorResult<TPropertyCard>;
@@ -278,10 +274,10 @@ const LISTINGS_BASELINE_CACHE_TTL_SECONDS = Math.max(
   Math.floor(LISTINGS_BASELINE_CACHE_TTL_MS / 1000),
 );
 // Versioned keys ensure initial marker/session order changes take effect immediately.
-const LISTINGS_MARKERS_CACHE_KEY = 'mls:listings:markers:v4';
+const LISTINGS_MARKERS_CACHE_KEY = 'mls:listings:markers:v5';
 const LISTINGS_BASELINE_SESSION_POINTER_KEY = 'mls:listings:session:baseline:pointer:v4';
 
-function parseCachedBaselineMarkers(raw: string): PropertySearchMarker[] | null {
+function parseCachedBaselineMarkers(raw: string): ListingsSearchSessionMarker[] | null {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
@@ -289,7 +285,7 @@ function parseCachedBaselineMarkers(raw: string): PropertySearchMarker[] | null 
     }
 
     const markers = parsed.filter(
-      (marker): marker is PropertySearchMarker =>
+      (marker): marker is { id: PropertySearchMarker['id'] } =>
         typeof marker === 'object' &&
         marker !== null &&
         typeof (marker as { id?: unknown }).id === 'string' &&
@@ -302,13 +298,13 @@ function parseCachedBaselineMarkers(raw: string): PropertySearchMarker[] | null 
       return null;
     }
 
-    return markers;
+    return markers.map(({ id }) => ({ id }));
   } catch {
     return null;
   }
 }
 
-async function getCachedBaselineMarkers(): Promise<PropertySearchMarker[] | null> {
+async function getCachedBaselineMarkers(): Promise<ListingsSearchSessionMarker[] | null> {
   const client = await getRedisClient();
   const raw = await client.get(LISTINGS_MARKERS_CACHE_KEY);
   if (!raw) {
@@ -318,7 +314,7 @@ async function getCachedBaselineMarkers(): Promise<PropertySearchMarker[] | null
   return parseCachedBaselineMarkers(raw);
 }
 
-async function setCachedBaselineMarkers(markers: PropertySearchMarker[]): Promise<void> {
+async function setCachedBaselineMarkers(markers: ListingsSearchSessionMarker[]): Promise<void> {
   const client = await getRedisClient();
   await client.set(LISTINGS_MARKERS_CACHE_KEY, JSON.stringify(markers), {
     EX: LISTINGS_BASELINE_CACHE_TTL_SECONDS,
@@ -440,7 +436,7 @@ function parseListingsSearchSessionLegacy(raw: string): ListingsSearchSessionLeg
 }
 
 async function createListingsSearchSession(
-  markers: PropertySearchMarker[],
+  markers: ListingsSearchSessionMarker[],
 ): Promise<{ sessionId: string; total: number }> {
   const now = Date.now();
   const ids = Array.from(
@@ -482,7 +478,7 @@ async function createListingsSearchSession(
 }
 
 async function getOrCreateBaselineListingsSearchSession(
-  markers: PropertySearchMarker[],
+  markers: ListingsSearchSessionMarker[],
 ): Promise<{ sessionId: string; total: number }> {
   const client = await getRedisClient();
   const existingSessionId = await client.get(LISTINGS_BASELINE_SESSION_POINTER_KEY);
@@ -868,7 +864,7 @@ const preparedListingsLegacyNoSortWithLimit = db.query.properties
   })
   .prepare('get_listings_legacy_no_sort_with_limit');
 
-async function fetchAndCacheBaselineMarkers(): Promise<PropertySearchMarker[]> {
+async function fetchAndCacheBaselineMarkers(): Promise<ListingsSearchSessionMarker[]> {
   const markers = await preparedListingsLegacyNoSortNoLimit.execute();
   await setCachedBaselineMarkers(markers);
   return markers;
@@ -1092,6 +1088,41 @@ const preparedHydratedListingsByIds = db.query.properties
   })
   .prepare('get_hydrated_listings_by_ids');
 
+const mapMarkerColumns = {
+  id: true,
+  listingId: true,
+  listingKey: true,
+  listPrice: true,
+  latitude: true,
+  longitude: true,
+} as const;
+
+const preparedMapMarkersByIds = db.query.properties
+  .findMany({
+    columns: mapMarkerColumns,
+    where: {
+      RAW: (table) =>
+        sql`${table.id} = ANY(${sql.placeholder('uuids')}) AND ${table.mlgCanView} = true AND ${table.deletedAt} IS NULL`,
+    },
+  })
+  .prepare('get_map_markers_by_ids');
+
+const preparedVisibleMapMarkersByIds = db.query.properties
+  .findMany({
+    columns: mapMarkerColumns,
+    where: {
+      RAW: (table) => sql`
+        ${table.id} = ANY(${sql.placeholder('uuids')})
+        AND ${table.mlgCanView} = true
+        AND ${table.deletedAt} IS NULL
+        AND ${table.latitude} BETWEEN ${sql.placeholder('south')}::double precision AND ${sql.placeholder('north')}::double precision
+        AND ${table.longitude} BETWEEN ${sql.placeholder('west')}::double precision AND ${sql.placeholder('east')}::double precision
+      `,
+    },
+    limit: sql.placeholder('limit'),
+  })
+  .prepare('get_visible_map_markers_by_ids');
+
 const HYDRATION_PREWARM_UUID = '00000000-0000-7000-8000-000000000000';
 
 async function prewarmHydratedListingsQuery(): Promise<void> {
@@ -1211,9 +1242,76 @@ export async function getHydratedListingsPaginated({
   return result;
 }
 
+async function getMapMarkersByIds(
+  ids: Array<PropertySearchMarker['id']>,
+): Promise<PropertySearchMarker[]> {
+  if (ids.length === 0) return [];
+
+  const rows = await preparedMapMarkersByIds.execute({ uuids: ids });
+  const rowsById = new Map(rows.map((row) => [String(row.id), row as PropertySearchMarker]));
+  return ids
+    .map((id) => rowsById.get(id))
+    .filter((marker): marker is PropertySearchMarker => Boolean(marker));
+}
+
+export async function getListingsMapMarkersForViewport({
+  sessionId,
+  bounds,
+}: {
+  sessionId: string;
+  bounds: TListingsSearch['bounds'];
+}): Promise<PropertySearchMarker[]> {
+  if (!bounds) return [];
+
+  const sessionPage = await getListingsSearchSessionPage(sessionId, 0, Number.MAX_SAFE_INTEGER);
+  if (!sessionPage?.ids.length) return [];
+
+  const rows = await preparedVisibleMapMarkersByIds.execute({
+    uuids: sessionPage.ids,
+    south: bounds.southWest.lat,
+    west: bounds.southWest.lng,
+    north: bounds.northEast.lat,
+    east: bounds.northEast.lng,
+    limit: 5_000,
+  });
+
+  return rows as PropertySearchMarker[];
+}
+
+export async function getListingsMapMarkersPaginated({
+  sessionId,
+  limit,
+  cursor,
+}: {
+  sessionId: string;
+  limit?: number | null;
+  cursor?: string | null;
+}): Promise<CursorResult<PropertySearchMarker>> {
+  const pageSize = Math.min(limit ?? 2_000, 5_000);
+  const sessionPage = await getListingsSearchSessionPage(
+    sessionId,
+    decodeHydrationCursor(cursor),
+    pageSize,
+  );
+
+  if (!sessionPage) {
+    return { items: [], nextCursor: null, hasMore: false };
+  }
+
+  const items = await getMapMarkersByIds(sessionPage.ids);
+  const offset = decodeHydrationCursor(cursor);
+  const nextOffset = offset + pageSize;
+
+  return {
+    items,
+    nextCursor: nextOffset < sessionPage.total ? String(nextOffset) : null,
+    hasMore: nextOffset < sessionPage.total,
+  };
+}
+
 async function getListingsForSearchAndFilterMarkers(
   input?: ListingsSearchInput,
-): Promise<PropertySearchMarker[]> {
+): Promise<ListingsSearchSessionMarker[]> {
   const source = input ?? {};
   const query = source.query ?? null;
   const hasDynamicFilters = hasDynamicListingsFilters(source);
@@ -1353,6 +1451,5 @@ export async function getListingsForSearchAndFilter(
   return {
     sessionId,
     total,
-    markers,
   };
 }
