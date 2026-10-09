@@ -1,7 +1,7 @@
 import { Separator } from '@kws/design/ui/separator';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import {
   BathIcon,
   BedDoubleIcon,
@@ -262,7 +262,11 @@ function RouteComponent() {
                 <section>
                   <span className={cn('font-semibold! text-gray-900!')}>
                     {property.onMarketDate
-                      ? format(property.onMarketDate, 'MMMM d, yyyy')
+                      ? formatInTimeZone(
+                          property.onMarketDate,
+                          'America/Los_Angeles',
+                          'MMMM d, yyyy',
+                        )
                       : 'Not provided'}
                   </span>
                   <br />
@@ -273,7 +277,11 @@ function RouteComponent() {
                 <section>
                   <span className={cn('font-semibold! text-gray-900!')}>
                     {property.modificationTimestamp
-                      ? format(property.modificationTimestamp, 'MMMM d, yyyy')
+                      ? formatInTimeZone(
+                          property.modificationTimestamp,
+                          'America/Los_Angeles',
+                          'MMMM d, yyyy',
+                        )
                       : 'Not provided'}
                   </span>
                   <br />
