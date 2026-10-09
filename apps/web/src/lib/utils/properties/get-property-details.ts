@@ -48,9 +48,69 @@ export const getBedroomCount = (
   return property.bedroomsTotal ?? 0;
 };
 
-export const getLivingArea = (value?: number | string | null): number | null => {
-  const area = typeof value === 'number' ? value : Number(value);
+type AreaValue = number | string | null | undefined;
+
+type LivingAreaFields = {
+  livingArea?: AreaValue;
+  livingAreaUnits?: string | null;
+  aboveGradeFinishedArea?: AreaValue;
+  belowGradeFinishedArea?: AreaValue;
+  buildingAreaTotal?: AreaValue;
+  buildingAreaUnits?: string | null;
+  NWM_TotalDwellingSqFt?: AreaValue;
+  NWM_SquareFootageFinished?: AreaValue;
+  NWM_CalculatedSquareFootage?: AreaValue;
+  NWM_ApproximateBuildingSquareFeet?: AreaValue;
+};
+
+type ResolvedLivingArea = { value: number; units: string | null } | null;
+
+const positiveArea = (value: AreaValue): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const normalized = typeof value === 'string' ? value.replaceAll(',', '') : value;
+  const area = typeof normalized === 'number' ? normalized : Number(normalized);
   return Number.isFinite(area) && area > 0 ? area : null;
+};
+
+export const getLivingArea = (property: LivingAreaFields): ResolvedLivingArea => {
+  const livingArea = positiveArea(property.livingArea);
+  if (livingArea !== null) {
+    return { value: livingArea, units: property.livingAreaUnits ?? null };
+  }
+
+  const nwmlsCalculatedArea = positiveArea(property.NWM_CalculatedSquareFootage);
+  if (nwmlsCalculatedArea !== null) {
+    return { value: nwmlsCalculatedArea, units: 'SqFt' };
+  }
+
+  const nwmlsTotalDwellingArea = positiveArea(property.NWM_TotalDwellingSqFt);
+  if (nwmlsTotalDwellingArea !== null) {
+    return { value: nwmlsTotalDwellingArea, units: 'SqFt' };
+  }
+
+  const nwmlsFinishedArea = positiveArea(property.NWM_SquareFootageFinished);
+  if (nwmlsFinishedArea !== null) {
+    return { value: nwmlsFinishedArea, units: 'SqFt' };
+  }
+
+  const aboveGrade = positiveArea(property.aboveGradeFinishedArea);
+  const belowGrade = positiveArea(property.belowGradeFinishedArea);
+  if (aboveGrade !== null || belowGrade !== null) {
+    return {
+      value: (aboveGrade ?? 0) + (belowGrade ?? 0),
+      units: property.buildingAreaUnits ?? property.livingAreaUnits ?? null,
+    };
+  }
+
+  const buildingArea = positiveArea(property.buildingAreaTotal);
+  if (buildingArea !== null) {
+    return { value: buildingArea, units: property.buildingAreaUnits ?? null };
+  }
+
+  const nwmlsApproximateBuildingArea = positiveArea(property.NWM_ApproximateBuildingSquareFeet);
+  return nwmlsApproximateBuildingArea === null
+    ? null
+    : { value: nwmlsApproximateBuildingArea, units: 'SqFt' };
 };
 
 export const getBathroomCount = (

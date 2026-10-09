@@ -8,7 +8,7 @@ import type { CursorResult, TListingsSearch } from '@kws/types';
 
 import { type TMlsMedia } from '@kws/schema';
 import { tsquery } from '@kws/schema/plugins';
-import { sql } from 'drizzle-orm';
+import { type SQLWrapper, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 import { db } from '@/lib/database';
@@ -42,7 +42,11 @@ export async function getListingDetailByKey({
           'NWM_IDXMustRemovePrimaryPhotoYN', ${table.NWM}->>'NWM_IDXMustRemovePrimaryPhotoYN',
           'NWM_IDXMustRemovePhotosYN', ${table.NWM}->>'NWM_IDXMustRemovePhotosYN',
           'NWM_ShowMapLink', ${table.NWM}->>'NWM_ShowMapLink',
-          'NWM_StyleCode', ${table.NWM}->>'NWM_StyleCode'
+          'NWM_StyleCode', ${table.NWM}->>'NWM_StyleCode',
+          'NWM_TotalDwellingSqFt', ${table.NWM}->>'NWM_TotalDwellingSqFt',
+          'NWM_SquareFootageFinished', ${table.NWM}->>'NWM_SquareFootageFinished',
+          'NWM_CalculatedSquareFootage', ${table.NWM}->>'NWM_CalculatedSquareFootage',
+          'NWM_ApproximateBuildingSquareFeet', ${table.NWM}->>'NWM_ApproximateBuildingSquareFeet'
         )`,
       },
       where: {
@@ -160,6 +164,50 @@ const proximityH3ResolutionPlaceholder = sql.placeholder('proximityH3Resolution'
 const proximityH3CellsPlaceholder = sql.placeholder('proximityH3Cells');
 const rangeMinPlaceholder = sql.placeholder('rangeMin');
 const rangeMaxPlaceholder = sql.placeholder('rangeMax');
+
+type LivingAreaSqlFields = {
+  livingArea: SQLWrapper;
+  aboveGradeFinishedArea: SQLWrapper;
+  belowGradeFinishedArea: SQLWrapper;
+  buildingAreaTotal: SQLWrapper;
+  NWM: SQLWrapper;
+};
+
+const livingAreaWithinRangeSql = (table: LivingAreaSqlFields, min: SQLWrapper, max: SQLWrapper) => {
+  const aboveGrade = sql`case when ${table.aboveGradeFinishedArea} > 0 then ${table.aboveGradeFinishedArea} else 0 end`;
+  const belowGrade = sql`case when ${table.belowGradeFinishedArea} > 0 then ${table.belowGradeFinishedArea} else 0 end`;
+  const finishedArea = sql`${aboveGrade} + ${belowGrade}`;
+  const nwmArea = (field: string) => {
+    const rawValue = sql`${table.NWM}->>${field}`;
+    const normalizedValue = sql`replace(trim(${rawValue}), ',', '')`;
+    return sql`case when ${normalizedValue} ~ '^[0-9]+([.][0-9]+)?$' then ${normalizedValue}::numeric else null end`;
+  };
+  const candidates = [
+    table.livingArea,
+    nwmArea('NWM_CalculatedSquareFootage'),
+    nwmArea('NWM_TotalDwellingSqFt'),
+    nwmArea('NWM_SquareFootageFinished'),
+    finishedArea,
+    table.buildingAreaTotal,
+    nwmArea('NWM_ApproximateBuildingSquareFeet'),
+  ];
+  const withinRange = (area: SQLWrapper) =>
+    sql`(${min}::numeric is null or ${area} >= ${min}::numeric) and (${max}::numeric is null or ${area} <= ${max}::numeric)`;
+  const matchingCandidates = candidates.map((area, index) => {
+    const previousAreasMissing = candidates
+      .slice(0, index)
+      .map((previousArea) => sql`(${previousArea} is null or ${previousArea} <= 0)`);
+    const priorityGuard =
+      previousAreasMissing.length > 0 ? sql.join(previousAreasMissing, sql` and `) : sql`true`;
+
+    return sql`(${priorityGuard} and ${area} > 0 and ${withinRange(area)})`;
+  });
+
+  return sql`
+    (${min}::numeric is null and ${max}::numeric is null)
+    or ${sql.join(matchingCandidates, sql` or `)}
+  `;
+};
 
 type ListingsSortBy = NonNullable<TListingsSearch['sortBy']>;
 
@@ -603,7 +651,11 @@ const proximityDistanceMilesSql = (table: {
 
 const listingsFiltersSql = (table: {
   listPrice: unknown;
-  livingArea: unknown;
+  livingArea: SQLWrapper;
+  aboveGradeFinishedArea: SQLWrapper;
+  belowGradeFinishedArea: SQLWrapper;
+  buildingAreaTotal: SQLWrapper;
+  NWM: SQLWrapper;
   bedroomsTotal: unknown;
   bathroomsTotalInteger: unknown;
   latitude: unknown;
@@ -614,8 +666,7 @@ const listingsFiltersSql = (table: {
 }) => sql`
   (${priceMinPlaceholder}::numeric is null OR ${table.listPrice} >= ${priceMinPlaceholder}::numeric)
   AND (${priceMaxPlaceholder}::numeric is null OR ${table.listPrice} <= ${priceMaxPlaceholder}::numeric)
-  AND (${sqFtMinPlaceholder}::numeric is null OR ${table.livingArea} >= ${sqFtMinPlaceholder}::numeric)
-  AND (${sqFtMaxPlaceholder}::numeric is null OR ${table.livingArea} <= ${sqFtMaxPlaceholder}::numeric)
+  AND ${livingAreaWithinRangeSql(table, sqFtMinPlaceholder, sqFtMaxPlaceholder)}
   AND (${bedroomsMinPlaceholder}::integer is null OR ${table.bedroomsTotal} >= ${bedroomsMinPlaceholder}::integer)
   AND (${bedroomsMaxPlaceholder}::integer is null OR ${table.bedroomsTotal} <= ${bedroomsMaxPlaceholder}::integer)
   AND (${bathroomsMinPlaceholder}::integer is null OR ${table.bathroomsTotalInteger} >= ${bathroomsMinPlaceholder}::integer)
@@ -744,7 +795,11 @@ const buildPreparedListingsRangeQuery = ({
   sortBy: Exclude<ListingsSortBy, 'proximity'>;
   rangeSql: (table: {
     listPrice: unknown;
-    livingArea: unknown;
+    livingArea: SQLWrapper;
+    aboveGradeFinishedArea: SQLWrapper;
+    belowGradeFinishedArea: SQLWrapper;
+    buildingAreaTotal: SQLWrapper;
+    NWM: SQLWrapper;
     bedroomsTotal: unknown;
     bathroomsTotalInteger: unknown;
   }) => ReturnType<typeof sql>;
@@ -949,20 +1004,17 @@ const preparedListingsSqFtRangeQueryMap = {
   newest: buildPreparedListingsRangeQuery({
     name: 'get_listings_for_sqft_range_newest',
     sortBy: 'newest',
-    rangeSql: (table) =>
-      sql`${table.livingArea} >= ${rangeMinPlaceholder}::numeric AND ${table.livingArea} <= ${rangeMaxPlaceholder}::numeric`,
+    rangeSql: (table) => livingAreaWithinRangeSql(table, rangeMinPlaceholder, rangeMaxPlaceholder),
   }),
   priceAsc: buildPreparedListingsRangeQuery({
     name: 'get_listings_for_sqft_range_price_asc',
     sortBy: 'priceAsc',
-    rangeSql: (table) =>
-      sql`${table.livingArea} >= ${rangeMinPlaceholder}::numeric AND ${table.livingArea} <= ${rangeMaxPlaceholder}::numeric`,
+    rangeSql: (table) => livingAreaWithinRangeSql(table, rangeMinPlaceholder, rangeMaxPlaceholder),
   }),
   priceDesc: buildPreparedListingsRangeQuery({
     name: 'get_listings_for_sqft_range_price_desc',
     sortBy: 'priceDesc',
-    rangeSql: (table) =>
-      sql`${table.livingArea} >= ${rangeMinPlaceholder}::numeric AND ${table.livingArea} <= ${rangeMaxPlaceholder}::numeric`,
+    rangeSql: (table) => livingAreaWithinRangeSql(table, rangeMinPlaceholder, rangeMaxPlaceholder),
   }),
 } as const;
 

@@ -29,7 +29,7 @@ interface PropertyCardProps extends React.ComponentPropsWithRef<typeof Link> {
 
 export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
   const showAddress = listing.internetAddressDisplayYN && listing.NWM_ShowMapLink !== 'false';
-  const livingArea = getLivingArea(listing.livingArea);
+  const livingArea = getLivingArea(listing);
   const cardImageUrl =
     listing.primaryPhotoPreviewUrl ||
     listing.primaryPhotoFullUrl ||
@@ -152,7 +152,7 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
               {livingArea === null
                 ? 'Not listed'
                 : numberFormat({
-                    value: livingArea,
+                    value: livingArea.value,
                     showSymbol: false,
                     showSymbolSpace: false,
                     showTrailingZeros: false,
@@ -160,7 +160,7 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
             </span>
             {livingArea !== null ? (
               <span className={cn('m-0! text-[11px]! font-medium! text-gray-300')}>
-                {listing.livingAreaUnits ?? 'SqFt'}
+                {livingArea.units ?? 'SqFt'}
               </span>
             ) : null}
           </div>

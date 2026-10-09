@@ -32,11 +32,14 @@ export type TPropertyCard = Resolve<
     | 'listingKey'
     | 'livingArea'
     | 'livingAreaUnits'
+    | 'aboveGradeFinishedArea'
+    | 'belowGradeFinishedArea'
     | 'bathroomsFull'
     | 'bathroomsHalf'
     | 'bathroomsThreeQuarter'
     | 'bedroomsTotal'
     | 'buildingAreaTotal'
+    | 'buildingAreaUnits'
     | 'featuredListingYN'
     | 'internetAddressDisplayYN'
     | 'internetAutomatedValuationDisplayYN'
@@ -68,6 +71,10 @@ export type TPropertyCard = Resolve<
       | 'NWM_IDXMustRemovePhotosYN'
       | 'NWM_ShowMapLink'
       | 'NWM_StyleCode'
+      | 'NWM_TotalDwellingSqFt'
+      | 'NWM_SquareFootageFinished'
+      | 'NWM_CalculatedSquareFootage'
+      | 'NWM_ApproximateBuildingSquareFeet'
     > & {
       memberFullName: string | null;
       officeName: string | null;
@@ -119,6 +126,10 @@ export type TPropertyNwmFlags = Pick<
   | 'NWM_IDXMustRemovePhotosYN'
   | 'NWM_ShowMapLink'
   | 'NWM_StyleCode'
+  | 'NWM_TotalDwellingSqFt'
+  | 'NWM_SquareFootageFinished'
+  | 'NWM_CalculatedSquareFootage'
+  | 'NWM_ApproximateBuildingSquareFeet'
 >;
 
 export type PropertyStatus = (typeof standardStatusEnum.enumValues)[number];

@@ -77,7 +77,7 @@ function RouteComponent() {
   const shouldHidePhotos =
     parseNwmBooleanFlag(property.NWM?.NWM_IDXMustRemovePhotosYN) ||
     parseNwmBooleanFlag(property.NWM?.NWM_IDXMustRemovePrimaryPhotoYN);
-  const livingArea = getLivingArea(property.livingArea);
+  const livingArea = getLivingArea({ ...property, ...property.NWM });
 
   return (
     <main className='w-full'>
@@ -126,7 +126,7 @@ function RouteComponent() {
                   {livingArea === null
                     ? 'Not listed'
                     : numberFormat({
-                        value: livingArea,
+                        value: livingArea.value,
                         showSymbol: false,
                         showSymbolSpace: false,
                         showTrailingZeros: false,
@@ -134,7 +134,7 @@ function RouteComponent() {
                 </span>
               </div>
               <p className={cn('m-0! text-center text-xs! font-medium text-gray-900')}>
-                {livingArea === null ? 'Area Size' : 'Sq. Ft.'}
+                {livingArea === null ? 'Area Size' : (livingArea.units ?? 'Sq. Ft.')}
               </p>
             </section>
             <Separator orientation='vertical' className={cn('bg-gray-100/50')} />

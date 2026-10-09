@@ -20,6 +20,9 @@ export const propertyCardColumns = {
 
   livingArea: true,
   livingAreaUnits: true,
+  aboveGradeFinishedArea: true,
+  belowGradeFinishedArea: true,
+  buildingAreaUnits: true,
 
   bathroomsFull: true,
   bathroomsHalf: true,
@@ -76,7 +79,19 @@ export const getPropertyCardQueryConfig = (): TPropertyCardQueryConfig => ({
           ${table.NWM}->>'NWM_ShowMapLink',
 
           'NWM_StyleCode',
-          ${table.NWM}->>'NWM_StyleCode'
+          ${table.NWM}->>'NWM_StyleCode',
+
+          'NWM_TotalDwellingSqFt',
+          ${table.NWM}->>'NWM_TotalDwellingSqFt',
+
+          'NWM_SquareFootageFinished',
+          ${table.NWM}->>'NWM_SquareFootageFinished',
+
+          'NWM_CalculatedSquareFootage',
+          ${table.NWM}->>'NWM_CalculatedSquareFootage',
+
+          'NWM_ApproximateBuildingSquareFeet',
+          ${table.NWM}->>'NWM_ApproximateBuildingSquareFeet'
         )
       `,
   },
