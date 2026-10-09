@@ -43,7 +43,7 @@ function guardNullNumericComparisons(expression: unknown, field: string): unknow
   ) {
     return [
       operator,
-      ['to-number', operand, 999999],
+      ['to-number', operand, 0],
       ...rest.map((value) => guardNullNumericComparisons(value, field)),
     ];
   }
@@ -62,9 +62,19 @@ export function transformVectorBasemapStyle(
       const filter = 'filter' in layer ? layer.filter : undefined;
       if (!field || !filter) return layer;
 
+      const sanitizedFilter = guardNullNumericComparisons(filter, field);
+      const safeFilter =
+        field === 'ref_length' && Array.isArray(sanitizedFilter)
+          ? [
+              'all',
+              ['>', ['to-number', ['get', field], 0], 0],
+              ...(sanitizedFilter[0] === 'all' ? sanitizedFilter.slice(1) : [sanitizedFilter]),
+            ]
+          : sanitizedFilter;
+
       return {
         ...layer,
-        filter: guardNullNumericComparisons(filter, field) as typeof filter,
+        filter: safeFilter as typeof filter,
       } as typeof layer;
     }),
   };

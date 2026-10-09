@@ -97,12 +97,13 @@ describe('Hosted vector basemap', () => {
 
     expect(layers[0].filter).toEqual([
       'all',
-      ['<=', ['to-number', ['get', 'ref_length'], 999999], 6],
+      ['>', ['to-number', ['get', 'ref_length'], 0], 0],
+      ['<=', ['to-number', ['get', 'ref_length'], 0], 6],
     ]);
     expect(layers[1].filter).toEqual([
       'all',
-      ['>=', ['to-number', ['get', 'admin_level'], 999999], 3],
-      ['<=', ['to-number', ['get', 'admin_level'], 999999], 6],
+      ['>=', ['to-number', ['get', 'admin_level'], 0], 3],
+      ['<=', ['to-number', ['get', 'admin_level'], 0], 6],
     ]);
     expect(layers[2].filter).toEqual(['<=', ['get', 'rank'], 6]);
   });
