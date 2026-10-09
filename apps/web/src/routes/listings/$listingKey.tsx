@@ -11,7 +11,6 @@ import {
   MapPinnedIcon,
   RulerDimensionLineIcon,
 } from 'lucide-react';
-import { useState } from 'react';
 
 import { Badge } from '@/components/global/badge';
 import { Link } from '@/components/global/link';
@@ -19,12 +18,14 @@ import { ListingAttribution } from '@/components/global/listing-attribution';
 import PropertyMap from '@/components/global/map-wrapper';
 import { PropertySlideshow } from '@/components/global/property-slideshow';
 import { listingDetailOptions } from '@/features/mls/options';
+import { useSeo } from '@/lib/tools';
 import { cn } from '@/lib/utils';
 import {
   getAddressCityStateZip,
   getAddressStreet,
   getBathroomCount,
   getBedroomCount,
+  getLivingArea,
   getPropertyLevels,
   getPropertyStatus,
   getPropertyStatusClassName,
@@ -34,9 +35,32 @@ import {
 
 export const Route = createFileRoute('/listings/$listingKey')({
   loader: async ({ context, params }) => {
-    return context.queryClient.ensureQueryData(
+    const property = await context.queryClient.ensureQueryData(
       listingDetailOptions({ listingKey: params.listingKey }),
     );
+    return { property, siteConfig: context.siteConfig };
+  },
+  head: ({ loaderData }) => {
+    if (!loaderData) return { meta: [] };
+
+    const { seo } = useSeo(loaderData.siteConfig);
+    const property = loaderData.property;
+    const listingId = property?.listingId?.replace(/^\D+/, '');
+    const title =
+      property?.internetAddressDisplayYN === false
+        ? `Seattle Listing${listingId ? ` ${listingId}` : ''}`
+        : property?.unparsedAddress || 'Seattle Property Listing';
+
+    return {
+      meta: [
+        ...seo({
+          title,
+          description:
+            property?.publicRemarks?.slice(0, 160) ??
+            'View property details and photos in Seattle.',
+        }),
+      ],
+    };
   },
   component: RouteComponent,
 });
@@ -44,7 +68,6 @@ export const Route = createFileRoute('/listings/$listingKey')({
 function RouteComponent() {
   const { listingKey } = Route.useParams();
   const { data: property } = useSuspenseQuery(listingDetailOptions({ listingKey }));
-  const [fallbackDate] = useState(() => new Date());
 
   if (!property) {
     return <div className='p-6 text-sm text-gray-700'>Property details unavailable.</div>;
@@ -54,6 +77,7 @@ function RouteComponent() {
   const shouldHidePhotos =
     parseNwmBooleanFlag(property.NWM?.NWM_IDXMustRemovePhotosYN) ||
     parseNwmBooleanFlag(property.NWM?.NWM_IDXMustRemovePrimaryPhotoYN);
+  const livingArea = getLivingArea(property.livingArea);
 
   return (
     <main className='w-full'>
@@ -99,15 +123,19 @@ function RouteComponent() {
               <div className={cn('flex items-center justify-start gap-1 text-sm leading-4')}>
                 <RulerDimensionLineIcon className='size-6 text-gray-900' />
                 <span>
-                  {numberFormat({
-                    value: parseInt(property.livingArea ?? '0'),
-                    showSymbol: false,
-                    showSymbolSpace: false,
-                    showTrailingZeros: false,
-                  })}
+                  {livingArea === null
+                    ? 'Not listed'
+                    : numberFormat({
+                        value: livingArea,
+                        showSymbol: false,
+                        showSymbolSpace: false,
+                        showTrailingZeros: false,
+                      })}
                 </span>
               </div>
-              <p className={cn('m-0! text-center text-xs! font-medium text-gray-900')}>Sq. Ft.</p>
+              <p className={cn('m-0! text-center text-xs! font-medium text-gray-900')}>
+                {livingArea === null ? 'Area Size' : 'Sq. Ft.'}
+              </p>
             </section>
             <Separator orientation='vertical' className={cn('bg-gray-100/50')} />
             <section className={cn('flex flex-col gap-1')}>
@@ -233,7 +261,9 @@ function RouteComponent() {
                 </section>
                 <section>
                   <span className={cn('font-semibold! text-gray-900!')}>
-                    {format(property.onMarketDate ?? fallbackDate, 'MMMM d, yyyy')}
+                    {property.onMarketDate
+                      ? format(property.onMarketDate, 'MMMM d, yyyy')
+                      : 'Not provided'}
                   </span>
                   <br />
                   <span className={cn('text-xs! font-medium! text-gray-400! uppercase!')}>
@@ -242,7 +272,9 @@ function RouteComponent() {
                 </section>
                 <section>
                   <span className={cn('font-semibold! text-gray-900!')}>
-                    {format(property.modificationTimestamp!, 'MMMM d, yyyy')}
+                    {property.modificationTimestamp
+                      ? format(property.modificationTimestamp, 'MMMM d, yyyy')
+                      : 'Not provided'}
                   </span>
                   <br />
                   <span className={cn('text-xs! font-medium! text-gray-400! uppercase!')}>

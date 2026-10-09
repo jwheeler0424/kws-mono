@@ -1,6 +1,10 @@
+import { mlsSyncCursors } from '@kws/schema';
 import { listingsSearchShapeSchema } from '@kws/types';
 import { createServerFn } from '@tanstack/react-start';
+import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
+
+import { db } from '@/lib/database';
 
 import {
   getHydratedListingsPaginated,
@@ -15,6 +19,21 @@ const hydratedListingsPaginatedParamsSchema = z.object({
   limit: z.number().int().positive().max(250).optional().nullable(),
   cursor: z.string().optional().nullable(),
 });
+
+export const getPropertiesLastUpdatedServerFn = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const [cursor] = await db
+      .select({ lastRunAt: mlsSyncCursors.lastRunAt })
+      .from(mlsSyncCursors)
+      .where(
+        and(eq(mlsSyncCursors.resource, 'Property'), eq(mlsSyncCursors.lastRunStatus, 'success')),
+      )
+      .orderBy(desc(mlsSyncCursors.lastRunAt))
+      .limit(1);
+
+    return cursor?.lastRunAt?.toISOString() ?? null;
+  },
+);
 
 export const getListingDetailsServerFn = createServerFn({ method: 'GET' })
   .validator(listingDetailsParamsSchema)

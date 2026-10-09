@@ -18,7 +18,7 @@ export const Route = createFileRoute('/listings/_listings/')({
     return {
       meta: [
         ...seo({
-          title: 'Search Available Properties | KyleWeberSeattle.com',
+          title: 'Search Available Properties',
           description:
             'Discover all of the latest market updates and the best places to eat in Seattle.',
           keywords: [

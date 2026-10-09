@@ -17,7 +17,7 @@ import {
 import { Label } from '@kws/design/ui/label';
 import { toast } from '@kws/design/ui/toast';
 import { isValidMapBounds } from '@kws/types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Search, X } from 'lucide-react';
 import React from 'react';
@@ -34,11 +34,12 @@ import {
   SheetTrigger,
 } from '@/components/global/sheet';
 import { Slider } from '@/components/global/slider';
+import { getHydratedListingsPaginatedServerFn } from '@/features/mls/functions/listings';
 import {
-  getHydratedListingsPaginatedServerFn,
-  getListingsForSearchAndFilterServerFn,
-} from '@/features/mls/functions/listings';
-import { ListingsKeys, normalizeListingsSearchInput } from '@/features/mls/options/listings';
+  ListingsKeys,
+  listingsForSearchAndFilterOptions,
+  normalizeListingsSearchInput,
+} from '@/features/mls/options/listings';
 import { cn, numberFormatInternational } from '@/lib/utils';
 import { getAddressStreet, numberFormat } from '@/lib/utils/properties';
 import { useMapStore } from '@/stores/map.store';
@@ -176,16 +177,6 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
   const boundsSyncTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastHydratedRouteSearchKeyRef = React.useRef<string | null>(null);
 
-  const listingsSearchMutation = useMutation({
-    mutationFn: (input: Partial<TListingsSearch>) =>
-      getListingsForSearchAndFilterServerFn({
-        data: input,
-      }),
-    onSuccess: (data, input) => {
-      queryClient.setQueryData(ListingsKeys.searchAndFilter(input), data);
-    },
-  });
-
   const { minPrice, maxPrice, minSqFt, maxSqFt, minBedroom, maxBedroom, minBathroom, maxBathroom } =
     FILTER_LIMITS;
 
@@ -236,7 +227,9 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
   const runListingsSearchMutation = React.useCallback(
     async (nextSearch: TListingsRouteSearch) => {
       const normalizedSearch = normalizeListingsSearchInput(nextSearch);
-      const response = await listingsSearchMutation.mutateAsync(normalizedSearch);
+      const response = await queryClient.fetchQuery(
+        listingsForSearchAndFilterOptions(normalizedSearch),
+      );
 
       // Remove stale hydration data from previous sessions as search inputs change.
       queryClient.removeQueries({
@@ -245,7 +238,7 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
 
       return response;
     },
-    [listingsSearchMutation, queryClient],
+    [queryClient],
   );
 
   const hydrateSearchPreviewFromRoute = React.useCallback(

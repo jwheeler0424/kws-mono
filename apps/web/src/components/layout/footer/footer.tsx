@@ -2,16 +2,32 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { formatInTimeZone } from 'date-fns-tz';
 import React from 'react';
 
+import { getPropertiesLastUpdatedServerFn } from '@/features/mls/functions';
 import { cn } from '@/lib/utils';
 
 interface FrontendFooterProps extends React.ComponentProps<'footer'> {}
 
 export function FrontendFooter({ className, ...props }: FrontendFooterProps) {
   const { pathname } = useLocation();
-  const [propertiesUpdated, _setPropertiesUpdated] = React.useState<Date | null>(null);
+  const [propertiesUpdated, setPropertiesUpdated] = React.useState<Date | null>(null);
   const needsDisclaimer =
     pathname === '/' || pathname.includes('listings') || pathname.includes('properties');
   const [year] = React.useState(() => new Date().getFullYear());
+
+  React.useEffect(() => {
+    let active = true;
+    void getPropertiesLastUpdatedServerFn()
+      .then((updatedAt) => {
+        if (!active || !updatedAt) return;
+        const date = new Date(updatedAt);
+        if (!Number.isNaN(date.getTime())) setPropertiesUpdated(date);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <footer className={cn('relative w-full bg-white shadow-md', className)} {...props}>
@@ -28,10 +44,15 @@ export function FrontendFooter({ className, ...props }: FrontendFooterProps) {
               />
             </span>
             The IDX display presents information sourced from the Northwest Multiple Listing Service
-            as of{' '}
-            {propertiesUpdated
-              ? formatInTimeZone(propertiesUpdated, 'America/Los_Angeles', 'MM/dd/yyyy')
-              : 'N/A'}
+            {propertiesUpdated ? (
+              <>
+                {' '}
+                as of{' '}
+                <time dateTime={propertiesUpdated.toISOString()}>
+                  {formatInTimeZone(propertiesUpdated, 'America/Los_Angeles', 'MM/dd/yyyy')}
+                </time>
+              </>
+            ) : null}
             . The data is intended for personal, non-commercial use and should not be used for any
             other purpose except to identify potential properties for purchase. While the MLS data
             displayed is generally deemed reliable, it is NOT guaranteed to be accurate by the MLS.
@@ -43,10 +64,16 @@ export function FrontendFooter({ className, ...props }: FrontendFooterProps) {
             Selling Agent and cannot guarantee the accuracy of property locations displayed on any
             map. The property locations displayed on any map are merely best approximations and
             exact locations should be independently verified. Based on information submitted to the
-            MLS GRID as of{' '}
-            {propertiesUpdated
-              ? formatInTimeZone(propertiesUpdated, 'America/Los_Angeles', 'MM/dd/yyyy h:mm aa')
-              : 'N/A'}
+            MLS GRID
+            {propertiesUpdated ? (
+              <>
+                {' '}
+                as of{' '}
+                <time dateTime={propertiesUpdated.toISOString()}>
+                  {formatInTimeZone(propertiesUpdated, 'America/Los_Angeles', 'MM/dd/yyyy h:mm aa')}
+                </time>
+              </>
+            ) : null}
             . All data is obtained from various sources and may not have been verified by broker or
             MLS GRID. Supplied Open House Information is subject to change without notice. All
             information should be independently reviewed and verified for accuracy. Properties may

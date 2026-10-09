@@ -10,6 +10,7 @@ import {
   getAddressCityStateZip,
   getAddressStreet,
   getBathroomCount,
+  getLivingArea,
   getPropertyLevels,
   getPropertyStatus,
   getYearsOld,
@@ -28,6 +29,7 @@ interface PropertyCardProps extends React.ComponentPropsWithRef<typeof Link> {
 
 export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
   const showAddress = listing.internetAddressDisplayYN && listing.NWM_ShowMapLink !== 'false';
+  const livingArea = getLivingArea(listing.livingArea);
   const cardImageUrl =
     listing.primaryPhotoPreviewUrl ||
     listing.primaryPhotoFullUrl ||
@@ -147,16 +149,20 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
           </div>
           <div className={cn('flex items-center justify-end gap-1')}>
             <span className={cn('text-xs! font-semibold! text-gray-700!')}>
-              {numberFormat({
-                value: parseInt(listing.livingArea ?? '0'),
-                showSymbol: false,
-                showSymbolSpace: false,
-                showTrailingZeros: false,
-              })}
+              {livingArea === null
+                ? 'Not listed'
+                : numberFormat({
+                    value: livingArea,
+                    showSymbol: false,
+                    showSymbolSpace: false,
+                    showTrailingZeros: false,
+                  })}
             </span>
-            <span className={cn('m-0! text-[11px]! font-medium! text-gray-300')}>
-              {listing.livingAreaUnits ?? 'SqFt'}
-            </span>
+            {livingArea !== null ? (
+              <span className={cn('m-0! text-[11px]! font-medium! text-gray-300')}>
+                {listing.livingAreaUnits ?? 'SqFt'}
+              </span>
+            ) : null}
           </div>
         </section>
       </main>

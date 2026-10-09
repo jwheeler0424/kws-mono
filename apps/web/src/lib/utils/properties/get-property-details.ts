@@ -48,6 +48,11 @@ export const getBedroomCount = (
   return property.bedroomsTotal ?? 0;
 };
 
+export const getLivingArea = (value?: number | string | null): number | null => {
+  const area = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(area) && area > 0 ? area : null;
+};
+
 export const getBathroomCount = (
   property: TPropertyCard | PropertyData | TPropertyWithMedia,
 ): number => {

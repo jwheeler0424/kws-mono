@@ -60,6 +60,7 @@ services:
       - redis
     environment:
       NODE_ENV: production
+      APP_URL: https://${HOST:-kyleweberseattle.com}
       PORT: ${PORT:-3000}
       DB_HOST: db
       DB_PORT: ${DB_PORT:-5432}
@@ -105,6 +106,7 @@ services:
       - redis
     environment:
       NODE_ENV: production
+      APP_URL: https://${HOST:-kyleweberseattle.com}
       PORT: ${PORT:-3000}
       LOG_PRETTY: 'false'
       DB_HOST: db
