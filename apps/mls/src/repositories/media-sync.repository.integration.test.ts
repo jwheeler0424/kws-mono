@@ -137,9 +137,10 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     await pool.query("DELETE FROM properties WHERE listing_key='NWM_PRIMARY_TEST'");
   });
 
-  it('purges non-primary photos from active unconfigured listings', async () => {
+  it('keeps full gallery images but trims non-primary variants on active listings', async () => {
     const privateMediaId = '0199aabb-0000-7000-8000-000000000002';
-    const publicMediaId = '0199aabb-0000-7000-8000-000000000003';
+    const primaryMediaId = '0199aabb-0000-7000-8000-000000000003';
+    const secondaryMediaId = '0199aabb-0000-7000-8000-000000000004';
     await pool.query(
       "INSERT INTO properties(listing_key, listing_id, standard_status, mlg_can_view) VALUES ('NWM_PRIMARY_CLEANUP', 'NWM124', 'Active', true)",
     );
@@ -147,16 +148,33 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
       `INSERT INTO media(id, filename, original_filename, mime_type, file_size, file_extension, storage_path, storage_key, url)
        VALUES
          ($1, 'private.webp', 'private.jpg', 'image/webp', 1, 'webp', '/test/private-primary.webp', 'private', '/media/private.webp'),
-         ($2, 'public.webp', 'public.jpg', 'image/webp', 1, 'webp', '/test/public-primary.webp', 'public', '/media/public.webp')`,
-      [privateMediaId, publicMediaId],
+         ($2, 'primary.webp', 'primary.jpg', 'image/webp', 1, 'webp', '/test/public-primary.webp', 'primary', '/media/primary.webp'),
+         ($3, 'secondary.webp', 'secondary.jpg', 'image/webp', 1, 'webp', '/test/public-secondary.webp', 'secondary', '/media/secondary.webp')`,
+      [privateMediaId, primaryMediaId, secondaryMediaId],
     );
     await pool.query(
       `INSERT INTO mls_media(media_key, resource_record_key, media_id, permission, preferred_photo_yn, "order", media_modification_timestamp)
        VALUES
          ('private-cleanup', 'NWM_PRIMARY_CLEANUP', $1, ARRAY['Private'], false, 0, '2026-09-17T00:00:00Z'),
-         ('public-cleanup', 'NWM_PRIMARY_CLEANUP', $2, null, false, 1, '2026-09-17T00:00:00Z')`,
-      [privateMediaId, publicMediaId],
+         ('primary-cleanup', 'NWM_PRIMARY_CLEANUP', $2, null, false, 1, '2026-09-17T00:00:00Z'),
+         ('secondary-cleanup', 'NWM_PRIMARY_CLEANUP', $3, null, false, 2, '2026-09-17T00:00:00Z')`,
+      [privateMediaId, primaryMediaId, secondaryMediaId],
     );
+    for (const mediaId of [privateMediaId, primaryMediaId, secondaryMediaId]) {
+      for (const variantName of ['thumbnail', 'preview', 'full']) {
+        await pool.query(
+          `INSERT INTO media_variants(media_id, variant_name, width, height, file_size, url, storage_path, storage_key)
+           VALUES ($1, $2, 1, 1, 1, $3, $4, $5)`,
+          [
+            mediaId,
+            variantName,
+            `/media/${mediaId}_${variantName}.webp`,
+            `/test/${mediaId}_${variantName}.webp`,
+            `${mediaId}-${variantName}`,
+          ],
+        );
+      }
+    }
 
     const summary = await purgeScopedMlsMediaBeforeSync();
     const associations = await pool.query(
@@ -164,16 +182,27 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     );
     const remainingMedia = await pool.query(
       'SELECT id FROM media WHERE id = ANY($1::uuid[]) ORDER BY id',
-      [[privateMediaId, publicMediaId]],
+      [[privateMediaId, primaryMediaId, secondaryMediaId]],
+    );
+    const remainingVariants = await pool.query(
+      'SELECT media_id, variant_name FROM media_variants WHERE media_id = ANY($1::uuid[]) ORDER BY media_id, variant_name',
+      [[privateMediaId, primaryMediaId, secondaryMediaId]],
     );
 
     expect(summary.linkedRowsDetached).toBe(1);
     expect(summary.mediaDeleted).toBe(1);
     expect(associations.rows).toEqual([
       { media_key: 'private-cleanup', media_id: null },
-      { media_key: 'public-cleanup', media_id: publicMediaId },
+      { media_key: 'primary-cleanup', media_id: primaryMediaId },
+      { media_key: 'secondary-cleanup', media_id: secondaryMediaId },
     ]);
-    expect(remainingMedia.rows).toEqual([{ id: publicMediaId }]);
+    expect(remainingMedia.rows).toEqual([{ id: primaryMediaId }, { id: secondaryMediaId }]);
+    expect(remainingVariants.rows).toEqual([
+      { media_id: primaryMediaId, variant_name: 'full' },
+      { media_id: primaryMediaId, variant_name: 'preview' },
+      { media_id: primaryMediaId, variant_name: 'thumbnail' },
+      { media_id: secondaryMediaId, variant_name: 'full' },
+    ]);
 
     await pool.query("DELETE FROM mls_media WHERE resource_record_key='NWM_PRIMARY_CLEANUP'");
     await pool.query("DELETE FROM properties WHERE listing_key='NWM_PRIMARY_CLEANUP'");

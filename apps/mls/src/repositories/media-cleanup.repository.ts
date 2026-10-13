@@ -695,14 +695,21 @@ export async function purgeScopedMlsMediaBeforeSync(
     ),
   ];
 
-  const propertyPrimaryActiveViewableClause = and(
+  const propertyActiveViewableMediaClause = and(
     isNotNull(properties.listingKey),
     eq(properties.mlgCanView, true),
     isNotNull(properties.standardStatus),
     inArray(properties.standardStatus, activePropertyStatuses),
     isNull(mlsMedia.deletedAt),
     sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+  );
+  const propertyPrimaryActiveViewableClause = and(
+    propertyActiveViewableMediaClause,
     buildPrimaryMlsMediaClause(),
+  );
+  const propertySecondaryActiveViewableClause = and(
+    propertyActiveViewableMediaClause,
+    not(buildPrimaryMlsMediaClause()),
   );
 
   const propertyAssociationMemberClause =
@@ -759,7 +766,7 @@ export async function purgeScopedMlsMediaBeforeSync(
   );
 
   const desiredScopeClauses = [
-    propertyPrimaryActiveViewableClause,
+    propertyActiveViewableMediaClause,
     propertyAssociatedAnyMediaClause,
     memberAssociatedAnyMediaClause,
     officeAssociatedAnyMediaClause,
@@ -769,6 +776,40 @@ export async function purgeScopedMlsMediaBeforeSync(
     desiredScopeClauses.length === 1 ? desiredScopeClauses[0] : or(...desiredScopeClauses);
   const desiredLinkedScopeClauseNonNull =
     desiredLinkedScopeClause ?? propertyPrimaryActiveViewableClause;
+
+  let variantFilesDeleted = 0;
+  const secondaryMediaRows = await db
+    .select({ mediaId: media.id })
+    .from(mlsMedia)
+    .innerJoin(media, eq(mlsMedia.mediaId, media.id))
+    .innerJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
+    .where(
+      and(
+        isNotNull(mlsMedia.mediaId),
+        isNull(media.deletedAt),
+        propertySecondaryActiveViewableClause,
+      ),
+    );
+  const secondaryMediaIds = [...new Set(secondaryMediaRows.map((row) => row.mediaId))];
+  for (let start = 0; start < secondaryMediaIds.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {
+    const chunk = secondaryMediaIds.slice(start, start + MEDIA_ID_QUERY_CHUNK_SIZE);
+    const variants = await db
+      .select({ storagePath: mediaVariants.storagePath })
+      .from(mediaVariants)
+      .where(
+        and(inArray(mediaVariants.mediaId, chunk), not(eq(mediaVariants.variantName, 'full'))),
+      );
+    if (variants.length === 0) continue;
+
+    await db
+      .delete(mediaVariants)
+      .where(
+        and(inArray(mediaVariants.mediaId, chunk), not(eq(mediaVariants.variantName, 'full'))),
+      );
+    variantFilesDeleted += await deleteFilesInChunks(
+      variants.map((variant) => variant.storagePath),
+    );
+  }
 
   const rowsToDetach = await db
     .select({ mediaId: media.id, mediaKey: mlsMedia.mediaKey })
@@ -803,11 +844,10 @@ export async function purgeScopedMlsMediaBeforeSync(
       linkedRowsScanned,
       linkedRowsDetached: 0,
       mediaDeleted: 0,
-      variantFilesDeleted: 0,
+      variantFilesDeleted,
     };
   }
 
-  let variantFilesDeleted = 0;
   let mediaDeleted = 0;
 
   for (let start = 0; start < mediaIds.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {

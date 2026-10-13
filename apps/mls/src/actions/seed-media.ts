@@ -236,7 +236,10 @@ function resolveExpectedVariantPath(
 }
 
 async function areAllCanonicalVariantsPresent(candidate: MlsMediaSyncCandidate): Promise<boolean> {
-  const variants: VariantName[] = ['thumbnail', 'preview', 'full'];
+  const variants: VariantName[] =
+    candidate.entityType === 'properties' && !candidate.isPrimaryPhoto
+      ? ['full']
+      : ['thumbnail', 'preview', 'full'];
   const checks = variants.map((variantName) =>
     Bun.file(resolveExpectedVariantPath(candidate, variantName)).exists(),
   );
@@ -993,6 +996,34 @@ export interface PrioritizedMlsMediaSyncResult {
   budgetExhausted: boolean;
 }
 
+function combineMediaSyncSummaries(
+  summaries: Array<MlsMediaSyncSummary | undefined>,
+): MlsMediaSyncSummary | undefined {
+  const available = summaries.filter(
+    (summary): summary is MlsMediaSyncSummary => summary !== undefined,
+  );
+  if (available.length === 0) return undefined;
+
+  return {
+    scanned: available.reduce((total, summary) => total + summary.scanned, 0),
+    processed: available.reduce((total, summary) => total + summary.processed, 0),
+    created: available.reduce((total, summary) => total + summary.created, 0),
+    updated: available.reduce((total, summary) => total + summary.updated, 0),
+    skipped: available.reduce((total, summary) => total + summary.skipped, 0),
+    failed: available.reduce((total, summary) => total + summary.failed, 0),
+    localSourceUsed: available.reduce((total, summary) => total + summary.localSourceUsed, 0),
+    remoteSourceUsed: available.reduce((total, summary) => total + summary.remoteSourceUsed, 0),
+    repairScanned: available.reduce((total, summary) => total + summary.repairScanned, 0),
+    repairProcessed: available.reduce((total, summary) => total + summary.repairProcessed, 0),
+    repairSkippedHealthy: available.reduce(
+      (total, summary) => total + summary.repairSkippedHealthy,
+      0,
+    ),
+    repairFailed: available.reduce((total, summary) => total + summary.repairFailed, 0),
+    budgetExhausted: available.some((summary) => summary.budgetExhausted),
+  };
+}
+
 /**
  * Configured office media and its listing galleries first, then configured members and
  * their listing galleries, then complete galleries for all eligible listings newest first.
@@ -1037,11 +1068,16 @@ export async function runPrioritizedMlsMediaSync(
       restrictToMemberPropertyKeys: [...memberKeys],
     });
   }
-  result.listings = await runPhase({
+  const primaryListings = await runPhase({
     filterEntityTypes: ['properties'],
     enforceEligibilityForNonAssociatedProperties: true,
     primaryOnlyForAllProperties: true,
   });
+  const galleryListings = await runPhase({
+    filterEntityTypes: ['properties'],
+    enforceEligibilityForNonAssociatedProperties: true,
+  });
+  result.listings = combineMediaSyncSummaries([primaryListings, galleryListings]);
 
   return result;
 }

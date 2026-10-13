@@ -80,6 +80,7 @@ export interface MlsMediaSyncCandidate {
   localFullPath: string | null;
   linkedUpdatedAt: Date | null;
   linkedMediaExists: boolean;
+  isPrimaryPhoto: boolean;
   longDescription: string | null;
   imageSizeDescription: string | null;
   unparsedAddress: string | null;
@@ -168,6 +169,7 @@ type CandidateRow = {
   localFullPath: string | null;
   linkedUpdatedAt: Date | null;
   linkedMediaId: UUIDv7 | null;
+  isPrimaryPhoto: boolean;
   longDescription: string | null;
   imageSizeDescription: string | null;
   unparsedAddress: string | null;
@@ -214,6 +216,7 @@ function toMlsMediaSyncCandidates(rows: CandidateRow[]): MlsMediaSyncCandidate[]
         localFullPath: row.localFullPath,
         linkedUpdatedAt: row.linkedUpdatedAt,
         linkedMediaExists: row.linkedMediaId !== null,
+        isPrimaryPhoto: Boolean(row.isPrimaryPhoto),
         longDescription: row.longDescription ?? null,
         imageSizeDescription: row.imageSizeDescription ?? null,
         unparsedAddress: row.unparsedAddress ?? null,
@@ -521,6 +524,7 @@ export async function listMlsMediaSyncCandidates(
       localFullPath: media.storagePath,
       linkedUpdatedAt: media.updatedAt,
       linkedMediaId: media.id,
+      isPrimaryPhoto: sql<boolean>`coalesce((${buildPrimaryMlsMediaClause()}), false)`,
       longDescription: mlsMedia.longDescription,
       imageSizeDescription: mlsMedia.imageSizeDescription,
       unparsedAddress: properties.unparsedAddress,
@@ -575,6 +579,7 @@ export async function listUnsyncedMediaForListing(
       localFullPath: media.storagePath,
       linkedUpdatedAt: media.updatedAt,
       linkedMediaId: media.id,
+      isPrimaryPhoto: sql<boolean>`coalesce((${buildPrimaryMlsMediaClause()}), false)`,
       longDescription: mlsMedia.longDescription,
       imageSizeDescription: mlsMedia.imageSizeDescription,
       unparsedAddress: properties.unparsedAddress,
