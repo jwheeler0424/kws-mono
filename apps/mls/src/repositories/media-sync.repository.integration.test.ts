@@ -24,6 +24,7 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
   let claimSyncCursor: typeof import('./sync-cursor.repository').claimSyncCursor;
   let checkpointSyncCursor: typeof import('./sync-cursor.repository').checkpointSyncCursor;
   let finishSyncCursor: typeof import('./sync-cursor.repository').finishSyncCursor;
+  let purgeScopedMlsMediaBeforeSync: typeof import('./media-cleanup.repository').purgeScopedMlsMediaBeforeSync;
   const localId = '0199aabb-0000-7000-8000-000000000001';
 
   beforeAll(async () => {
@@ -62,6 +63,7 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     ({ reconcileResourceMediaBatch } = await import('./resource-media.repository'));
     ({ claimSyncCursor, checkpointSyncCursor, finishSyncCursor } =
       await import('./sync-cursor.repository'));
+    ({ purgeScopedMlsMediaBeforeSync } = await import('./media-cleanup.repository'));
   }, 30_000);
 
   afterAll(async () => {
@@ -133,6 +135,48 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     expect(candidates.map((candidate) => candidate.mediaKey)).toEqual(['public-secondary']);
     await pool.query("DELETE FROM mls_media WHERE resource_record_key='NWM_PRIMARY_TEST'");
     await pool.query("DELETE FROM properties WHERE listing_key='NWM_PRIMARY_TEST'");
+  });
+
+  it('purges non-primary photos from active unconfigured listings', async () => {
+    const privateMediaId = '0199aabb-0000-7000-8000-000000000002';
+    const publicMediaId = '0199aabb-0000-7000-8000-000000000003';
+    await pool.query(
+      "INSERT INTO properties(listing_key, listing_id, standard_status, mlg_can_view) VALUES ('NWM_PRIMARY_CLEANUP', 'NWM124', 'Active', true)",
+    );
+    await pool.query(
+      `INSERT INTO media(id, filename, original_filename, mime_type, file_size, file_extension, storage_path, storage_key, url)
+       VALUES
+         ($1, 'private.webp', 'private.jpg', 'image/webp', 1, 'webp', '/test/private-primary.webp', 'private', '/media/private.webp'),
+         ($2, 'public.webp', 'public.jpg', 'image/webp', 1, 'webp', '/test/public-primary.webp', 'public', '/media/public.webp')`,
+      [privateMediaId, publicMediaId],
+    );
+    await pool.query(
+      `INSERT INTO mls_media(media_key, resource_record_key, media_id, permission, preferred_photo_yn, "order", media_modification_timestamp)
+       VALUES
+         ('private-cleanup', 'NWM_PRIMARY_CLEANUP', $1, ARRAY['Private'], false, 0, '2026-09-17T00:00:00Z'),
+         ('public-cleanup', 'NWM_PRIMARY_CLEANUP', $2, null, false, 1, '2026-09-17T00:00:00Z')`,
+      [privateMediaId, publicMediaId],
+    );
+
+    const summary = await purgeScopedMlsMediaBeforeSync();
+    const associations = await pool.query(
+      `SELECT media_key, media_id FROM mls_media WHERE resource_record_key='NWM_PRIMARY_CLEANUP' ORDER BY media_key`,
+    );
+    const remainingMedia = await pool.query(
+      'SELECT id FROM media WHERE id = ANY($1::uuid[]) ORDER BY id',
+      [[privateMediaId, publicMediaId]],
+    );
+
+    expect(summary.linkedRowsDetached).toBe(1);
+    expect(summary.mediaDeleted).toBe(1);
+    expect(associations.rows).toEqual([
+      { media_key: 'private-cleanup', media_id: null },
+      { media_key: 'public-cleanup', media_id: publicMediaId },
+    ]);
+    expect(remainingMedia.rows).toEqual([{ id: publicMediaId }]);
+
+    await pool.query("DELETE FROM mls_media WHERE resource_record_key='NWM_PRIMARY_CLEANUP'");
+    await pool.query("DELETE FROM properties WHERE listing_key='NWM_PRIMARY_CLEANUP'");
   });
 
   it('serializes resource replication and does not regress received watermarks', async () => {

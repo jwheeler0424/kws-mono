@@ -10,10 +10,11 @@ import path from 'node:path';
 
 import { db } from '@/lib/database';
 
+import { buildPrimaryMlsMediaClause } from './mls-media-primary';
+
 const FILE_DELETE_CHUNK_SIZE = 20;
 const MEDIA_ID_QUERY_CHUNK_SIZE = 500;
 const MLS_MEDIA_ENTITY_TYPES = ['properties', 'members', 'offices'] as const;
-const ORPHAN_FILE_MIN_AGE_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_ACTIVE_PROPERTY_STATUSES: readonly StandardStatus[] = [
   'Active',
   'ActiveUnderContract',
@@ -81,13 +82,8 @@ export interface OrphanedMlsMediaFilePurgeSummary {
   deletedFiles: number;
 }
 
-export interface OrphanedMlsMediaFilePurgeOptions {
-  minimumAgeMs?: number;
-}
-
 export async function purgeOrphanedMlsMediaFiles(
   entityTypes: readonly MlsMediaStorageEntityType[] = MLS_MEDIA_ENTITY_TYPES,
-  options: OrphanedMlsMediaFilePurgeOptions = {},
 ): Promise<OrphanedMlsMediaFilePurgeSummary> {
   const uniqueEntityTypes = [...new Set(entityTypes)];
   const summary: OrphanedMlsMediaFilePurgeSummary = {
@@ -123,9 +119,6 @@ export async function purgeOrphanedMlsMediaFiles(
     }
   }
 
-  // The age grace avoids racing files written before their media transaction commits.
-  const minimumAgeMs = Math.max(0, options.minimumAgeMs ?? ORPHAN_FILE_MIN_AGE_MS);
-  const cutoff = Date.now() - minimumAgeMs;
   let orphanPaths: string[] = [];
 
   for (const entityType of uniqueEntityTypes) {
@@ -133,14 +126,11 @@ export async function purgeOrphanedMlsMediaFiles(
       summary.scannedFiles += 1;
       if (referencedPaths.has(normalizeStoragePath(filePath))) continue;
       try {
-        const fileStats = await fs.stat(filePath);
-        if (fileStats.mtimeMs <= cutoff) {
-          orphanPaths.push(filePath);
-          summary.orphanFilesFound += 1;
-          if (orphanPaths.length >= FILE_DELETE_CHUNK_SIZE) {
-            summary.deletedFiles += await deleteFilesInChunks(orphanPaths);
-            orphanPaths = [];
-          }
+        orphanPaths.push(filePath);
+        summary.orphanFilesFound += 1;
+        if (orphanPaths.length >= FILE_DELETE_CHUNK_SIZE) {
+          summary.deletedFiles += await deleteFilesInChunks(orphanPaths);
+          orphanPaths = [];
         }
       } catch (error) {
         if (!isFilesystemNotFoundError(error)) throw error;
@@ -644,6 +634,47 @@ export async function purgeDeadMlsMedia(
   return { mediaDeleted, variantFilesDeleted };
 }
 
+export async function purgeSoftDeletedMlsMedia(
+  entityTypes: readonly MlsMediaStorageEntityType[] = MLS_MEDIA_ENTITY_TYPES,
+): Promise<{ mediaDeleted: number; filesDeleted: number }> {
+  const uniqueEntityTypes = [...new Set(entityTypes)];
+  if (uniqueEntityTypes.length === 0) return { mediaDeleted: 0, filesDeleted: 0 };
+
+  const storagePathClauses = buildMlsStoragePathClauses(uniqueEntityTypes);
+  const softDeletedRows = await db
+    .select({ id: media.id, storagePath: media.storagePath })
+    .from(media)
+    .where(and(isNotNull(media.deletedAt), or(...storagePathClauses)));
+  const mediaIds = softDeletedRows.map((row) => row.id);
+  if (mediaIds.length === 0) return { mediaDeleted: 0, filesDeleted: 0 };
+  const storagePathsById = new Map(softDeletedRows.map((row) => [row.id, row.storagePath]));
+
+  let mediaDeleted = 0;
+  let filesDeleted = 0;
+  for (let start = 0; start < mediaIds.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {
+    const chunk = mediaIds.slice(start, start + MEDIA_ID_QUERY_CHUNK_SIZE);
+    const variants = await db
+      .select({ storagePath: mediaVariants.storagePath })
+      .from(mediaVariants)
+      .where(inArray(mediaVariants.mediaId, chunk));
+    filesDeleted += await deleteFilesInChunks([
+      ...chunk.flatMap((mediaId) => {
+        const storagePath = storagePathsById.get(mediaId);
+        return storagePath ? [storagePath] : [];
+      }),
+      ...variants.map((variant) => variant.storagePath),
+    ]);
+
+    const deleted = await db
+      .delete(media)
+      .where(inArray(media.id, chunk))
+      .returning({ id: media.id });
+    mediaDeleted += deleted.length;
+  }
+
+  return { mediaDeleted, filesDeleted };
+}
+
 /**
  * Purges linked MLS media that falls outside the desired sync scope:
  * - primary media for active + viewable properties
@@ -669,6 +700,9 @@ export async function purgeScopedMlsMediaBeforeSync(
     eq(properties.mlgCanView, true),
     isNotNull(properties.standardStatus),
     inArray(properties.standardStatus, activePropertyStatuses),
+    isNull(mlsMedia.deletedAt),
+    sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+    buildPrimaryMlsMediaClause(),
   );
 
   const propertyAssociationMemberClause =

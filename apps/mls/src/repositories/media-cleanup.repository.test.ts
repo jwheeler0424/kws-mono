@@ -1,11 +1,11 @@
 import { media, mediaVariants, mlsMedia } from '@kws/schema';
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
-import { mkdtemp, mkdir, rm, utimes, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-let mediaPaths: Array<{ storagePath: string }> = [];
+let mediaPaths: Array<{ id?: string; storagePath: string }> = [];
 let variantPaths: Array<{ storagePath: string }> = [];
 let unavailableRows: Array<{ mediaId: string }> = [];
 let publicMediaRows: Array<{ mediaId: string }> = [];
@@ -38,8 +38,12 @@ await mock.module(databaseModulePath, () => ({
   },
 }));
 
-const { purgeEntityMedia, purgeOrphanedMlsMediaFiles, purgeUnavailableMlsMedia } =
-  await import('./media-cleanup.repository');
+const {
+  purgeEntityMedia,
+  purgeOrphanedMlsMediaFiles,
+  purgeSoftDeletedMlsMedia,
+  purgeUnavailableMlsMedia,
+} = await import('./media-cleanup.repository');
 
 beforeEach(async () => {
   originalMediaStorePath = process.env.MLS_MEDIA_STORE_PATH;
@@ -64,7 +68,7 @@ afterEach(async () => {
 });
 
 describe('purgeOrphanedMlsMediaFiles', () => {
-  it('removes old unreferenced files and preserves referenced and recent files', async () => {
+  it('removes all unreferenced files and preserves referenced files', async () => {
     const namespace = path.join(temporaryDirectory, 'mls', 'properties', 'NWM1');
     await mkdir(namespace, { recursive: true });
     const referencedPath = path.join(namespace, 'referenced_full.webp');
@@ -77,22 +81,20 @@ describe('purgeOrphanedMlsMediaFiles', () => {
       writeFile(orphanPath, 'orphan'),
       writeFile(recentPath, 'recent'),
     ]);
-    const oldDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
-    await utimes(orphanPath, oldDate, oldDate);
     mediaPaths = [{ storagePath: referencedPath }];
     variantPaths = [{ storagePath: variantPath }];
 
-    const summary = await purgeOrphanedMlsMediaFiles(['properties'], { minimumAgeMs: 60_000 });
+    const summary = await purgeOrphanedMlsMediaFiles(['properties']);
 
     expect(summary).toEqual({
       scannedFiles: 4,
-      orphanFilesFound: 1,
-      deletedFiles: 1,
+      orphanFilesFound: 2,
+      deletedFiles: 2,
     });
     expect(await Bun.file(referencedPath).exists()).toBe(true);
     expect(await Bun.file(variantPath).exists()).toBe(true);
     expect(await Bun.file(orphanPath).exists()).toBe(false);
-    expect(await Bun.file(recentPath).exists()).toBe(true);
+    expect(await Bun.file(recentPath).exists()).toBe(false);
   });
 
   it('deletes old files when no MLS media paths are referenced', async () => {
@@ -100,10 +102,7 @@ describe('purgeOrphanedMlsMediaFiles', () => {
     await mkdir(namespace, { recursive: true });
     const localFirstPath = path.join(namespace, 'local-first_full.webp');
     await writeFile(localFirstPath, 'local-first');
-    const oldDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
-    await utimes(localFirstPath, oldDate, oldDate);
-
-    const summary = await purgeOrphanedMlsMediaFiles(['properties'], { minimumAgeMs: 0 });
+    const summary = await purgeOrphanedMlsMediaFiles(['properties']);
 
     expect(summary).toEqual({
       scannedFiles: 1,
@@ -137,6 +136,25 @@ describe('purgeUnavailableMlsMedia', () => {
     const summary = await purgeUnavailableMlsMedia();
 
     expect(summary).toEqual({ mediaDeleted: 0, variantFilesDeleted: 0 });
+  });
+});
+
+describe('purgeSoftDeletedMlsMedia', () => {
+  it('hard-deletes soft-deleted MLS media and its full and variant files', async () => {
+    const namespace = path.join(temporaryDirectory, 'mls', 'properties', 'NWM1');
+    await mkdir(namespace, { recursive: true });
+    const fullPath = path.join(namespace, 'soft-deleted_full.webp');
+    const variantPath = path.join(namespace, 'soft-deleted_preview.webp');
+    await Promise.all([writeFile(fullPath, 'full'), writeFile(variantPath, 'preview')]);
+    mediaPaths = [{ id: '0199aabb-0000-7000-8000-000000000001', storagePath: fullPath }];
+    variantPaths = [{ storagePath: variantPath }];
+    deletedMediaRows = [{ id: mediaPaths[0]!.id! }];
+
+    const summary = await purgeSoftDeletedMlsMedia(['properties']);
+
+    expect(summary).toEqual({ mediaDeleted: 1, filesDeleted: 2 });
+    expect(await Bun.file(fullPath).exists()).toBe(false);
+    expect(await Bun.file(variantPath).exists()).toBe(false);
   });
 });
 

@@ -11,6 +11,7 @@ import {
   pruneMlsMediaNamespacesWithoutLinkedMedia,
   purgeDeadMlsMedia,
   purgeOrphanedMlsMediaFiles,
+  purgeSoftDeletedMlsMedia,
   purgeUnavailableMlsMedia,
   purgeScopedMlsMediaBeforeSync,
 } from '../repositories/media-cleanup.repository';
@@ -23,6 +24,11 @@ const MLS_MEDIA_SYNC_SCHEDULE_ID = 'mls.media.sync';
 const MLS_MEDIA_RECONCILE_SCHEDULE_ID = 'mls.media.reconcile';
 const MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID = 'mls.media.orphan-cleanup';
 const MLS_HISTORY_PRUNE_SCHEDULE_ID = 'mls.history.prune';
+const MLS_MEDIA_MUTATION_SCHEDULE_IDS = new Set([
+  MLS_CLEANUP_HOURLY_SCHEDULE_ID,
+  MLS_MEDIA_SYNC_SCHEDULE_ID,
+  MLS_MEDIA_RECONCILE_SCHEDULE_ID,
+]);
 
 const DEFAULT_RESOURCE_CRON: Record<MlsResource, string> = {
   Lookup: '0 6 * * *',
@@ -85,6 +91,22 @@ function isFatalScheduledError(error: unknown): boolean {
 }
 
 async function runScheduledJob(scheduleId: string, run: () => Promise<void>) {
+  const conflictingJob =
+    scheduleId === MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID
+      ? [...MLS_MEDIA_MUTATION_SCHEDULE_IDS].find((jobId) => inFlightScheduledJobs.has(jobId))
+      : MLS_MEDIA_MUTATION_SCHEDULE_IDS.has(scheduleId) &&
+          inFlightScheduledJobs.has(MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID)
+        ? MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID
+        : undefined;
+
+  if (conflictingJob) {
+    syncMlsLogger.warn('skipping scheduled MLS job because a media cleanup conflict is active', {
+      scheduleId,
+      conflictingJob,
+    });
+    return;
+  }
+
   const maxConcurrentScheduledJobs = resolveMaxConcurrentScheduledJobs();
 
   if (inFlightScheduledJobs.size >= maxConcurrentScheduledJobs) {
@@ -127,11 +149,13 @@ async function runScheduledJob(scheduleId: string, run: () => Promise<void>) {
 }
 
 async function runOrphanedMediaCleanup(trigger: 'startup' | 'scheduled') {
+  const softDeletedMediaSummary = await purgeSoftDeletedMlsMedia();
   const unavailableMediaSummary = await purgeUnavailableMlsMedia();
   const purgeSummary = await purgeOrphanedMlsMediaFiles();
   const prunedEmptyDirectories = await pruneEmptyMlsMediaDirectories();
   syncMlsLogger.info('MLS orphaned media file cleanup completed', {
     trigger,
+    softDeletedMediaSummary,
     unavailableMediaSummary,
     purgeSummary,
     prunedEmptyDirectories,

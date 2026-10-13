@@ -123,6 +123,11 @@ services:
     volumes:
       - ${STORE_PATH:-./store}/media:/store/media
       - ${STORE_PATH:-./store}/data:/store/data
+    logging:
+      driver: json-file
+      options:
+        max-size: '20m'
+        max-file: '5'
     deploy:
       replicas: ${MLS_REPLICAS:-1}
       restart_policy:

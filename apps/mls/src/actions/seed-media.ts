@@ -1040,6 +1040,7 @@ export async function runPrioritizedMlsMediaSync(
   result.listings = await runPhase({
     filterEntityTypes: ['properties'],
     enforceEligibilityForNonAssociatedProperties: true,
+    primaryOnlyForAllProperties: true,
   });
 
   return result;

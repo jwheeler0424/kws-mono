@@ -7,6 +7,8 @@ import { randomUUID } from 'node:crypto';
 
 import { db } from '@/lib/database';
 
+import { buildPrimaryMlsMediaClause } from './mls-media-primary';
+
 export type MlsMediaEntityType = 'properties' | 'members' | 'offices';
 
 export async function claimParentMedia(resourceRecordKey: string): Promise<string | null> {
@@ -367,25 +369,7 @@ export async function listMlsMediaSyncCandidates(
   const nonPrioritizedPropertyListingClause = prioritizedPropertyMatchClause
     ? and(isNotNull(properties.listingKey), sql`not (${prioritizedPropertyMatchClause})`)
     : isNotNull(properties.listingKey);
-  // NWMLS Order starts at 0, so "primary" is the preferred photo, else the lowest order.
-  const primaryPhotoClause = sql`(
-    ${mlsMedia.preferredPhotoYN} = true
-    or (
-      not exists (
-        select 1 from mls_media preferred
-        where preferred.resource_record_key = ${mlsMedia.resourceRecordKey}
-          and preferred.deleted_at is null
-          and not (coalesce(preferred.permission, '{}'::varchar[]) && ARRAY['Private']::varchar[])
-          and preferred.preferred_photo_yn = true
-      )
-      and ${mlsMedia.order} = (
-        select min(first_photo."order") from mls_media first_photo
-        where first_photo.resource_record_key = ${mlsMedia.resourceRecordKey}
-          and first_photo.deleted_at is null
-          and not (coalesce(first_photo.permission, '{}'::varchar[]) && ARRAY['Private']::varchar[])
-      )
-    )
-  )`;
+  const primaryPhotoClause = buildPrimaryMlsMediaClause();
 
   const candidateWhereClause = propertyOnlyFilter
     ? primaryOnlyForAllProperties || primaryOnlyForNonPrioritizedProperties
