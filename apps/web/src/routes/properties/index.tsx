@@ -2,15 +2,15 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
 import {
-  ParallaxContainer,
-  ParallaxContentLayer,
-  ParallaxMediaLayer,
+    ParallaxContainer,
+    ParallaxContentLayer,
+    ParallaxMediaLayer,
 } from '@/components/animation/parallax';
 import PropertiesSection from '@/components/global/properties-section';
 import {
-  availablePropertiesOptions,
-  pendingPropertiesOptions,
-  soldPropertiesOptions,
+    availablePropertiesOptions,
+    pendingPropertiesOptions,
+    soldPropertiesOptions,
 } from '@/features/mls/options';
 import { useSeo } from '@/lib/tools';
 
@@ -71,7 +71,7 @@ function RouteComponent() {
         <ParallaxContentLayer>
           <article className='banner banner-title flex'>
             <main>
-              <h1>Our Exclusive Listings</h1>
+              <h1 className='text-balance'>Our Exclusive Listings</h1>
             </main>
           </article>
         </ParallaxContentLayer>

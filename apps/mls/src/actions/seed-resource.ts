@@ -415,7 +415,7 @@ export async function seedResource<TPayload extends Record<string, unknown>>(
       resource,
       osn,
       upserted,
-      errors: errors + 1,
+      errors: Math.max(errors, 1),
       durationMs: Date.now() - startedAt,
       error: message,
       errorDetails: errorDetails.length > 0 ? errorDetails : undefined,

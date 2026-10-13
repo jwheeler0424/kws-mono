@@ -38,7 +38,9 @@ export type MappedProperty = Omit<PropertyInsert, 'createdAt' | 'searchVector'> 
   media: MappedMedia[];
   mediaSnapshotPresent: boolean;
   rooms: MappedPropertyRoom[];
+  roomsSnapshotPresent: boolean;
   unitTypes: MappedPropertyUnitType[];
+  unitTypesSnapshotPresent: boolean;
 };
 
 export type MappedPropertyRoom = Omit<PropertyRoomInsert, 'createdAt' | 'searchVector'>;
@@ -424,7 +426,9 @@ export function mapProperty(payload: MlsPropertyPayload): MappedProperty {
     media,
     mediaSnapshotPresent: Array.isArray(payload.Media),
     rooms,
+    roomsSnapshotPresent: Array.isArray(payload.Rooms),
     unitTypes,
+    unitTypesSnapshotPresent: Array.isArray(payload.UnitTypes),
   };
 }
 

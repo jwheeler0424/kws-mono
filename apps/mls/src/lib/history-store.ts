@@ -7,7 +7,7 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 
 import type { MlsResource } from '@/types';
 
-import { MLS_HISTORY_DEFAULTS } from './constants';
+import { DAY_MS, MLS_HISTORY_DEFAULTS } from './constants';
 import { logger } from './logger';
 import { omitMediaUrl } from './utils/media-history';
 
@@ -33,7 +33,6 @@ function resolveHistoryRoot(): string {
 }
 
 const HISTORY_ROOT = resolveHistoryRoot();
-const HISTORY_LOCK_FILE = path.join(HISTORY_ROOT, '.history-writer.lock');
 const HISTORY_QUARANTINE_ROOT = path.join(HISTORY_ROOT, '.quarantine');
 const HISTORY_QUARANTINE_RECORDS_ROOT = path.join(HISTORY_QUARANTINE_ROOT, 'records');
 const LOCK_RETRY_DELAY_MS = 200;
@@ -139,17 +138,18 @@ async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function acquireHistoryWriterLock(): Promise<() => Promise<void>> {
+async function acquireHistoryWriterLock(historyRoot = HISTORY_ROOT): Promise<() => Promise<void>> {
   const timeoutAt = Date.now() + lockTimeoutMs();
+  const historyLockFile = path.join(historyRoot, '.history-writer.lock');
 
   while (Date.now() <= timeoutAt) {
     try {
-      await mkdir(HISTORY_ROOT, { recursive: true });
+      await mkdir(historyRoot, { recursive: true });
       const lockPayload = JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() });
-      await writeFile(HISTORY_LOCK_FILE, lockPayload, { flag: 'wx' });
+      await writeFile(historyLockFile, lockPayload, { flag: 'wx' });
 
       return async () => {
-        await rm(HISTORY_LOCK_FILE, { force: true });
+        await rm(historyLockFile, { force: true });
       };
     } catch (err) {
       const code = (err as NodeJS.ErrnoException | undefined)?.code;
@@ -158,10 +158,10 @@ async function acquireHistoryWriterLock(): Promise<() => Promise<void>> {
       }
 
       try {
-        const lockStat = await stat(HISTORY_LOCK_FILE);
+        const lockStat = await stat(historyLockFile);
         const lockAgeMs = Date.now() - lockStat.mtimeMs;
         if (lockAgeMs > lockStaleMs()) {
-          await rm(HISTORY_LOCK_FILE, { force: true });
+          await rm(historyLockFile, { force: true });
           continue;
         }
       } catch {
@@ -175,8 +175,11 @@ async function acquireHistoryWriterLock(): Promise<() => Promise<void>> {
   throw new Error('Timed out waiting for MLS history writer lock');
 }
 
-async function withHistoryWriterLock<T>(fn: () => Promise<T>): Promise<T> {
-  const release = await acquireHistoryWriterLock();
+async function withHistoryWriterLock<T>(
+  fn: () => Promise<T>,
+  historyRoot = HISTORY_ROOT,
+): Promise<T> {
+  const release = await acquireHistoryWriterLock(historyRoot);
   try {
     return await fn();
   } finally {
@@ -252,14 +255,17 @@ function toIsoMaybe(date: Date | undefined): string | undefined {
   return date ? date.toISOString() : undefined;
 }
 
-function parsePartitionFromDirectory(partitionDir: string):
+function parsePartitionFromDirectory(
+  partitionDir: string,
+  historyRoot = HISTORY_ROOT,
+):
   | {
       resource: MlsResource;
       year: string;
       month: string;
     }
   | undefined {
-  const relative = path.relative(HISTORY_ROOT, partitionDir);
+  const relative = path.relative(historyRoot, partitionDir);
   if (!relative || relative.startsWith('..')) {
     return undefined;
   }
@@ -411,16 +417,18 @@ async function quarantineHistoryFile(
   filePath: string,
   reason: string,
   message?: string,
+  historyRoot = HISTORY_ROOT,
+  quarantineRoot = HISTORY_QUARANTINE_ROOT,
 ): Promise<void> {
   if (!isQuarantineEnabled()) {
     await rm(filePath, { force: true });
     return;
   }
 
-  const relative = path.relative(HISTORY_ROOT, filePath);
+  const relative = path.relative(historyRoot, filePath);
   const safeRelative = relative.startsWith('..') ? path.basename(filePath) : relative;
   const stamp = new Date().toISOString().replaceAll(':', '-').replaceAll('.', '-');
-  const destination = path.join(HISTORY_QUARANTINE_ROOT, `${safeRelative}.${stamp}`);
+  const destination = path.join(quarantineRoot, `${safeRelative}.${stamp}`);
 
   await mkdir(path.dirname(destination), { recursive: true });
   await rename(filePath, destination);
@@ -610,12 +618,16 @@ async function removeManifestChunk(partitionDir: string, chunkFile: string): Pro
   });
 }
 
-async function recoverPartitionManifest(partitionDir: string): Promise<{
+async function recoverPartitionManifest(
+  partitionDir: string,
+  historyRoot = HISTORY_ROOT,
+  quarantineRoot = path.join(historyRoot, '.quarantine'),
+): Promise<{
   manifest: HistoryPartitionManifest | undefined;
   quarantinedFiles: number;
   recoveredTempFiles: number;
 }> {
-  const partition = parsePartitionFromDirectory(partitionDir);
+  const partition = parsePartitionFromDirectory(partitionDir, historyRoot);
   if (!partition) {
     return {
       manifest: undefined,
@@ -634,7 +646,13 @@ async function recoverPartitionManifest(partitionDir: string): Promise<{
     }
 
     const tempPath = path.join(partitionDir, entry.name);
-    await quarantineHistoryFile(tempPath, 'stale-temp-file', 'Recovered stale temporary file');
+    await quarantineHistoryFile(
+      tempPath,
+      'stale-temp-file',
+      'Recovered stale temporary file',
+      historyRoot,
+      quarantineRoot,
+    );
     recoveredTempFiles++;
   }
 
@@ -658,11 +676,12 @@ async function recoverPartitionManifest(partitionDir: string): Promise<{
     const fullPath = path.join(partitionDir, fileName);
     try {
       const payload = await readChunkPayload(fullPath);
+      const fileStats = await stat(fullPath);
       nextChunks.push({
         file: fileName,
         checksumSha256: payload.checksum,
         recordCount: payload.records.length,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(fileStats.mtimeMs).toISOString(),
       });
     } catch (err) {
       quarantinedFiles++;
@@ -670,6 +689,8 @@ async function recoverPartitionManifest(partitionDir: string): Promise<{
         fullPath,
         'manifest-recovery-invalid-chunk',
         err instanceof Error ? err.message : String(err),
+        historyRoot,
+        quarantineRoot,
       );
     }
   }
@@ -707,7 +728,10 @@ async function recoverPartitionManifest(partitionDir: string): Promise<{
   };
 }
 
-async function listPartitionDirectories(targetRoot: string): Promise<string[]> {
+async function listPartitionDirectories(
+  targetRoot: string,
+  historyRoot = HISTORY_ROOT,
+): Promise<string[]> {
   const allFiles = await listFilesRecursive(targetRoot);
   const dirs = new Set<string>();
   for (const file of allFiles) {
@@ -716,7 +740,7 @@ async function listPartitionDirectories(targetRoot: string): Promise<string[]> {
     }
 
     const dir = path.dirname(file);
-    const partition = parsePartitionFromDirectory(dir);
+    const partition = parsePartitionFromDirectory(dir, historyRoot);
     if (!partition) {
       continue;
     }
@@ -937,8 +961,14 @@ export interface HistoryCompactionSummary {
   skippedPartitions: number;
 }
 
+export interface HistoryStoreLocationOptions {
+  historyRoot?: string;
+  quarantineRoot?: string;
+}
+
 export async function compactHistoryStore(
   resource?: MlsResource,
+  locations: HistoryStoreLocationOptions = {},
 ): Promise<HistoryCompactionSummary> {
   if (!isHistoryEnabled()) {
     return {
@@ -948,16 +978,18 @@ export async function compactHistoryStore(
     };
   }
 
+  const historyRoot = locations.historyRoot ?? HISTORY_ROOT;
+  const quarantineRoot = locations.quarantineRoot ?? path.join(historyRoot, '.quarantine');
   return withHistoryWriterLock(async () => {
-    const targetRoot = resource ? path.join(HISTORY_ROOT, resource) : HISTORY_ROOT;
-    const partitionDirs = await listPartitionDirectories(targetRoot);
+    const targetRoot = resource ? path.join(historyRoot, resource) : historyRoot;
+    const partitionDirs = await listPartitionDirectories(targetRoot, historyRoot);
 
     let compactedPartitions = 0;
     let compactedFiles = 0;
     let skippedPartitions = 0;
 
     for (const partitionDir of partitionDirs) {
-      const recovered = await recoverPartitionManifest(partitionDir);
+      const recovered = await recoverPartitionManifest(partitionDir, historyRoot, quarantineRoot);
       const manifest = recovered.manifest;
       if (!manifest || manifest.chunks.length <= 1) {
         continue;
@@ -977,6 +1009,15 @@ export async function compactHistoryStore(
 
       const sortedChunks = [...manifest.chunks].sort((a, b) => a.file.localeCompare(b.file));
       const sortedFiles = sortedChunks.map((chunk) => path.join(partitionDir, chunk.file));
+      let latestCreatedAt: Date | undefined;
+      for (const chunk of sortedChunks) {
+        const createdAt = normalizeTimestamp(chunk.createdAt);
+        const sourceCreatedAt =
+          createdAt ?? new Date((await stat(path.join(partitionDir, chunk.file))).mtimeMs);
+        if (!latestCreatedAt || sourceCreatedAt > latestCreatedAt) {
+          latestCreatedAt = sourceCreatedAt;
+        }
+      }
       const parts: string[] = [];
       for (const file of sortedFiles) {
         const payload = await readChunkPayload(file);
@@ -1004,7 +1045,7 @@ export async function compactHistoryStore(
         await rm(file, { force: true });
       }
 
-      const metadata = parsePartitionFromDirectory(partitionDir);
+      const metadata = parsePartitionFromDirectory(partitionDir, historyRoot);
       if (metadata) {
         const firstTimestamp = sortedChunks.reduce<string | undefined>(
           (acc, chunk) => mergeTimestampWindow(acc, chunk.firstTimestamp, 'min'),
@@ -1014,7 +1055,6 @@ export async function compactHistoryStore(
           (acc, chunk) => mergeTimestampWindow(acc, chunk.lastTimestamp, 'max'),
           undefined,
         );
-
         await writePartitionManifest(partitionDir, {
           version: 1,
           resource: metadata.resource,
@@ -1028,7 +1068,7 @@ export async function compactHistoryStore(
               recordCount: sortedChunks.reduce((total, chunk) => total + chunk.recordCount, 0),
               firstTimestamp,
               lastTimestamp,
-              createdAt: new Date().toISOString(),
+              createdAt: latestCreatedAt?.toISOString() ?? new Date().toISOString(),
             },
           ],
         });
@@ -1049,7 +1089,81 @@ export async function compactHistoryStore(
       compactedFiles,
       skippedPartitions,
     };
-  });
+  }, historyRoot);
+}
+
+export interface HistoryPruneSummary {
+  historyChunksDeleted: number;
+  quarantineFilesDeleted: number;
+  manifestsUpdated: number;
+}
+
+export async function pruneExpiredHistory(
+  nowMs: number = Date.now(),
+  locations: HistoryStoreLocationOptions = {},
+): Promise<HistoryPruneSummary> {
+  const summary: HistoryPruneSummary = {
+    historyChunksDeleted: 0,
+    quarantineFilesDeleted: 0,
+    manifestsUpdated: 0,
+  };
+  if (!isHistoryEnabled()) return summary;
+
+  const historyCutoffMs = nowMs - MLS_HISTORY_DEFAULTS.historyRetentionDays * DAY_MS;
+  const quarantineCutoffMs = nowMs - MLS_HISTORY_DEFAULTS.quarantineRetentionDays * DAY_MS;
+  const historyRoot = locations.historyRoot ?? HISTORY_ROOT;
+  const quarantineRoot = locations.quarantineRoot ?? path.join(historyRoot, '.quarantine');
+
+  return withHistoryWriterLock(async () => {
+    const partitionDirs = await listPartitionDirectories(historyRoot, historyRoot);
+    for (const partitionDir of partitionDirs) {
+      const manifest = (await recoverPartitionManifest(partitionDir, historyRoot, quarantineRoot))
+        .manifest;
+      if (!manifest) continue;
+
+      const retainedChunks: HistoryChunkManifestEntry[] = [];
+      for (const chunk of manifest.chunks) {
+        const chunkPath = path.join(partitionDir, chunk.file);
+        let createdAt = normalizeTimestamp(chunk.createdAt);
+        if (!createdAt) {
+          const fileStats = await stat(chunkPath);
+          createdAt = new Date(fileStats.mtimeMs);
+        }
+
+        if (createdAt.getTime() <= historyCutoffMs) {
+          await rm(chunkPath, { force: true });
+          summary.historyChunksDeleted += 1;
+        } else {
+          retainedChunks.push(chunk);
+        }
+      }
+
+      if (retainedChunks.length === manifest.chunks.length) continue;
+      summary.manifestsUpdated += 1;
+      if (retainedChunks.length === 0) {
+        await rm(manifestPath(partitionDir), { force: true });
+      } else {
+        await writePartitionManifest(partitionDir, { ...manifest, chunks: retainedChunks });
+      }
+    }
+
+    const quarantineFiles = await listFilesRecursive(quarantineRoot);
+    for (const filePath of quarantineFiles) {
+      let fileStats;
+      try {
+        fileStats = await stat(filePath);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+        throw error;
+      }
+      if (fileStats.mtimeMs <= quarantineCutoffMs) {
+        await rm(filePath, { force: true });
+        summary.quarantineFilesDeleted += 1;
+      }
+    }
+
+    return summary;
+  }, historyRoot);
 }
 
 export interface HistoryRecoverySummary {

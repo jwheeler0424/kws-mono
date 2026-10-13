@@ -36,7 +36,7 @@ function RouteComponent() {
     <main className='content page-content guide-content relative'>
       <section>
         <article>
-          <h1 className='m-0 mb-6 sm:mb-8'>Privacy Policy</h1>
+          <h1 className='m-0 mb-6 text-balance sm:mb-8'>Privacy Policy</h1>
           <section>
             <p>
               At Compass, accessible from{' '}
@@ -63,13 +63,13 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>Consent</h2>
+            <h2 className='text-balance'>Consent</h2>
             <p>
               By using our website, you hereby consent to our Privacy Policy and agree to its terms.
             </p>
           </section>
           <section>
-            <h2>Information we collect</h2>
+            <h2 className='text-balance'>Information we collect</h2>
             <p>
               The personal information that you are asked to provide, and thereasons why you are
               asked to provide it, will be made clear to you atthe point we ask you to provide your
@@ -86,7 +86,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>How we use your information</h2>
+            <h2 className='text-balance'>How we use your information</h2>
             <p>We use the information we collect in various ways, including to:</p>
             <ul>
               <li>Provide, operate, and maintain our website</li>
@@ -103,7 +103,7 @@ function RouteComponent() {
             </ul>
           </section>
           <section>
-            <h2>Log Files</h2>
+            <h2 className='text-balance'>Log Files</h2>
             <p>
               Compass follows a standard procedure of using log files. These files log visitors when
               they visit websites. All hosting companies do this and a part of hosting services'
@@ -116,7 +116,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>Advertising Partners Privacy Policies</h2>
+            <h2 className='text-balance'>Advertising Partners Privacy Policies</h2>
             <p>
               You may consult this list to find the Privacy Policy for each of the advertising
               partners of Compass.
@@ -135,7 +135,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>Third Party Privacy Policies</h2>
+            <h2 className='text-balance'>Third Party Privacy Policies</h2>
             <p>
               Compass's Privacy Policy does not apply to other advertisers or websites. Thus, we are
               advising you to consult the respective Privacy Policies of these third-party ad
@@ -149,7 +149,9 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>CCPA Privacy Rights (Do Not Sell My Personal Information)</h2>
+            <h2 className='text-balance'>
+              CCPA Privacy Rights (Do Not Sell My Personal Information)
+            </h2>
             <p>Under the CCPA, among other rights, Washington consumers have the right to:</p>
             <p>
               Request that a business that collects a consumer's personal data disclose the
@@ -174,7 +176,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>GDPR Data Protection Rights</h2>
+            <h2 className='text-balance'>GDPR Data Protection Rights</h2>
             <p>
               We would like to make sure you are fully aware of all of your data protection rights.
               Every user is entitled to the following:
@@ -215,7 +217,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>Children's Information</h2>
+            <h2 className='text-balance'>Children's Information</h2>
             <p>
               Another part of our priority is adding protection for children while using the
               internet. We encourage parents and guardians to observe, participate in, and/or
@@ -229,7 +231,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>Changes to This Privacy Policy</h2>
+            <h2 className='text-balance'>Changes to This Privacy Policy</h2>
             <p>
               We may update our Privacy Policy from time to time. Thus, we advise you to review this
               page periodically for any changes. We will notify you of any changes by posting the
@@ -238,7 +240,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>Contact Us</h2>
+            <h2 className='text-balance'>Contact Us</h2>
             <p>
               If you have any questions or suggestions about our Privacy Policy, do not hesitate to{' '}
               <a href='/contact' title='Contact Us'>

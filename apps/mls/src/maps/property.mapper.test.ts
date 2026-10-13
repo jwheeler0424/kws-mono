@@ -38,6 +38,20 @@ describe('NWMLS property mapping', () => {
     ).toBe(true);
   });
 
+  it('distinguishes omitted child expansions from explicit empty snapshots', () => {
+    const omitted = mapProperty({ ListingKey: 'NWM1' } as MlsPropertyPayload);
+    const empty = mapProperty({
+      ListingKey: 'NWM1',
+      Rooms: [],
+      UnitTypes: [],
+    } as MlsPropertyPayload);
+
+    expect(omitted.roomsSnapshotPresent).toBe(false);
+    expect(omitted.unitTypesSnapshotPresent).toBe(false);
+    expect(empty.roomsSnapshotPresent).toBe(true);
+    expect(empty.unitTypesSnapshotPresent).toBe(true);
+  });
+
   it('marks private media unavailable without saving the signed URL', () => {
     const mapped = mapProperty({
       ListingKey: 'NWM1',
@@ -89,19 +103,35 @@ describe('Member and Office media without upstream MediaKey', () => {
       MlgCanView: true,
       Media: [{ MediaURL: 'signed-url' }],
     });
-    expect(member.media[0]?.mediaKey).toBe('member:NWMmember1');
-    expect(office.media[0]?.mediaKey).toBe('office:NWMoffice1');
-    expect(member.media[0]?.mediaURL).toBeNull();
-    expect(office.media[0]?.mediaURL).toBeNull();
-    expect(member.mediaSnapshotPresent).toBe(true);
-    expect(office.mediaSnapshotPresent).toBe(true);
+    expect(member.media).toEqual([]);
+    expect(office.media).toEqual([]);
+    expect(member.mediaSnapshotPresent).toBe(false);
+    expect(office.mediaSnapshotPresent).toBe(false);
   });
 
   it('uses the same fallback to match fresh snapshots despite rotated signed URLs', () => {
-    const mapped = mapMemberMedia({ MediaURL: 'first-url' }, 'NWMmember1');
-    expect(resolveMlsMediaKey({ MediaURL: 'new-url' }, 'NWMmember1', 'members')).toBe(
-      mapped?.mediaKey ?? null,
+    const mapped = mapMemberMedia(
+      { MediaObjectID: 'object-1', MediaURL: 'first-url' },
+      'NWMmember1',
     );
+    expect(
+      resolveMlsMediaKey(
+        { MediaObjectID: 'object-1', MediaURL: 'new-url' },
+        'NWMmember1',
+        'members',
+      ),
+    ).toBe(mapped?.mediaKey ?? null);
+  });
+
+  it('does not reconcile an incomplete media snapshot with unidentified records', () => {
+    const member = mapMember({
+      MemberMlsId: 'NWMmember1',
+      MlgCanView: true,
+      Media: [{ MediaObjectID: 'object-1' }, { MediaURL: 'unidentified' }],
+    });
+
+    expect(member.media).toHaveLength(1);
+    expect(member.mediaSnapshotPresent).toBe(false);
   });
 
   it('preserves provided keys and distinguishes available media object identities', () => {

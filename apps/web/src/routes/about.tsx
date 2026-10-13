@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import {
-  ParallaxContainer,
-  ParallaxContentLayer,
-  ParallaxMediaLayer,
+    ParallaxContainer,
+    ParallaxContentLayer,
+    ParallaxMediaLayer,
 } from '@/components/animation/parallax';
 import { useSeo } from '@/lib/tools';
 
@@ -55,7 +55,7 @@ function RouteComponent() {
         <ParallaxContentLayer>
           <article className='banner banner-title flex'>
             <main>
-              <h1>About Me</h1>
+              <h1 className='text-balance'>About Me</h1>
             </main>
           </article>
         </ParallaxContentLayer>
@@ -63,7 +63,7 @@ function RouteComponent() {
       <article className='about-story page-content flow-root'>
         <header className='mb-6 sm:mb-8'>
           <span className='font-sans text-sm text-neutral-600'>Seattle Real Estate · Compass</span>
-          <h2 className='mt-2! mb-0! text-3xl sm:text-4xl'>Kyle Weber</h2>
+          <h2 className='mt-2! mb-0! text-3xl text-balance sm:text-4xl'>Kyle Weber</h2>
         </header>
         <img
           src='/assets/images/compass/kyle-white.jpg'

@@ -46,7 +46,7 @@ function RouteComponent() {
   return (
     <main className='content page-content relative'>
       <header>
-        <h1 className='m-0'>Reach out to me.</h1>
+        <h1 className='m-0 text-balance'>Reach out to me.</h1>
       </header>
       <div className='grid items-start gap-8 sm:gap-12 lg:grid-cols-[1fr_2fr] lg:gap-20'>
         <aside className='flex flex-col gap-8 lg:pt-1'>
@@ -54,7 +54,7 @@ function RouteComponent() {
             {attribution ? (
               <div className='mb-6 border-b border-neutral-200 pb-6'>{attribution}</div>
             ) : null}
-            <h2 className='mb-3 text-2xl'>Kyle Weber</h2>
+            <h2 className='mb-3 text-2xl text-balance'>Kyle Weber</h2>
             <p className='text-base leading-8 text-neutral-600'>
               <a href='tel:+12066498935'>206.649.8935</a>
               <br />

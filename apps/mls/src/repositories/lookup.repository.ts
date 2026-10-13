@@ -1,5 +1,5 @@
 import { lookups } from '@kws/schema';
-import { eq } from 'drizzle-orm';
+import { desc, eq, isNotNull } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
 import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
@@ -51,12 +51,12 @@ export async function upsertLookups(data: MappedLookup[]) {
 }
 
 export async function getLatestLookupTimestamp(): Promise<Date | string | null> {
-  const result = await db.query.lookups.findFirst({
-    columns: {
-      modificationTimestamp: true,
-    },
-    orderBy: (table, { desc }) => desc(table.modificationTimestamp),
-  });
+  const [result] = await db
+    .select({ modificationTimestamp: lookups.modificationTimestamp })
+    .from(lookups)
+    .where(isNotNull(lookups.modificationTimestamp))
+    .orderBy(desc(lookups.modificationTimestamp))
+    .limit(1);
 
   return result?.modificationTimestamp ?? null;
 }

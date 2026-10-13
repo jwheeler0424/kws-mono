@@ -2,9 +2,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import {
-  ParallaxContainer,
-  ParallaxContentLayer,
-  ParallaxMediaLayer,
+    ParallaxContainer,
+    ParallaxContentLayer,
+    ParallaxMediaLayer,
 } from '@/components/animation/parallax';
 import FeaturedProperties from '@/components/global/featured-properties';
 import { Link } from '@/components/global/link';
@@ -28,7 +28,7 @@ export const Route = createFileRoute('/')({
 function Home() {
   return (
     <main className='min-h-full w-full overflow-hidden bg-neutral-900 text-white'>
-      <h1 className='sr-only'>Kyle Weber, Seattle Real Estate at Compass</h1>
+      <h1 className='sr-only text-balance'>Kyle Weber, Seattle Real Estate at Compass</h1>
       {/* Hero */}
       <ParallaxContainer className='relative flex h-screen items-center justify-center overflow-hidden'>
         <ParallaxContentLayer speed={1}>
@@ -69,6 +69,7 @@ function Home() {
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
               <h2
+                className='text-balance'
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -109,7 +110,7 @@ function Home() {
         <div className='relative z-10 w-full bg-black/15 py-12 sm:py-16'>
           <article className='w-full'>
             <main className='relative mx-auto flex min-h-[calc(100svh-6rem)] w-11/12 flex-col items-center justify-center gap-8 px-2 sm:min-h-[calc(100svh-8rem)] md:px-5 2xl:px-12'>
-              <h2 className='m-0! w-full text-left text-4xl leading-tight font-bold text-white drop-shadow-[1px_2px_2px_rgba(0,0,0,0.65)] sm:text-5xl lg:text-6xl'>
+              <h2 className='m-0! w-full text-left text-4xl leading-tight font-bold text-balance text-white drop-shadow-[1px_2px_2px_rgba(0,0,0,0.65)] sm:text-5xl lg:text-6xl'>
                 Our Exclusive Listings
               </h2>
               <section className='flex w-full min-w-0 items-center justify-center'>
@@ -155,6 +156,7 @@ function Home() {
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
               <h2
+                className='text-balance'
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -207,6 +209,7 @@ function Home() {
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
               <h2
+                className='text-balance'
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -258,6 +261,7 @@ function Home() {
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
               <h2
+                className='text-balance'
                 style={{
                   color: 'white',
                   position: 'relative',
@@ -310,6 +314,7 @@ function Home() {
                 padding: 'clamp(1.25rem, 1.65vw - 2.16rem, 6rem) 0',
               }}>
               <h2
+                className='text-balance'
                 style={{
                   color: 'white',
                   position: 'relative',

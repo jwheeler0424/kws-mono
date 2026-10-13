@@ -2,9 +2,9 @@ import { createFileRoute } from '@tanstack/react-router';
 import React from 'react';
 
 import {
-  ParallaxContainer,
-  ParallaxContentLayer,
-  ParallaxMediaLayer,
+    ParallaxContainer,
+    ParallaxContentLayer,
+    ParallaxMediaLayer,
 } from '@/components/animation';
 import { useSeo } from '@/lib/tools';
 import { cn } from '@/lib/utils';
@@ -60,7 +60,7 @@ function RouteComponent() {
         <ParallaxContentLayer>
           <article className='banner banner-title flex'>
             <main>
-              <h1>Let's Discover Seattle</h1>
+              <h1 className='text-balance'>Let's Discover Seattle</h1>
             </main>
           </article>
         </ParallaxContentLayer>
@@ -68,7 +68,7 @@ function RouteComponent() {
 
       <article className='content page-content relative'>
         <section className='flex w-full flex-col gap-4'>
-          <h2 className='m-0 text-3xl sm:text-4xl lg:text-5xl'>Recent Blog Posts</h2>
+          <h2 className='m-0 text-3xl text-balance sm:text-4xl lg:text-5xl'>Recent Blog Posts</h2>
           <p className='m-0'>
             {`Welcome to the blog! Here you'll find a collection of articles
 				covering a variety of topics, from the latest market updates to the

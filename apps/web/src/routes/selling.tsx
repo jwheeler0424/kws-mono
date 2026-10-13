@@ -47,7 +47,7 @@ function RouteComponent() {
         <ParallaxContentLayer>
           <article className='banner banner-title flex'>
             <main>
-              <h1>Selling a Home in Seattle</h1>
+              <h1 className='text-balance'>Selling a Home in Seattle</h1>
             </main>
           </article>
         </ParallaxContentLayer>
@@ -65,7 +65,7 @@ function RouteComponent() {
           }
         </p>
         <p>{"Let's start at the beginning. "}</p>
-        <h2>{'Had Enough of It, Huh?'}</h2>
+        <h2 className='text-balance'>{'Had Enough of It, Huh?'}</h2>
         <p>{"Or maybe you're sitting on years of equity and it's simply time to cash in. "}</p>
         <p>
           {
@@ -76,7 +76,7 @@ function RouteComponent() {
         <p>
           {'Figuring out when to sell your Seattle home can be considerably more complicated. '}
         </p>
-        <h2>{'Now or Never?'}</h2>
+        <h2 className='text-balance'>{'Now or Never?'}</h2>
         <p>
           {
             'In a perfect world, you sell entirely on your terms, with the market firmly in your favor. '
@@ -88,8 +88,8 @@ function RouteComponent() {
             'Before we decide when to list, I want to understand what selling actually accomplishes for you. What did you pay for the property? How much equity do you have? Is there a mortgage to pay off? Are you buying something else? Could keeping the property as a rental make more sense? '
           }
         </p>
-        <h3>{'And, importantly: what will it actually cost to sell?'}</h3>
-        <h3>{'What Does It Cost to Sell a Home in Seattle?'}</h3>
+        <p className='font-bold'>{'And, importantly: what will it actually cost to sell?'}</p>
+        <h3 className='text-balance'>{'What Does It Cost to Sell a Home in Seattle?'}</h3>
         <p>
           {
             "There isn't one universal number, but these are some of the expenses Seattle sellers should anticipate: "
@@ -166,7 +166,7 @@ function RouteComponent() {
           }
         </p>
         <p>{"That's a calculation I want to make before your home ever hits the market. "}</p>
-        <h2>{'What’s It Worth?'}</h2>
+        <h2 className='text-balance'>{'What’s It Worth?'}</h2>
         <p>{'This is where things get interesting. '}</p>
         <p>
           {
@@ -190,7 +190,7 @@ function RouteComponent() {
             'From there, we determine a probable range of market value and decide how we want to approach it. '
           }
         </p>
-        <h2>{'Pricing Your Seattle Home'}</h2>
+        <h2 className='text-balance'>{'Pricing Your Seattle Home'}</h2>
         <p>{"Price and value aren't necessarily the same thing. "}</p>
         <p>
           {
@@ -248,7 +248,7 @@ function RouteComponent() {
             "My job isn't to convince you to list your home. It's to help determine whether listing it makes sense. "
           }
         </p>
-        <h2>{'Marketing the Home'}</h2>
+        <h2 className='text-balance'>{'Marketing the Home'}</h2>
         <p>{"Once we've settled on timing and price, we need people to want it. "}</p>
         <p>{'That begins well before the listing goes live. '}</p>
         <p>
@@ -275,7 +275,7 @@ function RouteComponent() {
             "They're the reason someone falls in love after the fundamentals get them through the door. "
           }
         </p>
-        <h2>{'Offer Review Date or Offers as Received?'}</h2>
+        <h2 className='text-balance'>{'Offer Review Date or Offers as Received?'}</h2>
         <p>{"There's no automatic answer. "}</p>
         <p>
           {
@@ -297,7 +297,7 @@ function RouteComponent() {
             "We'll make that decision based on the property, activity during the first few days, competing inventory, and what buyers are actually doing—not because it's simply “how listings are done.” "
           }
         </p>
-        <h2>{'Deal or No Deal?'}</h2>
+        <h2 className='text-balance'>{'Deal or No Deal?'}</h2>
         <p>{'Hopefully, we have options. '}</p>
         <p>{'When an offer arrives, the first number everyone looks at is price. '}</p>
         <p>{'I look at the rest of the contract. '}</p>
@@ -333,7 +333,7 @@ function RouteComponent() {
           }
         </p>
         <p>{"That's why we read the entire thing. "}</p>
-        <h2>{'Champagne or Cake?'}</h2>
+        <h2 className='text-balance'>{'Champagne or Cake?'}</h2>
         <p>{"It's closing day. "}</p>
         <p>{'Before we celebrate, there are a few loose ends. '}</p>
         <p>
@@ -360,7 +360,7 @@ function RouteComponent() {
           <strong>{"Congratulations. You've sold your home."}</strong>{' '}
         </p>
         <p>{"Now we can decide where we're having the champagne. "}</p>
-        <h2>{'Thinking About Selling Your Seattle Home?'}</h2>
+        <h2 className='text-balance'>{'Thinking About Selling Your Seattle Home?'}</h2>
         <p>{"You don't need to be ready to list next week to start the conversation. "}</p>
         <p>
           {
@@ -370,7 +370,7 @@ function RouteComponent() {
         <p>{'Sometimes the answer is to sell. '}</p>
         <p>{"Sometimes it's to wait. "}</p>
         <p>{"Either way, I'd rather start with the numbers. "}</p>
-        <h3>{"Let's find out what your Seattle home is worth."}</h3>
+        <h3 className='text-balance'>{"Let's find out what your Seattle home is worth."}</h3>
         <div className='mt-10'>
           <Link to='/contact' variant='solidPrimary' size='lg'>
             Contact Kyle

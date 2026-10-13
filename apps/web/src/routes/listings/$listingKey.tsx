@@ -2,13 +2,13 @@ import { Separator } from '@kws/design/ui/separator';
 import { createFileRoute } from '@tanstack/react-router';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
-  BathIcon,
-  BedDoubleIcon,
-  CircleCheckBigIcon,
-  HammerIcon,
-  LayersIcon,
-  MapPinnedIcon,
-  RulerDimensionLineIcon,
+    BathIcon,
+    BedDoubleIcon,
+    CircleCheckBigIcon,
+    HammerIcon,
+    LayersIcon,
+    MapPinnedIcon,
+    RulerDimensionLineIcon,
 } from 'lucide-react';
 
 import { Badge } from '@/components/global/badge';
@@ -20,16 +20,16 @@ import { listingDetailOptions } from '@/features/mls/options';
 import { useSeo } from '@/lib/tools';
 import { cn } from '@/lib/utils';
 import {
-  getAddressCityStateZip,
-  getAddressStreet,
-  getBathroomCount,
-  getBedroomCount,
-  getLivingArea,
-  getPropertyLevels,
-  getPropertyStatus,
-  getPropertyStatusClassName,
-  numberFormat,
-  parseNwmBooleanFlag,
+    getAddressCityStateZip,
+    getAddressStreet,
+    getBathroomCount,
+    getBedroomCount,
+    getLivingArea,
+    getPropertyLevels,
+    getPropertyStatus,
+    getPropertyStatusClassName,
+    numberFormat,
+    parseNwmBooleanFlag,
 } from '@/lib/utils/properties';
 
 export const Route = createFileRoute('/listings/$listingKey')({
@@ -94,7 +94,7 @@ function RouteComponent() {
         )}>
         <section className={cn('flex w-full flex-col')}>
           <main className={cn('-ml-px flex h-fit flex-col gap-1')}>
-            <h1 className={cn('m-0! font-sans! text-2xl! font-bold! text-gray-900!')}>
+            <h1 className={cn('m-0! font-sans! text-2xl! font-bold! text-balance text-gray-900!')}>
               {property.internetAddressDisplayYN === false
                 ? 'Unavailable'
                 : getAddressStreet(property)}
@@ -228,7 +228,7 @@ function RouteComponent() {
             </p>
             <h2
               className={cn(
-                'mt-4! font-sans! text-3xl! font-bold! tracking-normal! text-gray-900!',
+                'mt-4! font-sans! text-3xl! font-bold! tracking-normal! text-balance text-gray-900!',
               )}>
               {property.internetAutomatedValuationDisplayYN === false
                 ? 'Unavailable'
@@ -240,7 +240,9 @@ function RouteComponent() {
           <section className={cn('flex w-full flex-col gap-10')}>
             <article className={cn('w-full')}>
               <h3
-                className={cn('font-sans! text-base! font-bold! tracking-normal! text-gray-900!')}>
+                className={cn(
+                  'font-sans! text-base! font-bold! tracking-normal! text-balance text-gray-900!',
+                )}>
                 Property Description
               </h3>
               <p className={cn('mt-2! pr-2 pl-0 text-base!')}>{property.publicRemarks}</p>
@@ -295,7 +297,7 @@ function RouteComponent() {
                 <article className={cn('w-full')}>
                   <h3
                     className={cn(
-                      'font-sans! text-base! font-bold! tracking-normal! text-gray-900!',
+                      'font-sans! text-base! font-bold! tracking-normal! text-balance text-gray-900!',
                     )}>
                     Interior Features
                   </h3>

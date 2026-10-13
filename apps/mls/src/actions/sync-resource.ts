@@ -47,6 +47,22 @@ export interface SyncResourceConfig<TPayload extends Record<string, unknown>> {
   upsert: (records: TPayload[]) => Promise<Date>;
 }
 
+export interface SyncResourceDependencies {
+  claimSyncCursor: typeof claimSyncCursor;
+  checkpointSyncCursor: typeof checkpointSyncCursor;
+  finishSyncCursor: typeof finishSyncCursor;
+  persistHistoryPage: typeof persistHistoryPage;
+  quarantineInvalidTimestampRecords: typeof quarantineInvalidTimestampRecords;
+}
+
+const DEFAULT_SYNC_RESOURCE_DEPENDENCIES: SyncResourceDependencies = {
+  claimSyncCursor,
+  checkpointSyncCursor,
+  finishSyncCursor,
+  persistHistoryPage,
+  quarantineInvalidTimestampRecords,
+};
+
 function normalizeTimestamp(input: Date | string | null | undefined): Date | undefined {
   if (!input) {
     return undefined;
@@ -66,6 +82,7 @@ function normalizeTimestamp(input: Date | string | null | undefined): Date | und
 
 export async function syncResource<TPayload extends Record<string, unknown>>(
   config: SyncResourceConfig<TPayload>,
+  dependencies: SyncResourceDependencies = DEFAULT_SYNC_RESOURCE_DEPENDENCIES,
 ): Promise<SyncResult> {
   const { resource, osn, getTimestamp } = config;
   const startedAt = Date.now();
@@ -74,11 +91,12 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
   let errors = 0;
   let quarantined = 0;
   const errorDetails: ErrorDetail[] = [];
+  let failure: string | undefined;
 
   logger.info('sync started', { resource, osn });
 
   const dbWatermark = normalizeTimestamp(await config.getLatestTimestamp());
-  const cursor = await claimSyncCursor(resource, osn, dbWatermark);
+  const cursor = await dependencies.claimSyncCursor(resource, osn, dbWatermark);
   if (!cursor) return { resource, osn, upserted: 0, errors: 0, durationMs: Date.now() - startedAt };
   let activeAfterTimestamp = normalizeTimestamp(cursor.timestamp);
 
@@ -101,7 +119,7 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
     for await (const pageBatch of config.fetchFn(osn, {
       afterTimestamp: activeAfterTimestamp,
     })) {
-      const pageSanitized = await quarantineInvalidTimestampRecords({
+      const pageSanitized = await dependencies.quarantineInvalidTimestampRecords({
         resource,
         records: pageBatch.value,
         getTimestamp,
@@ -126,7 +144,7 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
         continue;
       }
 
-      await persistHistoryPage({
+      await dependencies.persistHistoryPage({
         resource,
         records: batch,
         getTimestamp,
@@ -137,7 +155,7 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
         const timestamp = normalizeTimestamp(getTimestamp(record));
         return timestamp && (!latest || timestamp > latest) ? timestamp : latest;
       }, undefined);
-      await checkpointSyncCursor(cursor.token, receivedTimestamp);
+      await dependencies.checkpointSyncCursor(cursor.token, receivedTimestamp);
       page++;
 
       upserted += batch.length;
@@ -193,20 +211,20 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await finishSyncCursor(cursor.token, message);
+    failure = message;
     logger.error('sync failed', { resource, osn, message });
 
     return {
       resource,
       osn,
       upserted,
-      errors: errors + 1,
+      errors: 1,
       durationMs: Date.now() - startedAt,
       error: message,
       errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
     };
   } finally {
-    await finishSyncCursor(cursor.token, errors > 0 ? 'Replication failed' : undefined);
+    await dependencies.finishSyncCursor(cursor.token, failure);
   }
 }
 

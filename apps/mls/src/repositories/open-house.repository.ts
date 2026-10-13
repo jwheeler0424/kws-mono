@@ -1,5 +1,5 @@
 import { openHouses, properties } from '@kws/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray, isNotNull } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
 import { logger } from '@/lib/logger';
@@ -93,12 +93,12 @@ export async function upsertOpenHouses(data: (typeof openHouses.$inferInsert)[])
 }
 
 export async function getLatestOpenHouseTimestamp(): Promise<Date | string | null> {
-  const result = await db.query.openHouses.findFirst({
-    columns: {
-      modificationTimestamp: true,
-    },
-    orderBy: (table, { desc }) => desc(table.modificationTimestamp),
-  });
+  const [result] = await db
+    .select({ modificationTimestamp: openHouses.modificationTimestamp })
+    .from(openHouses)
+    .where(isNotNull(openHouses.modificationTimestamp))
+    .orderBy(desc(openHouses.modificationTimestamp))
+    .limit(1);
 
   return result?.modificationTimestamp ?? null;
 }

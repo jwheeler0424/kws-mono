@@ -12,7 +12,7 @@ import {
 
 import type { MlsMemberPayload } from '../types';
 
-import { mapMemberMedia, type MappedMedia } from './media.mapper';
+import { mapMemberMedia, resolveMlsMediaKey, type MappedMedia } from './media.mapper';
 
 type MemberInsert = typeof members.$inferInsert;
 
@@ -59,6 +59,10 @@ export function mapMember(payload: MlsMemberPayload): MappedMember {
     /* extensions */
     NWM: nwm,
     media,
-    mediaSnapshotPresent: Array.isArray(payload.Media),
+    mediaSnapshotPresent:
+      Array.isArray(payload.Media) &&
+      payload.Media.every((mediaPayload) =>
+        Boolean(resolveMlsMediaKey(mediaPayload, payload.MemberMlsId, 'members')),
+      ),
   };
 }

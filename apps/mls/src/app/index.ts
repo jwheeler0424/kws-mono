@@ -130,7 +130,7 @@ export async function main() {
       if (releasedRows > 0) {
         logger.info('released media rows deferred by an earlier quota stop', { releasedRows });
       }
-      registerMlsSyncJobTypes();
+      await registerMlsSyncJobTypes();
     } else {
       logger.warn('MLS sync job registration skipped by rollout flag');
     }

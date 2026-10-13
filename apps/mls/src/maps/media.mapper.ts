@@ -24,9 +24,7 @@ export function resolveMlsMediaKey(
   if (entityType === 'properties' || !resourceRecordKey) return null;
   const prefix = entityType === 'members' ? 'member' : 'office';
   const objectId = payload.MediaObjectID?.trim();
-  return objectId
-    ? `${prefix}:${resourceRecordKey}:object:${objectId}`
-    : `${prefix}:${resourceRecordKey}`;
+  return objectId ? `${prefix}:${resourceRecordKey}:object:${objectId}` : null;
 }
 
 function mapMediaBase(
@@ -77,8 +75,8 @@ export function mapPropertyMedia(
 }
 
 /**
- * Member media payloads can omit MediaKey. Fall back to the member identifier
- * so each member retains a stable, upsertable media row key.
+ * Member media payloads can omit MediaKey. Use MediaObjectID when available;
+ * without either identifier the item cannot be reconciled safely.
  */
 export function mapMemberMedia(
   payload: MlsMediaPayload,

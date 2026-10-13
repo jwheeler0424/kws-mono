@@ -14,7 +14,6 @@ import { abbreviateNumber } from '@/lib/utils';
 import { useMapActions, useMapStore } from '@/stores/map.store';
 
 import Loader from './map-loader';
-import PropertyCardSkeleton from './property-card-skeleton';
 import { VectorBasemapLayer } from './vector-basemap-layer';
 
 ensureLeafletRegistered();
@@ -22,7 +21,20 @@ ensureLeafletRegistered();
 const ZOOM_BREAKPOINT = 14;
 const CLUSTER_VIEWPORT_BUFFER_RATIO = 0.3;
 
-const POPUP_SKELETON_NODE = <PropertyCardSkeleton className='w-full max-w-none' />;
+const POPUP_SKELETON_NODE = (
+  <div aria-busy='true' className='w-full overflow-hidden rounded-sm bg-white p-2 shadow-md'>
+    <div className='aspect-video animate-pulse rounded-sm bg-gray-200' />
+    <div className='space-y-3 p-2'>
+      <div className='h-4 w-3/4 animate-pulse rounded bg-gray-200' />
+      <div className='h-3 w-1/2 animate-pulse rounded bg-gray-200' />
+      <div className='h-px w-full bg-gray-100' />
+      <div className='h-4 w-2/3 animate-pulse rounded bg-gray-200' />
+      <div className='h-px w-full bg-gray-100' />
+      <div className='h-3 w-5/6 animate-pulse rounded bg-gray-200' />
+      <div className='h-3 w-2/3 animate-pulse rounded bg-gray-200' />
+    </div>
+  </div>
+);
 
 type OpenPopupState = {
   listingKey: string;
@@ -227,7 +239,7 @@ function SharedPopupHost({ openPopup, onClose }: SharedPopupHostProps) {
       autoPan: true,
       keepInView: true,
       closeButton: false,
-      className: 'w-72',
+      className: 'map-property-popup w-72',
     });
 
     const handlePopupClose = (event: PopupEvent) => {

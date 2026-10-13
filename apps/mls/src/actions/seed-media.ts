@@ -3,7 +3,7 @@ import type { UUIDv7 } from '@kws/types';
 import { env } from '@kws/config';
 import { processImage } from '@kws/media';
 import { media, mediaVariants, mlsMedia } from '@kws/schema';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -326,7 +326,10 @@ function isPermanentImageProcessingError(error: unknown): boolean {
   );
 }
 
-async function markMlsMediaRowAsUnprocessable(candidate: MlsMediaSyncCandidate): Promise<boolean> {
+async function markMlsMediaRowAsUnprocessable(
+  candidate: MlsMediaSyncCandidate,
+  token: string,
+): Promise<boolean> {
   // Unit tests may mock only db.transaction. Guard so this helper becomes a
   // no-op when update is unavailable in that environment.
   if (typeof (db as unknown as { update?: unknown }).update !== 'function') {
@@ -334,17 +337,21 @@ async function markMlsMediaRowAsUnprocessable(candidate: MlsMediaSyncCandidate):
   }
 
   const now = new Date();
-  await db
+  const updatedRows = await db
     .update(mlsMedia)
     .set({ deletedAt: now, updatedAt: now })
     .where(
       and(
         eq(mlsMedia.mediaKey, candidate.mediaKey),
         eq(mlsMedia.resourceRecordKey, candidate.resourceRecordKey),
+        eq(mlsMedia.acquisitionToken, token),
+        sql`${mlsMedia.mediaModificationTimestamp} is not distinct from ${candidate.mlsUpdatedAt}::timestamptz`,
+        isNull(mlsMedia.deletedAt),
       ),
-    );
+    )
+    .returning({ mediaKey: mlsMedia.mediaKey });
 
-  return true;
+  return updatedRows.length > 0;
 }
 
 async function upsertProcessedMedia(
@@ -554,7 +561,7 @@ export async function runMlsMediaSync(
 
       // The fresh snapshot is authoritative: retire this row without blocking the rest of the listing.
       if (error instanceof MlsMediaUnavailableError) {
-        await markMlsMediaRowAsUnprocessable(candidate).catch(() => false);
+        await markMlsMediaRowAsUnprocessable(candidate, token).catch(() => false);
         summary.skipped += 1;
         return 'skipped';
       }
@@ -564,7 +571,7 @@ export async function runMlsMediaSync(
       const message = toErrorMessage(error);
 
       if (permanent) {
-        const marked = await markMlsMediaRowAsUnprocessable(candidate).catch(() => false);
+        const marked = await markMlsMediaRowAsUnprocessable(candidate, token).catch(() => false);
         summary.skipped += 1;
         syncLogger.warn('dropping unprocessable MLS media row from future retries', {
           mediaKey: candidate.mediaKey,

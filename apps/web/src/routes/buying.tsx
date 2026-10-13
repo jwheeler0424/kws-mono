@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import {
-  ParallaxContainer,
-  ParallaxContentLayer,
-  ParallaxMediaLayer,
+    ParallaxContainer,
+    ParallaxContentLayer,
+    ParallaxMediaLayer,
 } from '@/components/animation/parallax';
 import { Link } from '@/components/global/link';
 import { useSeo } from '@/lib/tools';
@@ -55,7 +55,7 @@ function RouteComponent() {
         <ParallaxContentLayer>
           <article className='banner banner-title flex'>
             <main>
-              <h1>Buying a Home in Seattle</h1>
+              <h1 className='text-balance'>Buying a Home in Seattle</h1>
             </main>
           </article>
         </ParallaxContentLayer>
@@ -78,7 +78,7 @@ function RouteComponent() {
           }
         </p>
         <p>{"So let's start at the beginning. "}</p>
-        <h2>{'Can I Make This My Home?'}</h2>
+        <h2 className='text-balance'>{'Can I Make This My Home?'}</h2>
         <p>{"It's a question you'll probably ask yourself twice. "}</p>
         <p>{"Once when you're ready to leave where you live now. "}</p>
         <p>
@@ -100,7 +100,7 @@ function RouteComponent() {
             'Maybe you want to shorten your commute, live near a particular school, walk outside and immediately find restaurants and coffee shops, or have a running trail a few blocks away. '
           }
         </p>
-        <h3>{"That's location."}</h3>
+        <h3 className='text-balance'>{"That's location."}</h3>
         <p>
           {
             "Then there are the things you don't necessarily need but would really like to have: contemporary finishes, a view, a rooftop deck, a backyard, more luxury, or perhaps a property with investment potential. "
@@ -119,14 +119,14 @@ function RouteComponent() {
           }
         </p>
         <p>{"We're not looking to throw darts. "}</p>
-        <h3>{"We're looking for the needle in the haystack."}</h3>
+        <h3 className='text-balance'>{"We're looking for the needle in the haystack."}</h3>
         <p>
           {
             "Before we begin, make a list. What's non-negotiable? What's preferred? And what sounded important until you realized you'd trade it immediately for a view of the Olympics? "
           }
         </p>
         <p>{"That's where the search starts. "}</p>
-        <h2>{'What Can I Afford?'}</h2>
+        <h2 className='text-balance'>{'What Can I Afford?'}</h2>
         <p>{"Before falling in love with a house, it's useful to know whether you can buy it. "}</p>
         <p>
           {
@@ -177,7 +177,7 @@ function RouteComponent() {
             "The right lender should be part of the team—not another person we're chasing for answers three hours before an offer deadline. "
           }
         </p>
-        <h2>{"Aren't Interest Rates Crazy High?"}</h2>
+        <h2 className='text-balance'>{"Aren't Interest Rates Crazy High?"}</h2>
         <p>
           {
             'Compared with the historically low rates buyers saw during the pandemic era? They can certainly feel that way. '
@@ -188,7 +188,7 @@ function RouteComponent() {
             'But mortgage rates have moved through dramatically different environments over the decades. The exceptionally low rates of 2020–2021 were exactly that: exceptional. '
           }
         </p>
-        <h3>
+        <h3 className='text-balance'>
           {
             "More importantly, the rate itself isn't really the question. The question is what the rate means for you."
           }
@@ -216,7 +216,7 @@ function RouteComponent() {
         <p>{'Sometimes buying now makes sense. '}</p>
         <p>{'Sometimes waiting makes sense. '}</p>
         <p>{"That's what we need to figure out. "}</p>
-        <h2>{'Who You Gonna Call?'}</h2>
+        <h2 className='text-balance'>{'Who You Gonna Call?'}</h2>
         <p>{"You've identified what you want. You've figured out what you can afford. "}</p>
         <p>{'Now you need someone to help you find it. '}</p>
         <p>
@@ -248,7 +248,7 @@ function RouteComponent() {
           }
         </p>
         <p>{'You should probably like them. '}</p>
-        <h2>{'Time to Go Shopping'}</h2>
+        <h2 className='text-balance'>{'Time to Go Shopping'}</h2>
         <p>{'This is the fun part. '}</p>
         <p>
           {
@@ -276,9 +276,9 @@ function RouteComponent() {
             "You shouldn't buy something simply because you're tired of looking. Eventually, we need to come back to the question we started with: "
           }
         </p>
-        <h3>{'Can I make this my home?'}</h3>
+        <h3 className='text-balance'>{'Can I make this my home?'}</h3>
         <p>{'If the answer is yes, then we start talking numbers. '}</p>
-        <h2>{'Making an Offer on a Home in Seattle'}</h2>
+        <h2 className='text-balance'>{'Making an Offer on a Home in Seattle'}</h2>
         <p>{'Finding the home is only half the job. '}</p>
         <p>{'Now we need to buy it. '}</p>
         <p>
@@ -304,7 +304,7 @@ function RouteComponent() {
         </p>
         <p>{'And sometimes the right advice is to walk away. '}</p>
         <p>{'There will be another house. '}</p>
-        <h2>{'The Other Guys'}</h2>
+        <h2 className='text-balance'>{'The Other Guys'}</h2>
         <p>{'Your offer has been accepted. '}</p>
         <p>{'Congratulations. '}</p>
         <p>{"We're not done. "}</p>
@@ -344,7 +344,7 @@ function RouteComponent() {
         </p>
         <p>{'This is especially important when buying a condo in Seattle. '}</p>
         <p>{"A beautiful unit doesn't necessarily mean a healthy building. "}</p>
-        <h2>{'What Exactly Is Escrow?'}</h2>
+        <h2 className='text-balance'>{'What Exactly Is Escrow?'}</h2>
         <p>{'Think of escrow as the neutral middle of the transaction. '}</p>
         <p>
           {
@@ -358,7 +358,7 @@ function RouteComponent() {
         </p>
         <p>{"You don't need to become an expert in either. "}</p>
         <p>{"That's what the rest of us are here for. "}</p>
-        <h2>{'Moving In'}</h2>
+        <h2 className='text-balance'>{'Moving In'}</h2>
         <p>{'You did it. '}</p>
         <p>{'Almost. '}</p>
         <p>{"We're in the endgame now. "}</p>
@@ -383,7 +383,7 @@ function RouteComponent() {
         <p>{'You hired movers, right? '}</p>
         <p>{'Let them deal with that. '}</p>
         <p>{"You've earned a drink. "}</p>
-        <h2>{'Ready to Buy a Home in Seattle?'}</h2>
+        <h2 className='text-balance'>{'Ready to Buy a Home in Seattle?'}</h2>
         <p>{"You don't need to know exactly what you want before reaching out. "}</p>
         <p>
           {"Maybe you've already been pre-approved and have three neighborhoods narrowed down. "}

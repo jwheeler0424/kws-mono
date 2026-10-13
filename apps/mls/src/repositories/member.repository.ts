@@ -1,5 +1,5 @@
-import { members, mlsMedia } from '@kws/schema';
-import { eq } from 'drizzle-orm';
+import { members } from '@kws/schema';
+import { desc, eq, isNotNull } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
 import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils/helpers';
@@ -64,20 +64,14 @@ export async function processMlsMembersPayload(data: MappedMember[]) {
 
   // 1. Initialize empty arrays to hold our flattened, normalized data
   const allMembers: (typeof members.$inferInsert)[] = [];
-  const allMedia: (typeof mlsMedia.$inferInsert)[] = [];
 
   // 2. Extract and separate the data
   for (const item of data) {
     // Destructure out the relations.
     // 'memberData' now strictly contains ONLY valid columns for the members table.
-    const { media, mediaSnapshotPresent: _snapshot, ...memberData } = item;
+    const { media: _media, mediaSnapshotPresent: _snapshot, ...memberData } = item;
 
     allMembers.push(memberData);
-
-    // 3. Extract, flatten, and strictly enforce Foreign Keys
-    if (media && media.length > 0) {
-      allMedia.push(...media);
-    }
   }
 
   // MUST await the parent table first to satisfy foreign key constraints
@@ -98,12 +92,12 @@ export async function processMlsMembersPayload(data: MappedMember[]) {
 }
 
 export async function getLatestMemberTimestamp(): Promise<Date | string | null> {
-  const result = await db.query.members.findFirst({
-    columns: {
-      modificationTimestamp: true,
-    },
-    orderBy: (table, { desc }) => desc(table.modificationTimestamp),
-  });
+  const [result] = await db
+    .select({ modificationTimestamp: members.modificationTimestamp })
+    .from(members)
+    .where(isNotNull(members.modificationTimestamp))
+    .orderBy(desc(members.modificationTimestamp))
+    .limit(1);
 
   return result?.modificationTimestamp ?? null;
 }

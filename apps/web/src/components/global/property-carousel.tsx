@@ -1,12 +1,12 @@
 import type { TPropertyCard } from '@kws/schema';
 
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi,
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious,
+    type CarouselApi,
 } from '@kws/design/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
@@ -71,7 +71,7 @@ export function PropertyCarousel({
     <div className={cn('w-full', className)}>
       {title && (
         <div className='mb-3 flex items-center justify-between'>
-          <h2 className='text-lg font-bold'>{title}</h2>
+          <h2 className='text-balance text-lg font-bold'>{title}</h2>
         </div>
       )}
 

@@ -1,5 +1,15 @@
-import { mlsMedia, properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
-import { eq, getColumns, inArray, sql } from 'drizzle-orm';
+import { properties, propertyRooms, propertyUnitTypes } from '@kws/schema';
+import {
+  and,
+  desc,
+  eq,
+  getColumns,
+  inArray,
+  isNotNull,
+  isNull,
+  notInArray,
+  sql,
+} from 'drizzle-orm';
 
 import { MLS_PROPERTY_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
@@ -146,17 +156,26 @@ export interface PropertyChildren {
 }
 
 export const getLatestPropertyTimestamp = async () => {
-  const result = await db.query.properties.findFirst({
-    columns: {
-      modificationTimestamp: true,
-    },
-    orderBy: (properties, { desc }) => desc(properties.modificationTimestamp),
-  });
+  const [result] = await db
+    .select({ modificationTimestamp: properties.modificationTimestamp })
+    .from(properties)
+    .where(isNotNull(properties.modificationTimestamp))
+    .orderBy(desc(properties.modificationTimestamp))
+    .limit(1);
   return result?.modificationTimestamp ?? null;
 };
 
 export async function upsertSingleProperty(record: MappedProperty): Promise<void> {
-  const { listingKey, media, mediaSnapshotPresent, rooms, unitTypes, ...rest } = record;
+  const {
+    listingKey,
+    media,
+    mediaSnapshotPresent,
+    rooms,
+    roomsSnapshotPresent,
+    unitTypes,
+    unitTypesSnapshotPresent,
+    ...rest
+  } = record;
   await db
     .insert(properties)
     .values({ listingKey, ...rest })
@@ -174,6 +193,24 @@ export async function upsertSingleProperty(record: MappedProperty): Promise<void
     rooms.length > 0 ? upsertPropertyRooms(rooms) : Promise.resolve(),
     unitTypes.length > 0 ? upsertPropertyUnitTypes(unitTypes) : Promise.resolve(),
   ]);
+  if (roomsSnapshotPresent || unitTypesSnapshotPresent) {
+    await db.transaction(async (tx) => {
+      if (roomsSnapshotPresent) {
+        await reconcilePropertyRoomSnapshot(
+          tx,
+          listingKey,
+          rooms.map((room) => room.roomKey),
+        );
+      }
+      if (unitTypesSnapshotPresent) {
+        await reconcilePropertyUnitTypeSnapshot(
+          tx,
+          listingKey,
+          unitTypes.map((unitType) => unitType.unitTypeKey),
+        );
+      }
+    });
+  }
 }
 
 /**
@@ -318,10 +355,14 @@ export async function upsertPropertyRooms(data: (typeof propertyRooms.$inferInse
   const deduped = dedupeByKey(data, (row) => row.roomKey);
   const setFields = getUpsertSetFields(propertyRooms, ['roomKey', 'searchVector', 'createdAt']);
   const updateWhere = sql`
-    excluded.room_type is distinct from ${propertyRooms.roomType}
+    excluded.listing_key is distinct from ${propertyRooms.listingKey}
+    or excluded.room_type is distinct from ${propertyRooms.roomType}
     or excluded.room_dimensions is distinct from ${propertyRooms.roomDimensions}
     or excluded.room_description is distinct from ${propertyRooms.roomDescription}
     or excluded.room_level is distinct from ${propertyRooms.roomLevel}
+    or excluded.room_length is distinct from ${propertyRooms.roomLength}
+    or excluded.room_width is distinct from ${propertyRooms.roomWidth}
+    or excluded.room_length_width_units is distinct from ${propertyRooms.roomLengthWidthUnits}
     or excluded.deleted_at is distinct from ${propertyRooms.deletedAt}
   `;
   let attempted = 0;
@@ -362,7 +403,8 @@ export async function upsertPropertyUnitTypes(data: (typeof propertyUnitTypes.$i
     'createdAt',
   ]);
   const updateWhere = sql`
-    excluded.unit_type_beds_total is distinct from ${propertyUnitTypes.unitTypeBedsTotal}
+    excluded.listing_key is distinct from ${propertyUnitTypes.listingKey}
+    or excluded.unit_type_beds_total is distinct from ${propertyUnitTypes.unitTypeBedsTotal}
     or excluded.unit_type_baths_total is distinct from ${propertyUnitTypes.unitTypeBathsTotal}
     or excluded.unit_type_actual_rent is distinct from ${propertyUnitTypes.unitTypeActualRent}
     or excluded.nwm is distinct from ${propertyUnitTypes.NWM}
@@ -396,6 +438,44 @@ export async function upsertPropertyUnitTypes(data: (typeof propertyUnitTypes.$i
   });
 }
 
+async function reconcilePropertyRoomSnapshot(
+  tx: MlsTransaction,
+  listingKey: string,
+  incomingKeys: string[],
+): Promise<void> {
+  const now = new Date();
+  await tx
+    .update(propertyRooms)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(propertyRooms.listingKey, listingKey),
+        isNull(propertyRooms.deletedAt),
+        incomingKeys.length > 0 ? notInArray(propertyRooms.roomKey, incomingKeys) : undefined,
+      ),
+    );
+}
+
+async function reconcilePropertyUnitTypeSnapshot(
+  tx: MlsTransaction,
+  listingKey: string,
+  incomingKeys: string[],
+): Promise<void> {
+  const now = new Date();
+  await tx
+    .update(propertyUnitTypes)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(propertyUnitTypes.listingKey, listingKey),
+        isNull(propertyUnitTypes.deletedAt),
+        incomingKeys.length > 0
+          ? notInArray(propertyUnitTypes.unitTypeKey, incomingKeys)
+          : undefined,
+      ),
+    );
+}
+
 export async function processMlsPropertiesPayload(
   data: MappedProperty[],
   options?: {
@@ -409,17 +489,21 @@ export async function processMlsPropertiesPayload(
     const chunk = data.slice(i, i + PROPERTY_BATCH_SIZE);
 
     const chunkProperties: (typeof properties.$inferInsert)[] = [];
-    const chunkMedia: (typeof mlsMedia.$inferInsert)[] = [];
     const chunkRooms: (typeof propertyRooms.$inferInsert)[] = [];
     const chunkUnitTypes: (typeof propertyUnitTypes.$inferInsert)[] = [];
 
     for (const item of chunk) {
-      const { media, mediaSnapshotPresent: _snapshot, rooms, unitTypes, ...propertyData } = item;
+      const {
+        media: _media,
+        mediaSnapshotPresent: _mediaSnapshot,
+        rooms,
+        roomsSnapshotPresent: _roomsSnapshot,
+        unitTypes,
+        unitTypesSnapshotPresent: _unitTypesSnapshot,
+        ...propertyData
+      } = item;
       chunkProperties.push(propertyData);
 
-      if (media.length > 0) {
-        chunkMedia.push(...media);
-      }
       if (rooms.length > 0) {
         chunkRooms.push(...rooms);
       }
@@ -451,6 +535,25 @@ export async function processMlsPropertiesPayload(
     }
 
     await runWithConcurrencyLimit(childTasks, CHILD_UPSERT_CONCURRENCY);
+
+    await db.transaction(async (tx) => {
+      for (const item of chunk) {
+        if (item.roomsSnapshotPresent) {
+          await reconcilePropertyRoomSnapshot(
+            tx,
+            item.listingKey,
+            item.rooms.map((room) => room.roomKey),
+          );
+        }
+        if (item.unitTypesSnapshotPresent) {
+          await reconcilePropertyUnitTypeSnapshot(
+            tx,
+            item.listingKey,
+            item.unitTypes.map((unitType) => unitType.unitTypeKey),
+          );
+        }
+      }
+    });
 
     maxTimestamp = localMaxTimestamp > maxTimestamp ? localMaxTimestamp : maxTimestamp;
   }

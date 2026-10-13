@@ -1,6 +1,21 @@
+import { env } from '@kws/config';
 import { describe, expect, it } from 'bun:test';
 
-import { buildFreshParentMediaUrl } from './fetch';
+import { buildFreshParentMediaUrl, resolveMlsApiRequestUrl } from './fetch';
+
+describe('MLS API request URL validation', () => {
+  it('allows same-origin continuation links and rejects cross-origin URLs', () => {
+    const apiOrigin = new URL(env.MLS_API_URL).origin;
+    const requestUrl = `${apiOrigin}/v2/Property?%24top=1`;
+
+    expect(resolveMlsApiRequestUrl('Property?%24skip=100', requestUrl)).toBe(
+      `${apiOrigin}/v2/Property?%24skip=100`,
+    );
+    expect(() => resolveMlsApiRequestUrl('https://attacker.example/steal')).toThrow(
+      'outside the configured origin',
+    );
+  });
+});
 
 describe('MLS media parent lookup filters', () => {
   it('queries Property by prefixed ListingId, not its unsupported ListingKey filter', () => {

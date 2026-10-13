@@ -1,5 +1,5 @@
-import { mlsMedia, offices } from '@kws/schema';
-import { eq } from 'drizzle-orm';
+import { offices } from '@kws/schema';
+import { desc, eq, isNotNull } from 'drizzle-orm';
 
 import { db } from '@/lib/database';
 import { chunkArray, dedupeByKey, getUpsertSetFields } from '@/lib/utils';
@@ -64,20 +64,14 @@ export async function processMlsOfficesPayload(data: MappedOffice[]) {
 
   // 1. Initialize empty arrays to hold our flattened, normalized data
   const allOffices: (typeof offices.$inferInsert)[] = [];
-  const allMedia: (typeof mlsMedia.$inferInsert)[] = [];
 
   // 2. Extract and separate the data
   for (const item of data) {
     // Destructure out the relations.
     // 'officeData' now strictly contains ONLY valid columns for the offices table.
-    const { media, mediaSnapshotPresent: _snapshot, ...officeData } = item;
+    const { media: _media, mediaSnapshotPresent: _snapshot, ...officeData } = item;
 
     allOffices.push(officeData);
-
-    // 3. Extract, flatten, and strictly enforce Foreign Keys
-    if (media && media.length > 0) {
-      allMedia.push(...media);
-    }
   }
 
   // MUST await the parent table first to satisfy foreign key constraints
@@ -98,12 +92,12 @@ export async function processMlsOfficesPayload(data: MappedOffice[]) {
 }
 
 export async function getLatestOfficeTimestamp(): Promise<Date | string | null> {
-  const result = await db.query.offices.findFirst({
-    columns: {
-      modificationTimestamp: true,
-    },
-    orderBy: (table, { desc }) => desc(table.modificationTimestamp),
-  });
+  const [result] = await db
+    .select({ modificationTimestamp: offices.modificationTimestamp })
+    .from(offices)
+    .where(isNotNull(offices.modificationTimestamp))
+    .orderBy(desc(offices.modificationTimestamp))
+    .limit(1);
 
   return result?.modificationTimestamp ?? null;
 }

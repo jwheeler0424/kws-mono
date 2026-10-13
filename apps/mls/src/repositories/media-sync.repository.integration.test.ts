@@ -19,6 +19,7 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
   const database = drizzle({ client: pool });
   let claimParentMedia: typeof import('./media-sync.repository').claimParentMedia;
   let releaseParentMedia: typeof import('./media-sync.repository').releaseParentMedia;
+  let listMlsMediaSyncCandidates: typeof import('./media-sync.repository').listMlsMediaSyncCandidates;
   let reconcileResourceMediaBatch: typeof import('./resource-media.repository').reconcileResourceMediaBatch;
   let claimSyncCursor: typeof import('./sync-cursor.repository').claimSyncCursor;
   let checkpointSyncCursor: typeof import('./sync-cursor.repository').checkpointSyncCursor;
@@ -56,7 +57,8 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
       db: database,
       pool,
     }));
-    ({ claimParentMedia, releaseParentMedia } = await import('./media-sync.repository'));
+    ({ claimParentMedia, releaseParentMedia, listMlsMediaSyncCandidates } =
+      await import('./media-sync.repository'));
     ({ reconcileResourceMediaBatch } = await import('./resource-media.repository'));
     ({ claimSyncCursor, checkpointSyncCursor, finishSyncCursor } =
       await import('./sync-cursor.repository'));
@@ -109,6 +111,28 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     const removed = await pool.query("SELECT deleted_at FROM mls_media WHERE media_key='photo'");
     expect(removed.rows[0]?.deleted_at).toBeInstanceOf(Date);
     expect((await pool.query('SELECT id FROM media WHERE id=$1', [localId])).rows).toHaveLength(0);
+  });
+
+  it('selects the first public photo when a private photo has a lower order', async () => {
+    await pool.query(
+      "INSERT INTO properties(listing_key, listing_id, standard_status, mlg_can_view) VALUES ('NWM_PRIMARY_TEST', 'NWM123', 'Active', true)",
+    );
+    await pool.query(
+      `INSERT INTO mls_media(media_key, resource_record_key, permission, preferred_photo_yn, "order", media_modification_timestamp)
+       VALUES
+         ('private-primary', 'NWM_PRIMARY_TEST', ARRAY['Private'], false, 0, '2026-09-17T00:00:00Z'),
+         ('public-secondary', 'NWM_PRIMARY_TEST', null, false, 1, '2026-09-17T00:00:00Z')`,
+    );
+
+    const candidates = await listMlsMediaSyncCandidates(10, {
+      filterEntityTypes: ['properties'],
+      primaryOnlyForAllProperties: true,
+      enforceEligibilityForNonAssociatedProperties: true,
+    });
+
+    expect(candidates.map((candidate) => candidate.mediaKey)).toEqual(['public-secondary']);
+    await pool.query("DELETE FROM mls_media WHERE resource_record_key='NWM_PRIMARY_TEST'");
+    await pool.query("DELETE FROM properties WHERE listing_key='NWM_PRIMARY_TEST'");
   });
 
   it('serializes resource replication and does not regress received watermarks', async () => {

@@ -3,12 +3,15 @@ import { env } from '@kws/config';
 import type { MlsResource } from '@/types';
 
 import { MLS_RESOURCE_NAMES, MLS_SCHEDULER_DEFAULTS } from '@/lib/constants';
+import { pruneExpiredHistory } from '@/lib/history-store';
 import { mlsLogger } from '@/lib/logger';
 
 import {
   pruneEmptyMlsMediaDirectories,
   pruneMlsMediaNamespacesWithoutLinkedMedia,
   purgeDeadMlsMedia,
+  purgeOrphanedMlsMediaFiles,
+  purgeUnavailableMlsMedia,
   purgeScopedMlsMediaBeforeSync,
 } from '../repositories/media-cleanup.repository';
 import { runMlsCleanup } from './cleanup';
@@ -18,6 +21,8 @@ import { runPrioritizedMlsMediaSync } from './seed-media';
 const MLS_CLEANUP_HOURLY_SCHEDULE_ID = 'mls.cleanup.hourly';
 const MLS_MEDIA_SYNC_SCHEDULE_ID = 'mls.media.sync';
 const MLS_MEDIA_RECONCILE_SCHEDULE_ID = 'mls.media.reconcile';
+const MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID = 'mls.media.orphan-cleanup';
+const MLS_HISTORY_PRUNE_SCHEDULE_ID = 'mls.history.prune';
 
 const DEFAULT_RESOURCE_CRON: Record<MlsResource, string> = {
   Lookup: '0 6 * * *',
@@ -119,6 +124,18 @@ async function runScheduledJob(scheduleId: string, run: () => Promise<void>) {
   } finally {
     inFlightScheduledJobs.delete(scheduleId);
   }
+}
+
+async function runOrphanedMediaCleanup(trigger: 'startup' | 'scheduled') {
+  const unavailableMediaSummary = await purgeUnavailableMlsMedia();
+  const purgeSummary = await purgeOrphanedMlsMediaFiles();
+  const prunedEmptyDirectories = await pruneEmptyMlsMediaDirectories();
+  syncMlsLogger.info('MLS orphaned media file cleanup completed', {
+    trigger,
+    unavailableMediaSummary,
+    purgeSummary,
+    prunedEmptyDirectories,
+  });
 }
 
 async function runScheduledMediaSyncAndCleanup(
@@ -294,16 +311,22 @@ function resolveScheduledMediaSyncRepairMaxBatches(maxBatches: number) {
   return Math.max(1, Math.min(MLS_SCHEDULER_DEFAULTS.mediaSyncRepairMaxBatches, maxBatches));
 }
 
-export function registerMlsSyncJobTypes() {
+export async function registerMlsSyncJobTypes() {
   for (const job of registeredMlsCronJobs) {
     job.stop();
   }
   registeredMlsCronJobs.length = 0;
 
+  await runScheduledJob(MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID, () =>
+    runOrphanedMediaCleanup('startup'),
+  );
+
   const scheduleEntries = resolveMlsDeltaResourceSchedules();
   const cleanupSchedule = resolveMlsCleanupSchedule();
   const mediaSyncSchedule = resolveMlsMediaSyncSchedule();
   const mediaReconcileSchedule = resolveMlsMediaReconcileSchedule();
+  const mediaOrphanCleanupCronExpression = '0 */6 * * *';
+  const historyPruneCronExpression = '0 3 * * *';
   const mediaSyncBatchSize = resolveScheduledMediaSyncBatchSize();
   const mediaSyncMaxBatches = resolveScheduledMediaSyncMaxBatches();
   const mediaSyncProcessConcurrency = resolveScheduledMediaSyncProcessConcurrency();
@@ -336,7 +359,8 @@ export function registerMlsSyncJobTypes() {
     }
 
     await runScheduledJob(cleanupSchedule.scheduleId, async () => {
-      await cleanupSchedule.cleanupFunction();
+      const summary = await cleanupSchedule.cleanupFunction();
+      syncMlsLogger.info('scheduled MLS data cleanup completed', { summary });
     });
   });
   registeredMlsCronJobs.push(cleanupJob);
@@ -380,6 +404,21 @@ export function registerMlsSyncJobTypes() {
     });
   });
   registeredMlsCronJobs.push(mediaReconcileJob);
+
+  const mediaOrphanCleanupJob = Bun.cron(mediaOrphanCleanupCronExpression, async () => {
+    await runScheduledJob(MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID, async () => {
+      await runOrphanedMediaCleanup('scheduled');
+    });
+  });
+  registeredMlsCronJobs.push(mediaOrphanCleanupJob);
+
+  const historyPruneJob = Bun.cron(historyPruneCronExpression, async () => {
+    await runScheduledJob(MLS_HISTORY_PRUNE_SCHEDULE_ID, async () => {
+      const summary = await pruneExpiredHistory();
+      syncMlsLogger.info('scheduled MLS history retention completed', { summary });
+    });
+  });
+  registeredMlsCronJobs.push(historyPruneJob);
 
   if (mediaSyncSchedule.enabled) {
     void runScheduledJob(mediaSyncSchedule.scheduleId, async () => {
@@ -427,6 +466,16 @@ export function registerMlsSyncJobTypes() {
       processConcurrency: mediaSyncProcessConcurrency,
       includeMissingFilesRepair: mediaSyncIncludeMissingFilesRepair,
       repairMaxBatches: mediaSyncRepairMaxBatches,
+    },
+    mediaOrphanCleanupSchedule: {
+      scheduleId: MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID,
+      cronExpression: mediaOrphanCleanupCronExpression,
+      enabled: true,
+    },
+    historyPruneSchedule: {
+      scheduleId: MLS_HISTORY_PRUNE_SCHEDULE_ID,
+      cronExpression: historyPruneCronExpression,
+      enabled: true,
     },
   });
 }

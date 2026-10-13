@@ -289,8 +289,10 @@ export class MlsQuotaTracker {
     };
 
     process.once('beforeExit', flush);
-    process.once('SIGINT', flush);
-    process.once('SIGTERM', flush);
+  }
+
+  async flush(): Promise<void> {
+    await this.flushPersistedState();
   }
 
   private async flushPersistedState(): Promise<void> {

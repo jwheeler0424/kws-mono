@@ -7,15 +7,15 @@ import { BathIcon, BedDoubleIcon, LayersIcon, MapPinnedIcon } from 'lucide-react
 
 import { cn } from '@/lib/utils';
 import {
-  getAddressCityStateZip,
-  getAddressStreet,
-  getBathroomCount,
-  getLivingArea,
-  getPropertyLevels,
-  getPropertyStatus,
-  getYearsOld,
-  numberFormat,
-  parseNwmBooleanFlag,
+    getAddressCityStateZip,
+    getAddressStreet,
+    getBathroomCount,
+    getLivingArea,
+    getPropertyLevels,
+    getPropertyStatus,
+    getYearsOld,
+    numberFormat,
+    parseNwmBooleanFlag,
 } from '@/lib/utils/properties';
 
 import { Badge } from './badge';
@@ -79,7 +79,7 @@ export function PropertyCard({ listing, className, ref }: PropertyCardProps) {
             {listing.propertySubType ?? listing.propertyType}
             {listing.yearBuilt ? ` • ${getYearsOld(listing.yearBuilt)}` : null}
           </p>
-          <h3 className={cn('font-sans! font-bold! tracking-normal! text-gray-900')}>
+          <h3 className={cn('font-sans! font-bold! tracking-normal! text-balance text-gray-900')}>
             {Number(listing.listPrice ?? 0) > 0
               ? numberFormat({ value: Number(listing.listPrice) })
               : 'Unavailable'}

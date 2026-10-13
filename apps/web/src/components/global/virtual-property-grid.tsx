@@ -6,8 +6,8 @@ import { BeatLoader } from 'react-spinners';
 
 import { PropertyCard } from '@/components/global/property-card';
 import {
-  PROPERTY_CARD_HEIGHT,
-  PROPERTY_CARD_MAX_WIDTH,
+    PROPERTY_CARD_HEIGHT,
+    PROPERTY_CARD_MAX_WIDTH,
 } from '@/components/global/property-card.constants';
 import { cn } from '@/lib/utils';
 
@@ -345,7 +345,7 @@ export function VirtualPropertyGrid({
 
   return (
     <section className='property-results-section mt-12 w-full' ref={parentRef}>
-      <h2 className='my-0! mb-8! text-5xl 2xsdt:mb-12!'>{title}</h2>
+      <h2 className='my-0! mb-8! text-5xl text-balance 2xsdt:mb-12!'>{title}</h2>
       {!isLayoutReady ? (
         <main className='m-0! min-h-16 p-0!' aria-busy='true' />
       ) : items.length ? (

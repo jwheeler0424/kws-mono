@@ -29,6 +29,9 @@ all-in-one JavaScript runtime.
 ## Local History Store
 
 - Default path: `apps/mls/data`
+- History chunks are retained for 365 days; quarantined files are retained for 90 days.
+- The daily 03:00 MLS history job prunes expired history and quarantine files while preserving newer
+  chunks.
 - Partitioning: `data/{resource}/{YYYY}/{MM}/*.jsonl.gz`
 - Format: compressed JSONL (gzip)
 - Partition manifest: each partition maintains `manifest.json` with per-chunk checksum and metadata
@@ -54,10 +57,10 @@ Seed behavior is local-first:
 - `MLS_RESOURCE_EXPAND` (optional)
 - `MLS_START_DATE` (optional)
 - `MLS_MEDIA_STORE_PATH` (optional, default `store/media`)
-- `MLS_QUEUE_RESOURCE_CRON_SCHEDULES` (required)
-- `MLS_QUEUE_CLEANUP_CRON` (required)
-- `MLS_QUEUE_MEDIA_SYNC_CRON` (required)
-- `MLS_QUEUE_MEDIA_RECONCILE_CRON` (optional, default `0 */6 * * *`)
+- `MLS_RESOURCE_CRON_SCHEDULES` (required)
+- `MLS_CLEANUP_CRON` (required)
+- `MLS_MEDIA_SYNC_CRON` (required)
+- `MLS_MEDIA_RECONCILE_CRON` (optional, default `0 * * * *`)
 
 Most MLS sync and scheduler tuning values are now fixed in app constants so they do not need to be
 set via environment variables.

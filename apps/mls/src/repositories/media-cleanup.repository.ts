@@ -13,6 +13,7 @@ import { db } from '@/lib/database';
 const FILE_DELETE_CHUNK_SIZE = 20;
 const MEDIA_ID_QUERY_CHUNK_SIZE = 500;
 const MLS_MEDIA_ENTITY_TYPES = ['properties', 'members', 'offices'] as const;
+const ORPHAN_FILE_MIN_AGE_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_ACTIVE_PROPERTY_STATUSES: readonly StandardStatus[] = [
   'Active',
   'ActiveUnderContract',
@@ -21,16 +22,134 @@ const DEFAULT_ACTIVE_PROPERTY_STATUSES: readonly StandardStatus[] = [
 
 export type MlsMediaStorageEntityType = (typeof MLS_MEDIA_ENTITY_TYPES)[number];
 
-async function deleteVariantFilesInChunks(storagePaths: string[]): Promise<number> {
+async function deleteFilesInChunks(storagePaths: string[]): Promise<number> {
   let deletedCount = 0;
 
   for (let start = 0; start < storagePaths.length; start += FILE_DELETE_CHUNK_SIZE) {
     const chunk = storagePaths.slice(start, start + FILE_DELETE_CHUNK_SIZE);
-    const deleteResults = await Promise.allSettled(chunk.map(async (path) => fs.unlink(path)));
-    deletedCount += deleteResults.filter((result) => result.status === 'fulfilled').length;
+    const deleteResults = await Promise.all(
+      chunk.map(async (storagePath) => {
+        try {
+          await fs.unlink(storagePath);
+          return true;
+        } catch (error) {
+          if (isFilesystemNotFoundError(error)) return false;
+          throw error;
+        }
+      }),
+    );
+    deletedCount += deleteResults.filter(Boolean).length;
   }
 
   return deletedCount;
+}
+
+function buildMlsStoragePathClauses(entityTypes: readonly MlsMediaStorageEntityType[]) {
+  return entityTypes.map(
+    (entityType) =>
+      sql`replace(${media.storagePath}, chr(92), '/') like ${`%/mls/${entityType}/%`}`,
+  );
+}
+
+function normalizeStoragePath(storagePath: string): string {
+  const resolved = path.resolve(storagePath);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
+async function* iterateFilesRecursively(directory: string): AsyncGenerator<string> {
+  let entries: Dirent<string>[];
+  try {
+    entries = await fs.readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if (isFilesystemNotFoundError(error)) return;
+    throw error;
+  }
+
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      yield* iterateFilesRecursively(entryPath);
+    } else if (entry.isFile()) {
+      yield entryPath;
+    }
+  }
+}
+
+export interface OrphanedMlsMediaFilePurgeSummary {
+  scannedFiles: number;
+  orphanFilesFound: number;
+  deletedFiles: number;
+}
+
+export interface OrphanedMlsMediaFilePurgeOptions {
+  minimumAgeMs?: number;
+}
+
+export async function purgeOrphanedMlsMediaFiles(
+  entityTypes: readonly MlsMediaStorageEntityType[] = MLS_MEDIA_ENTITY_TYPES,
+  options: OrphanedMlsMediaFilePurgeOptions = {},
+): Promise<OrphanedMlsMediaFilePurgeSummary> {
+  const uniqueEntityTypes = [...new Set(entityTypes)];
+  const summary: OrphanedMlsMediaFilePurgeSummary = {
+    scannedFiles: 0,
+    orphanFilesFound: 0,
+    deletedFiles: 0,
+  };
+  if (uniqueEntityTypes.length === 0) return summary;
+
+  const storagePathClauses = buildMlsStoragePathClauses(uniqueEntityTypes);
+  const variantStoragePathClauses = uniqueEntityTypes.map(
+    (entityType) =>
+      sql`replace(${mediaVariants.storagePath}, chr(92), '/') like ${`%/mls/${entityType}/%`}`,
+  );
+  const referencedPaths = new Set<string>();
+  const mediaPaths = await db
+    .select({ storagePath: media.storagePath })
+    .from(media)
+    .where(or(...storagePathClauses));
+  for (const row of mediaPaths) {
+    if (typeof row.storagePath === 'string') {
+      referencedPaths.add(normalizeStoragePath(row.storagePath));
+    }
+  }
+
+  const variantPaths = await db
+    .select({ storagePath: mediaVariants.storagePath })
+    .from(mediaVariants)
+    .where(or(...variantStoragePathClauses));
+  for (const row of variantPaths) {
+    if (typeof row.storagePath === 'string') {
+      referencedPaths.add(normalizeStoragePath(row.storagePath));
+    }
+  }
+
+  // The age grace avoids racing files written before their media transaction commits.
+  const minimumAgeMs = Math.max(0, options.minimumAgeMs ?? ORPHAN_FILE_MIN_AGE_MS);
+  const cutoff = Date.now() - minimumAgeMs;
+  let orphanPaths: string[] = [];
+
+  for (const entityType of uniqueEntityTypes) {
+    for await (const filePath of iterateFilesRecursively(resolveMlsEntityRoot(entityType))) {
+      summary.scannedFiles += 1;
+      if (referencedPaths.has(normalizeStoragePath(filePath))) continue;
+      try {
+        const fileStats = await fs.stat(filePath);
+        if (fileStats.mtimeMs <= cutoff) {
+          orphanPaths.push(filePath);
+          summary.orphanFilesFound += 1;
+          if (orphanPaths.length >= FILE_DELETE_CHUNK_SIZE) {
+            summary.deletedFiles += await deleteFilesInChunks(orphanPaths);
+            orphanPaths = [];
+          }
+        }
+      } catch (error) {
+        if (!isFilesystemNotFoundError(error)) throw error;
+      }
+    }
+  }
+
+  summary.deletedFiles += await deleteFilesInChunks(orphanPaths);
+  return summary;
 }
 
 export interface EntityMediaPurgeSummary {
@@ -44,14 +163,60 @@ export interface DeadMlsMediaPurgeSummary {
   variantFilesDeleted: number;
 }
 
-export async function purgeUnavailableMlsMedia(resourceRecordKeys: string[]): Promise<void> {
-  if (resourceRecordKeys.length === 0) return;
+async function purgeUnreferencedMlsMediaIds(mediaIds: readonly UUIDv7[]): Promise<{
+  mediaDeleted: number;
+  variantFilesDeleted: number;
+}> {
+  let mediaDeleted = 0;
+  let variantFilesDeleted = 0;
+
+  for (let start = 0; start < mediaIds.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {
+    const chunk = mediaIds.slice(start, start + MEDIA_ID_QUERY_CHUNK_SIZE);
+    const publicReferences = await db
+      .select({ mediaId: mlsMedia.mediaId })
+      .from(mlsMedia)
+      .where(
+        and(
+          inArray(mlsMedia.mediaId, chunk),
+          isNull(mlsMedia.deletedAt),
+          sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+        ),
+      );
+    const protectedIds = new Set(publicReferences.map((row) => row.mediaId));
+    const purgeIds = chunk.filter((id) => !protectedIds.has(id));
+    if (purgeIds.length === 0) continue;
+
+    const variants = await db
+      .select({ storagePath: mediaVariants.storagePath })
+      .from(mediaVariants)
+      .where(inArray(mediaVariants.mediaId, purgeIds));
+    variantFilesDeleted += await deleteFilesInChunks(
+      variants.map((variant) => variant.storagePath),
+    );
+    const deleted = await db
+      .delete(media)
+      .where(inArray(media.id, purgeIds))
+      .returning({ id: media.id });
+    mediaDeleted += deleted.length;
+  }
+
+  return { mediaDeleted, variantFilesDeleted };
+}
+
+export async function purgeUnavailableMlsMedia(
+  resourceRecordKeys?: readonly string[],
+): Promise<{ mediaDeleted: number; variantFilesDeleted: number }> {
+  if (resourceRecordKeys && resourceRecordKeys.length === 0) {
+    return { mediaDeleted: 0, variantFilesDeleted: 0 };
+  }
   const unavailable = await db
     .select({ mediaId: mlsMedia.mediaId })
     .from(mlsMedia)
     .where(
       and(
-        inArray(mlsMedia.resourceRecordKey, resourceRecordKeys),
+        resourceRecordKeys
+          ? inArray(mlsMedia.resourceRecordKey, [...resourceRecordKeys])
+          : undefined,
         isNotNull(mlsMedia.mediaId),
         or(
           isNotNull(mlsMedia.deletedAt),
@@ -60,26 +225,7 @@ export async function purgeUnavailableMlsMedia(resourceRecordKeys: string[]): Pr
       ),
     );
   const ids = [...new Set(unavailable.flatMap((row) => (row.mediaId ? [row.mediaId] : [])))];
-  if (ids.length === 0) return;
-  const publicReferences = await db
-    .select({ mediaId: mlsMedia.mediaId })
-    .from(mlsMedia)
-    .where(
-      and(
-        inArray(mlsMedia.mediaId, ids),
-        isNull(mlsMedia.deletedAt),
-        sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
-      ),
-    );
-  const protectedIds = new Set(publicReferences.map((row) => row.mediaId));
-  const purgeIds = ids.filter((id) => !protectedIds.has(id));
-  if (purgeIds.length === 0) return;
-  const variants = await db
-    .select({ storagePath: mediaVariants.storagePath })
-    .from(mediaVariants)
-    .where(inArray(mediaVariants.mediaId, purgeIds));
-  await deleteVariantFilesInChunks(variants.map((variant) => variant.storagePath));
-  await db.delete(media).where(inArray(media.id, purgeIds));
+  return purgeUnreferencedMlsMediaIds(ids);
 }
 
 export interface ScopedMlsMediaPurgeSummary {
@@ -139,7 +285,7 @@ async function listLinkedNamespaceKeys(
         )
       : undefined;
 
-  const propertyAssociatedListingClause =
+  const propertyAssociationClause =
     propertyAssociationMemberClause && propertyAssociationOfficeClause
       ? or(propertyAssociationMemberClause, propertyAssociationOfficeClause)
       : (propertyAssociationMemberClause ?? propertyAssociationOfficeClause);
@@ -155,7 +301,7 @@ async function listLinkedNamespaceKeys(
               isNotNull(properties.standardStatus),
               inArray(properties.standardStatus, [...DEFAULT_ACTIVE_PROPERTY_STATUSES]),
             ),
-            propertyAssociatedListingClause,
+            propertyAssociationClause,
           ),
         )
       : entityType === 'members'
@@ -400,47 +546,33 @@ export async function purgeEntityMedia(
     return { mediaDeleted: 0, variantFilesDeleted: 0, mlsMediaRowsDeleted: 0 };
   }
 
-  // 1. Find all mls_media rows for these resource keys that have a linked media ID.
-  const linkedRows = await db
-    .select({ mediaId: mlsMedia.mediaId })
-    .from(mlsMedia)
-    .where(
-      and(inArray(mlsMedia.resourceRecordKey, resourceRecordKeys), isNotNull(mlsMedia.mediaId)),
-    );
+  const uniqueResourceKeys = [...new Set(resourceRecordKeys.filter(Boolean))];
+  const mediaIds = new Set<UUIDv7>();
+  let mlsMediaRowsDeleted = 0;
 
-  const mediaIds = linkedRows.map((r) => r.mediaId).filter((id): id is UUIDv7 => id !== null);
+  for (let start = 0; start < uniqueResourceKeys.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {
+    const keyChunk = uniqueResourceKeys.slice(start, start + MEDIA_ID_QUERY_CHUNK_SIZE);
+    const linkedRows = await db
+      .select({ mediaId: mlsMedia.mediaId })
+      .from(mlsMedia)
+      .where(and(inArray(mlsMedia.resourceRecordKey, keyChunk), isNotNull(mlsMedia.mediaId)));
 
-  let variantFilesDeleted = 0;
+    for (const row of linkedRows) {
+      if (row.mediaId) mediaIds.add(row.mediaId);
+    }
 
-  if (mediaIds.length > 0) {
-    // 2. Collect all stored variant file paths.
-    const variants = await db
-      .select({ storagePath: mediaVariants.storagePath })
-      .from(mediaVariants)
-      .where(inArray(mediaVariants.mediaId, mediaIds));
-
-    // 3. Delete physical variant files, ignoring already-missing files.
-    variantFilesDeleted = await deleteVariantFilesInChunks(
-      variants.map((variant) => variant.storagePath),
-    );
-
-    // 4. Hard-delete media records.  mediaVariants rows are removed automatically
-    //    via their ON DELETE CASCADE foreign key.  mls_media.media_id is set to
-    //    NULL via its ON DELETE SET NULL foreign key.
-    await db.delete(media).where(inArray(media.id, mediaIds));
+    const deletedMlsMedia = await db
+      .delete(mlsMedia)
+      .where(inArray(mlsMedia.resourceRecordKey, keyChunk))
+      .returning({ mediaKey: mlsMedia.mediaKey });
+    mlsMediaRowsDeleted += deletedMlsMedia.length;
   }
 
-  // 5. Hard-delete all mls_media rows for these resource keys (including any
-  //    rows that had no linked media record).
-  const deletedMlsMedia = await db
-    .delete(mlsMedia)
-    .where(inArray(mlsMedia.resourceRecordKey, resourceRecordKeys))
-    .returning({ mediaKey: mlsMedia.mediaKey });
+  const mediaSummary = await purgeUnreferencedMlsMediaIds([...mediaIds]);
 
   return {
-    mediaDeleted: mediaIds.length,
-    variantFilesDeleted,
-    mlsMediaRowsDeleted: deletedMlsMedia.length,
+    ...mediaSummary,
+    mlsMediaRowsDeleted,
   };
 }
 
@@ -463,11 +595,7 @@ export async function purgeDeadMlsMedia(
     return { mediaDeleted: 0, variantFilesDeleted: 0 };
   }
 
-  const storagePathClauses = uniqueEntityTypes.flatMap((entityType) => {
-    const unixLike = `%/mls/${entityType}/%`;
-    const winLike = `%\\mls\\${entityType}\\%`;
-    return [sql`${media.storagePath} like ${unixLike}`, sql`${media.storagePath} like ${winLike}`];
-  });
+  const storagePathClauses = buildMlsStoragePathClauses(uniqueEntityTypes);
 
   if (storagePathClauses.length === 0) {
     return { mediaDeleted: 0, variantFilesDeleted: 0 };
@@ -476,8 +604,16 @@ export async function purgeDeadMlsMedia(
   const deadMediaRows = await db
     .select({ id: media.id })
     .from(media)
-    .leftJoin(mlsMedia, eq(media.id, mlsMedia.mediaId))
-    .where(and(isNull(mlsMedia.mediaId), isNull(media.deletedAt), or(...storagePathClauses)));
+    .where(
+      and(
+        isNull(media.deletedAt),
+        or(...storagePathClauses),
+        sql`not exists (
+          select 1 from mls_media linked
+          where linked.media_id = ${media.id}
+        )`,
+      ),
+    );
 
   const mediaIds = deadMediaRows.map((row) => row.id);
 
@@ -485,24 +621,27 @@ export async function purgeDeadMlsMedia(
     return { mediaDeleted: 0, variantFilesDeleted: 0 };
   }
 
-  const variants = await db
-    .select({ storagePath: mediaVariants.storagePath })
-    .from(mediaVariants)
-    .where(inArray(mediaVariants.mediaId, mediaIds));
+  let mediaDeleted = 0;
+  let variantFilesDeleted = 0;
+  for (let start = 0; start < mediaIds.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {
+    const chunk = mediaIds.slice(start, start + MEDIA_ID_QUERY_CHUNK_SIZE);
+    const variants = await db
+      .select({ storagePath: mediaVariants.storagePath })
+      .from(mediaVariants)
+      .where(inArray(mediaVariants.mediaId, chunk));
 
-  const variantFilesDeleted = await deleteVariantFilesInChunks(
-    variants.map((variant) => variant.storagePath),
-  );
+    variantFilesDeleted += await deleteFilesInChunks(
+      variants.map((variant) => variant.storagePath),
+    );
 
-  const deletedMediaRows = await db
-    .delete(media)
-    .where(inArray(media.id, mediaIds))
-    .returning({ id: media.id });
+    const deletedMediaRows = await db
+      .delete(media)
+      .where(inArray(media.id, chunk))
+      .returning({ id: media.id });
+    mediaDeleted += deletedMediaRows.length;
+  }
 
-  return {
-    mediaDeleted: deletedMediaRows.length,
-    variantFilesDeleted,
-  };
+  return { mediaDeleted, variantFilesDeleted };
 }
 
 /**
@@ -598,7 +737,7 @@ export async function purgeScopedMlsMediaBeforeSync(
     desiredLinkedScopeClause ?? propertyPrimaryActiveViewableClause;
 
   const rowsToDetach = await db
-    .select({ mediaId: media.id })
+    .select({ mediaId: media.id, mediaKey: mlsMedia.mediaKey })
     .from(mlsMedia)
     .innerJoin(media, eq(mlsMedia.mediaId, media.id))
     .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
@@ -639,19 +778,58 @@ export async function purgeScopedMlsMediaBeforeSync(
 
   for (let start = 0; start < mediaIds.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {
     const chunk = mediaIds.slice(start, start + MEDIA_ID_QUERY_CHUNK_SIZE);
+    const retainedReferences = await db
+      .select({ mediaId: mlsMedia.mediaId })
+      .from(mlsMedia)
+      .innerJoin(media, eq(mlsMedia.mediaId, media.id))
+      .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
+      .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberMlsId))
+      .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeMlsId))
+      .where(
+        and(
+          inArray(mlsMedia.mediaId, chunk),
+          isNull(mlsMedia.deletedAt),
+          isNull(media.deletedAt),
+          sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+          desiredLinkedScopeClauseNonNull,
+        ),
+      );
+    const protectedIds = new Set(retainedReferences.map((row) => row.mediaId));
+    const purgeIds = chunk.filter((id) => !protectedIds.has(id));
+
+    const rowsSharingRetainedMedia = rowsToDetach
+      .filter((row) => row.mediaId && protectedIds.has(row.mediaId))
+      .map((row) => row.mediaKey);
+    for (
+      let keyStart = 0;
+      keyStart < rowsSharingRetainedMedia.length;
+      keyStart += MEDIA_ID_QUERY_CHUNK_SIZE
+    ) {
+      await db
+        .update(mlsMedia)
+        .set({ mediaId: null, downloadedSourceTimestamp: null, updatedAt: new Date() })
+        .where(
+          inArray(
+            mlsMedia.mediaKey,
+            rowsSharingRetainedMedia.slice(keyStart, keyStart + MEDIA_ID_QUERY_CHUNK_SIZE),
+          ),
+        );
+    }
+
+    if (purgeIds.length === 0) continue;
 
     const variants = await db
       .select({ storagePath: mediaVariants.storagePath })
       .from(mediaVariants)
-      .where(inArray(mediaVariants.mediaId, chunk));
+      .where(inArray(mediaVariants.mediaId, purgeIds));
 
-    variantFilesDeleted += await deleteVariantFilesInChunks(
+    variantFilesDeleted += await deleteFilesInChunks(
       variants.map((variant) => variant.storagePath),
     );
 
     const deletedMediaRows = await db
       .delete(media)
-      .where(inArray(media.id, chunk))
+      .where(inArray(media.id, purgeIds))
       .returning({ id: media.id });
 
     mediaDeleted += deletedMediaRows.length;

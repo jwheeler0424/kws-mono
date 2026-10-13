@@ -43,6 +43,8 @@ export const MLS_HISTORY_DEFAULTS = {
   storeEnabled: true,
   storePath: 'data',
   replayBatchSize: 1000,
+  historyRetentionDays: 365,
+  quarantineRetentionDays: 90,
   lockTimeoutMs: 30_000,
   lockStaleMs: 300_000,
   compactMaxBytes: 256 * 1024 * 1024,

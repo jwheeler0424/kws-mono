@@ -4,7 +4,7 @@ import { parseBoolean, parseNullableString, parseStringArray, parseTimestamp } f
 
 import type { MlsOfficePayload } from '../types';
 
-import { mapOfficeMedia, type MappedMedia } from './media.mapper';
+import { mapOfficeMedia, resolveMlsMediaKey, type MappedMedia } from './media.mapper';
 
 type OfficeInsert = typeof offices.$inferInsert;
 
@@ -50,6 +50,10 @@ export function mapOffice(payload: MlsOfficePayload): MappedOffice {
     updatedAt: now,
     /* extensions */
     media,
-    mediaSnapshotPresent: Array.isArray(payload.Media),
+    mediaSnapshotPresent:
+      Array.isArray(payload.Media) &&
+      payload.Media.every((mediaPayload) =>
+        Boolean(resolveMlsMediaKey(mediaPayload, payload.OfficeMlsId, 'offices')),
+      ),
   };
 }

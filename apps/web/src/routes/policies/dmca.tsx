@@ -31,7 +31,7 @@ function RouteComponent() {
     <main className='content page-content guide-content relative'>
       <section>
         <article>
-          <h1 className='m-0 mb-6 sm:mb-8'>DMCA Policy</h1>
+          <h1 className='m-0 mb-6 text-balance sm:mb-8'>DMCA Policy</h1>
           <section>
             <p>
               This Digital Millennium Copyright Act policy (“Policy”) applies to the{' '}
@@ -62,7 +62,9 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>What to consider before submitting a copyright complaint</h2>
+            <h2 className='text-balance'>
+              What to consider before submitting a copyright complaint
+            </h2>
             <p>
               Before submitting a copyright complaint to us, consider whether the use could be
               considered fair use. Fair use states that brief excerpts of copyrighted material may,
@@ -85,7 +87,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>Notifications of infringement</h2>
+            <h2 className='text-balance'>Notifications of infringement</h2>
             <p>
               If you are a copyright owner or an agent thereof, and you believe that any material
               available on our Services infringes your copyrights, then you may submit a written
@@ -121,7 +123,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>Changes and amendments</h2>
+            <h2 className='text-balance'>Changes and amendments</h2>
             <p>
               We reserve the right to modify this Policy or its terms related to the Website and
               Services at any time at our discretion. When we do, we will revise the updated date at
@@ -136,7 +138,7 @@ function RouteComponent() {
             </p>
           </section>
           <section>
-            <h2>Reporting copyright infringement</h2>
+            <h2 className='text-balance'>Reporting copyright infringement</h2>
             <p>
               If you would like to notify us of the infringing material or activity, we encourage
               you to contact us using the details below:

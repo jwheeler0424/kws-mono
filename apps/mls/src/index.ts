@@ -9,6 +9,7 @@ import {
   historyVerifyFromCli,
 } from '@/app/history-maintenance';
 import { logger } from '@/lib/logger';
+import { mlsQuotaTracker } from '@/lib/utils/quota';
 
 async function run() {
   const [, , command, ...args] = process.argv;
@@ -55,7 +56,15 @@ run().catch((error) => {
   process.exit(1);
 });
 
-process.on('SIGINT', () => {
-  logger.info('Ctrl-C was pressed');
-  process.exit();
-});
+let shutdownStarted = false;
+
+async function shutdown(signal: 'SIGINT' | 'SIGTERM') {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  logger.info('MLS process shutting down', { signal });
+  await mlsQuotaTracker.flush();
+  process.exit(signal === 'SIGINT' ? 130 : 0);
+}
+
+process.once('SIGINT', () => void shutdown('SIGINT'));
+process.once('SIGTERM', () => void shutdown('SIGTERM'));

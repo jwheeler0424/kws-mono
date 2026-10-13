@@ -128,6 +128,14 @@ export function buildFilter(osn: string, afterTimestamp?: Date, beforeTimestamp?
   return parts.join(' and ');
 }
 
+export function resolveMlsApiRequestUrl(value: string, base = env.MLS_API_URL): string {
+  const target = new URL(value, base);
+  if (target.origin !== new URL(env.MLS_API_URL).origin) {
+    throw new Error('Refusing MLS API request outside the configured origin');
+  }
+  return target.toString();
+}
+
 export function buildFreshParentMediaUrl(
   entityType: 'properties' | 'members' | 'offices',
   recordKey: string,
@@ -178,11 +186,11 @@ export async function fetchFreshParentMedia(
 export async function* paginate<T>(initialUrl: string): AsyncGenerator<ODataPageBatch<T>> {
   let url: string | undefined = initialUrl;
   while (url) {
-    const requestUrl = url;
+    const requestUrl = resolveMlsApiRequestUrl(url);
     const page: ODataPage<T> = await fetchPage<T>(url);
     const nextUrl = page['@odata.nextLink'];
     yield { value: page.value, requestUrl, nextUrl };
-    url = nextUrl;
+    url = nextUrl ? new URL(nextUrl, requestUrl).toString() : undefined;
   }
 }
 
@@ -194,7 +202,8 @@ export async function fetchPage<T>(url: string): Promise<ODataPage<T>> {
   await throttle();
 
   let attempt = 0;
-  const endpoint = getSafeEndpoint(url);
+  const requestUrl = resolveMlsApiRequestUrl(url);
+  const endpoint = getSafeEndpoint(requestUrl);
 
   while (true) {
     let res: Response;
@@ -205,7 +214,7 @@ export async function fetchPage<T>(url: string): Promise<ODataPage<T>> {
         attempt: attempt + 1,
       });
       mlsQuotaTracker.prepareRequest();
-      res = await fetch(url, {
+      res = await fetch(requestUrl, {
         headers: {
           Authorization: `Bearer ${env.MLS_ACCESS_KEY}`,
           'Accept-Encoding': 'gzip',
