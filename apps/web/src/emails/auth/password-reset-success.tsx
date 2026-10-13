@@ -27,7 +27,9 @@ export const PasswordResetSuccessEmail = ({
       <Tailwind config={sharedEmailTailwindConfig}>
         <Body className='bg-background px-4 py-10 font-sans text-foreground'>
           <Preview>Your password was updated</Preview>
-          <Card className='mx-auto max-w-[560px] border border-solid border-border px-4 py-0'>
+          <Card
+            className='mx-auto border border-solid border-border px-4 py-0'
+            style={{ maxWidth: '560px' }}>
             <CardHeader className='px-4 sm:px-8 pt-12 pb-0'>
               {logoSrc ? (
                 <Img
