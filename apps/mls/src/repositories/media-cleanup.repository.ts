@@ -857,16 +857,15 @@ export async function purgeScopedMlsMediaBeforeSync(
       .from(mediaVariants)
       .where(inArray(mediaVariants.mediaId, purgeIds));
 
-    variantFilesDeleted += await deleteFilesInChunks(
-      variants.map((variant) => variant.storagePath),
-    );
-
     const deletedMediaRows = await db
       .delete(media)
       .where(inArray(media.id, purgeIds))
       .returning({ id: media.id });
 
     mediaDeleted += deletedMediaRows.length;
+    variantFilesDeleted += await deleteFilesInChunks(
+      variants.map((variant) => variant.storagePath),
+    );
   }
 
   return {
