@@ -1,7 +1,15 @@
-import { env } from '@kws/config/env';
-import { Body, Font, Head, Html, Img, Preview, Tailwind } from '@react-email/components';
+import { Body, Head, Html, Img, Preview, Tailwind } from '@react-email/components';
 
-import { Card, CardContent, CardHeader, Heading, Link, Separator, Text } from '../_components';
+import {
+  BrandFonts,
+  Card,
+  CardContent,
+  CardHeader,
+  Heading,
+  Link,
+  Separator,
+  Text,
+} from '../_components';
 import { getAuthAppName, getEmailLogoSrc, sharedEmailTailwindConfig } from '../_shared';
 
 const appName = getAuthAppName();
@@ -26,16 +34,7 @@ export const ContactRequestEmail = ({
 }: ContactRequestEmailProps) => (
   <Html>
     <Head>
-      <Font
-        fontFamily='Compass Sans'
-        fallbackFontFamily='Verdana'
-        webFont={{
-          url: `${env.APP_URL}/assets/fonts/compass/CompassSans-Regular.ttf`,
-          format: 'truetype',
-        }}
-        fontWeight={400}
-        fontStyle='normal'
-      />
+      <BrandFonts />
     </Head>
     <Tailwind config={sharedEmailTailwindConfig}>
       <Body className='bg-background px-4 py-10 font-sans text-foreground'>

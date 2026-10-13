@@ -11,9 +11,13 @@ export function getEmailBaseUrl() {
   return appBaseUrl.startsWith('http') ? appBaseUrl : `https://${appBaseUrl}`;
 }
 
+export function getEmailAssetSrc(path: string) {
+  const baseUrl = getEmailBaseUrl() || 'https://kyleweberseattle.com';
+  return new URL(path.replace(/^\/+/, ''), `${baseUrl.replace(/\/+$/, '')}/`).toString();
+}
+
 export function getEmailLogoSrc() {
-  const baseUrl = getEmailBaseUrl();
-  return `${baseUrl || 'https://kyleweberseattle.com'}/assets/brand/compass-black.png`;
+  return getEmailAssetSrc('/assets/brand/compass-black.png');
 }
 
 export function getResolvedEmailBaseUrl() {

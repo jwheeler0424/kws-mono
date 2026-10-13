@@ -1,7 +1,12 @@
 import { render } from '@react-email/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getAuthAppName, getEmailLogoSrc, getResolvedEmailBaseUrl } from './_shared';
+import {
+  getAuthAppName,
+  getEmailAssetSrc,
+  getEmailLogoSrc,
+  getResolvedEmailBaseUrl,
+} from './_shared';
 import { AuthOtpEmail, type AuthOtpType } from './auth/auth-otp';
 import { MagicLinkEmail } from './auth/magic-link';
 import { OrganizationInvitationEmail } from './auth/organization-invitation';
@@ -27,6 +32,15 @@ afterEach(() => {
 function expectCompassBrand(html: string) {
   expect(html).toContain('/assets/brand/compass-black.png');
   expect(html).toContain('alt="Compass"');
+  for (const fontFile of [
+    'CompassSans-Regular.ttf',
+    'CompassSans-Medium.ttf',
+    'CompassSans-Bold.ttf',
+    'CompassDisplay-Regular.ttf',
+    'GT-Pressura-Mono-Regular.ttf',
+  ]) {
+    expect(html).toContain(`/assets/fonts/compass/${fontFile}`);
+  }
   expect(html).not.toMatch(/Polaris|android-chrome|Knockout|Admin Template/);
 }
 
@@ -39,7 +53,14 @@ describe('Compass email presentation', () => {
     expect(getResolvedEmailBaseUrl()).toBe('http://localhost:3777');
     process.env.VITE_APP_URL = 'example.test';
     expect(getEmailLogoSrc()).toBe('https://example.test/assets/brand/compass-black.png');
+    expect(getEmailAssetSrc('/assets/fonts/compass/CompassSans-Regular.ttf')).toBe(
+      'https://example.test/assets/fonts/compass/CompassSans-Regular.ttf',
+    );
     expect(getResolvedEmailBaseUrl()).toBe('https://example.test');
+    process.env.VITE_APP_URL = 'https://example.test/';
+    expect(getEmailAssetSrc('/assets/fonts/compass/CompassSans-Regular.ttf')).toBe(
+      'https://example.test/assets/fonts/compass/CompassSans-Regular.ttf',
+    );
     process.env.VITE_APP_NAME = 'Configured Name';
     expect(getAuthAppName()).toBe('Configured Name');
   });

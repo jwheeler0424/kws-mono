@@ -1,6 +1,14 @@
 import { Body, Head, Html, Img, Preview, Tailwind } from '@react-email/components';
 
-import { Card, CardContent, CardHeader, Heading, Separator, Text } from '../_components';
+import {
+  BrandFonts,
+  Card,
+  CardContent,
+  CardHeader,
+  Heading,
+  Separator,
+  Text,
+} from '../_components';
 import { getAuthAppName, getEmailLogoSrc, sharedEmailTailwindConfig } from '../_shared';
 
 export type AuthOtpType = 'sign-in' | 'email-verification' | 'forget-password' | 'change-email';
@@ -30,7 +38,9 @@ export const AuthOtpEmail = ({
 
   return (
     <Html>
-      <Head />
+      <Head>
+        <BrandFonts />
+      </Head>
       <Tailwind config={sharedEmailTailwindConfig}>
         <Body className='bg-background px-4 py-10 font-sans text-foreground'>
           <Preview>

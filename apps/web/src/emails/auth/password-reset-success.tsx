@@ -1,6 +1,15 @@
 import { Body, Head, Html, Img, Preview, Section, Tailwind } from '@react-email/components';
 
-import { Button, Card, CardContent, CardHeader, Heading, Separator, Text } from '../_components';
+import {
+  BrandFonts,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Heading,
+  Separator,
+  Text,
+} from '../_components';
 import {
   getAuthAppName,
   getEmailLogoSrc,
@@ -23,7 +32,9 @@ export const PasswordResetSuccessEmail = ({
 }: PasswordResetSuccessEmailProps) => {
   return (
     <Html>
-      <Head />
+      <Head>
+        <BrandFonts />
+      </Head>
       <Tailwind config={sharedEmailTailwindConfig}>
         <Body className='bg-background px-4 py-10 font-sans text-foreground'>
           <Preview>Your password was updated</Preview>

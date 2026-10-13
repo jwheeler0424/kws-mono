@@ -2,6 +2,7 @@ import { Body, Head, Html, Img, Preview, Section, Tailwind } from '@react-email/
 
 import {
   Button,
+  BrandFonts,
   Card,
   CardContent,
   CardHeader,
@@ -26,7 +27,9 @@ export const ResetPasswordEmail = ({
 }: ResetPasswordEmailProps) => {
   return (
     <Html>
-      <Head />
+      <Head>
+        <BrandFonts />
+      </Head>
       <Tailwind config={sharedEmailTailwindConfig}>
         <Body className='bg-background px-4 py-10 font-sans text-foreground'>
           <Preview>Reset your password</Preview>
