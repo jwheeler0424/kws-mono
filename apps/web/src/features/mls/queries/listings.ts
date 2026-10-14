@@ -197,8 +197,10 @@ const livingAreaWithinRangeSql = (table: LivingAreaSqlFields, min: SQLWrapper, m
   });
 
   return sql`
-    (${min}::numeric is null and ${max}::numeric is null)
-    or ${sql.join(matchingCandidates, sql` or `)}
+    (
+      (${min}::numeric is null and ${max}::numeric is null)
+      or ${sql.join(matchingCandidates, sql` or `)}
+    )
   `;
 };
 

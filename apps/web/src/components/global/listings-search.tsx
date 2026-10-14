@@ -36,7 +36,6 @@ import {
 import { Slider } from '@/components/global/slider';
 import { getHydratedListingsPaginatedServerFn } from '@/features/mls/functions/listings';
 import {
-  ListingsKeys,
   listingsForSearchAndFilterOptions,
   normalizeListingsSearchInput,
 } from '@/features/mls/options/listings';
@@ -227,16 +226,8 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
   const runListingsSearchMutation = React.useCallback(
     async (nextSearch: TListingsRouteSearch) => {
       const normalizedSearch = normalizeListingsSearchInput(nextSearch);
-      const response = await queryClient.fetchQuery(
-        listingsForSearchAndFilterOptions(normalizedSearch),
-      );
-
-      // Remove stale hydration data from previous sessions as search inputs change.
-      queryClient.removeQueries({
-        queryKey: [...ListingsKeys.all, 'hydrated-paginated'],
-      });
-
-      return response;
+      // Hydration cache entries are session-scoped and expire via gcTime.
+      return queryClient.query(listingsForSearchAndFilterOptions(normalizedSearch));
     },
     [queryClient],
   );
