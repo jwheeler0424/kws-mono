@@ -104,7 +104,12 @@ export interface ImagePipelineOptions {
   storage: StorageOptions;
   durableFull?: boolean;
   preserveFullWebp?: boolean;
+  variantProfile?: 'all';
 }
+
+export type FullOnlyImagePipelineOptions = Omit<ImagePipelineOptions, 'variantProfile'> & {
+  variantProfile: 'full-only';
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Result types (shaped for media + mediaVariants DB insertion)
@@ -164,6 +169,11 @@ export interface ImagePipelineResult {
    * Use to populate three `mediaVariants` rows linked to the `media` record.
    */
   variants: Record<ImageVariantName, ImageVariantResult>;
+}
+
+export interface FullOnlyImagePipelineResult {
+  source: MappedImageMetadata;
+  variants: Pick<Record<ImageVariantName, ImageVariantResult>, 'full'>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

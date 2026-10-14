@@ -60,6 +60,26 @@ describe('NWMLS property mapping', () => {
     expect(mapped.media[0]?.mediaURL).toBeNull();
     expect(mapped.media[0]?.deletedAt).toBeInstanceOf(Date);
   });
+
+  it('retains expanded URLs only for viewable media', () => {
+    const mapped = mapProperty({
+      ListingKey: 'NWM1',
+      MlgCanView: true,
+      Media: [
+        { MediaKey: 'public-photo', MediaURL: 'https://media.mlsgrid.com/public' },
+        {
+          MediaKey: 'private-photo',
+          MediaURL: 'https://media.mlsgrid.com/private',
+          Permission: ['Private'],
+        },
+      ],
+    } as MlsPropertyPayload);
+
+    expect(mapped.media.map((item) => item.mediaURL)).toEqual([
+      'https://media.mlsgrid.com/public',
+      null,
+    ]);
+  });
 });
 
 describe('featured property member scope', () => {

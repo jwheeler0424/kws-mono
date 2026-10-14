@@ -46,7 +46,7 @@ function mapMediaBase(
     imageSizeDescription: parseNullableString(payload.ImageSizeDescription, 1024),
     imageWidth: parseIntegerValue(payload.ImageWidth),
     longDescription: parseNullableString(payload.LongDescription, 1024),
-    mediaURL: null,
+    mediaURL: canView ? parseNullableString(payload.MediaURL, 8000) : null,
     mediaModificationTimestamp: parseTimestamp(payload.MediaModificationTimestamp),
     mediaObjectId: parseNullableString(payload.MediaObjectID, 255),
     order: parseIntegerValue(payload.Order),

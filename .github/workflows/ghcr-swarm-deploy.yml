@@ -10,7 +10,9 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event.registry_package.package_type == 'container'
+    if: >-
+      github.event.registry_package.package_type == 'container' &&
+      contains(github.event.registry_package.package_version.metadata.container.tags, 'latest')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -61,4 +63,4 @@ jobs:
               "docker login ghcr.io --username '$GHCR_USERNAME' --password-stdin"
 
           ssh "${ssh_args[@]}" -p "$SSH_PORT" "$swarm_host" \
-            "docker service update --detach=false --with-registry-auth --force --image '$image' '$service'"
+            "docker pull '$image' >/dev/null && image_digest=\$(docker image inspect --format '{{index .RepoDigests 0}}' '$image') && docker service update --detach=false --with-registry-auth --force --image \"\$image_digest\" '$service'"

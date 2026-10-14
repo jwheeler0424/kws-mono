@@ -16,6 +16,7 @@ import {
   purgeScopedMlsMediaBeforeSync,
 } from '../repositories/media-cleanup.repository';
 import { runMlsCleanup } from './cleanup';
+import { discoverLegacyMlsMedia } from './media-discovery';
 import { isMlsDeltaResourceName, runDeltaSyncResource } from './orchestrator';
 import { runPrioritizedMlsMediaSync } from './seed-media';
 
@@ -177,6 +178,11 @@ async function runScheduledMediaSyncAndCleanup(
     includeMissingFilesRepair: false,
     repairMaxBatches: 1,
   });
+  const mediaDiscovery = await discoverLegacyMlsMedia({
+    originatingSystemName: env.MLS_ORIGINATING_SYSTEM_NAME,
+    memberKeys: mediaSummary.memberKeys,
+    officeKeys: mediaSummary.officeKeys,
+  });
 
   const deadMlsMediaPurgeSummary = await purgeDeadMlsMedia();
   const prunedEmptyDirectories = await pruneEmptyMlsMediaDirectories();
@@ -191,6 +197,7 @@ async function runScheduledMediaSyncAndCleanup(
     member: mediaSummary.member,
     officeTargets: mediaSummary.officeKeys.length,
     office: mediaSummary.office,
+    legacyDiscovery: mediaDiscovery,
     deadMlsMediaPurgeSummary,
     prunedEmptyDirectories,
   });

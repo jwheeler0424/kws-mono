@@ -707,11 +707,6 @@ export async function purgeScopedMlsMediaBeforeSync(
     propertyActiveViewableMediaClause,
     buildPrimaryMlsMediaClause(),
   );
-  const propertySecondaryActiveViewableClause = and(
-    propertyActiveViewableMediaClause,
-    not(buildPrimaryMlsMediaClause()),
-  );
-
   const propertyAssociationMemberClause =
     memberKeys.length > 0
       ? or(
@@ -750,20 +745,39 @@ export async function purgeScopedMlsMediaBeforeSync(
       : (propertyAssociationMemberClause ?? propertyAssociationOfficeClause);
 
   const propertyAssociatedAnyMediaClause = propertyAssociationClause
-    ? and(isNotNull(properties.listingKey), propertyAssociationClause)
+    ? and(
+        isNotNull(properties.listingKey),
+        isNull(properties.deletedAt),
+        eq(properties.mlgCanView, true),
+        isNull(mlsMedia.deletedAt),
+        sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+        propertyAssociationClause,
+      )
     : undefined;
 
-  const memberAssociatedAnyMediaClause = and(
-    isNotNull(members.memberMlsId),
-    isNull(members.deletedAt),
-    eq(members.mlgCanView, true),
-  );
+  const memberAssociatedAnyMediaClause =
+    memberKeys.length > 0
+      ? and(
+          isNotNull(members.memberMlsId),
+          inArray(members.memberMlsId, memberKeys),
+          isNull(members.deletedAt),
+          eq(members.mlgCanView, true),
+          isNull(mlsMedia.deletedAt),
+          sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+        )
+      : undefined;
 
-  const officeAssociatedAnyMediaClause = and(
-    isNotNull(offices.officeMlsId),
-    isNull(offices.deletedAt),
-    eq(offices.mlgCanView, true),
-  );
+  const officeAssociatedAnyMediaClause =
+    officeKeys.length > 0
+      ? and(
+          isNotNull(offices.officeMlsId),
+          inArray(offices.officeMlsId, officeKeys),
+          isNull(offices.deletedAt),
+          eq(offices.mlgCanView, true),
+          isNull(mlsMedia.deletedAt),
+          sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
+        )
+      : undefined;
 
   const desiredScopeClauses = [
     propertyActiveViewableMediaClause,
@@ -776,20 +790,28 @@ export async function purgeScopedMlsMediaBeforeSync(
     desiredScopeClauses.length === 1 ? desiredScopeClauses[0] : or(...desiredScopeClauses);
   const desiredLinkedScopeClauseNonNull =
     desiredLinkedScopeClause ?? propertyPrimaryActiveViewableClause;
+  const secondaryMediaScopeClause = or(
+    and(
+      or(propertyActiveViewableMediaClause, propertyAssociatedAnyMediaClause),
+      not(buildPrimaryMlsMediaClause()),
+    ),
+    memberAssociatedAnyMediaClause
+      ? and(memberAssociatedAnyMediaClause, not(buildPrimaryMlsMediaClause()))
+      : undefined,
+    officeAssociatedAnyMediaClause
+      ? and(officeAssociatedAnyMediaClause, not(buildPrimaryMlsMediaClause()))
+      : undefined,
+  );
 
   let variantFilesDeleted = 0;
   const secondaryMediaRows = await db
     .select({ mediaId: media.id })
     .from(mlsMedia)
     .innerJoin(media, eq(mlsMedia.mediaId, media.id))
-    .innerJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
-    .where(
-      and(
-        isNotNull(mlsMedia.mediaId),
-        isNull(media.deletedAt),
-        propertySecondaryActiveViewableClause,
-      ),
-    );
+    .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
+    .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberMlsId))
+    .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeMlsId))
+    .where(and(isNotNull(mlsMedia.mediaId), isNull(media.deletedAt), secondaryMediaScopeClause));
   const secondaryMediaIds = [...new Set(secondaryMediaRows.map((row) => row.mediaId))];
   for (let start = 0; start < secondaryMediaIds.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {
     const chunk = secondaryMediaIds.slice(start, start + MEDIA_ID_QUERY_CHUNK_SIZE);

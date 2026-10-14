@@ -76,3 +76,27 @@ test('JPEG input produces decodable WebP variants at the expected dimensions', a
     await rm(basePath, { recursive: true, force: true });
   }
 });
+
+test('full-only profile stores no derived variants', async () => {
+  const basePath = await mkdtemp(path.join(tmpdir(), 'mls-image-full-only-'));
+  try {
+    const result = await processImage({
+      source: pixel,
+      filename: 'photo',
+      organizationId: 'listing',
+      variantProfile: 'full-only',
+      storage: { provider: 'local', basePath },
+    });
+
+    expect(Object.keys(result.variants)).toEqual(['full']);
+    expect(await Bun.file(path.join(basePath, 'listing', 'photo_full.webp')).exists()).toBe(true);
+    expect(await Bun.file(path.join(basePath, 'listing', 'photo_thumbnail.webp')).exists()).toBe(
+      false,
+    );
+    expect(await Bun.file(path.join(basePath, 'listing', 'photo_preview.webp')).exists()).toBe(
+      false,
+    );
+  } finally {
+    await rm(basePath, { recursive: true, force: true });
+  }
+});

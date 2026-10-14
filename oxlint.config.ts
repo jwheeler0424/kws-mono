@@ -24,6 +24,7 @@ export default defineConfig({
     '**/dist/**',
     '**/build/**',
     '**/.git/**',
+    '**/.github/**',
     '**/.tanstack/**',
     '**/.turbo/**',
     '**/.next/**',

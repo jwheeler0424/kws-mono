@@ -153,8 +153,10 @@ Notes:
 ### Automatic GHCR Image Updates
 
 The `ghcr-swarm-deploy` GitHub Actions workflow listens for published or updated GHCR container
-packages and updates only the matching `web` or `mls` Swarm service. It currently deploys the `latest`
-tag, as `scripts/deploy-images.sh` does.
+packages and updates only the matching `web` or `mls` Swarm service when the event includes the
+`latest` tag. This filters manifest-only events from multi-architecture pushes. The workflow pulls
+`latest` on the Swarm manager and updates the service by the resolved digest, so the deployed image
+is explicit rather than a mutable tag.
 
 Configure these repository Actions secrets and variables:
 

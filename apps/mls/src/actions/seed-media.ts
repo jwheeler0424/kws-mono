@@ -15,6 +15,7 @@ import { db } from '@/lib/database';
 import { mlsLogger } from '@/lib/logger';
 import { fetchFreshParentMedia } from '@/lib/utils/fetch';
 import { downloadMlsMedia, MlsMediaDownloadError } from '@/lib/utils/media-download';
+import { downloadMlsMediaWithUrlRefresh, isFreshCachedMlsMediaUrl } from '@/lib/utils/media-url';
 import {
   isMlsMediaBudgetExhausted,
   MlsQuotaExceededError,
@@ -236,10 +237,9 @@ function resolveExpectedVariantPath(
 }
 
 async function areAllCanonicalVariantsPresent(candidate: MlsMediaSyncCandidate): Promise<boolean> {
-  const variants: VariantName[] =
-    candidate.entityType === 'properties' && !candidate.isPrimaryPhoto
-      ? ['full']
-      : ['thumbnail', 'preview', 'full'];
+  const variants: VariantName[] = candidate.isPrimaryPhoto
+    ? ['thumbnail', 'preview', 'full']
+    : ['full'];
   const checks = variants.map((variantName) =>
     Bun.file(resolveExpectedVariantPath(candidate, variantName)).exists(),
   );
@@ -249,7 +249,7 @@ async function areAllCanonicalVariantsPresent(candidate: MlsMediaSyncCandidate):
 
 async function resolvePipelineSource(
   candidate: MlsMediaSyncCandidate,
-  getMediaUrl: () => Promise<string>,
+  getMediaUrl: (forceRefresh?: boolean) => Promise<string>,
 ): Promise<{
   source: string | Blob;
   sourceOrigin: 'local' | 'remote';
@@ -264,7 +264,6 @@ async function resolvePipelineSource(
     };
   }
 
-  const mediaUrl = await getMediaUrl();
   const budgetedFetch = async (input: string, options: RequestInit): Promise<Response> => {
     // Only MLS Grid requests count toward its limits; the storage redirect target does not.
     if (new URL(input).hostname.endsWith('mlsgrid.com')) {
@@ -273,9 +272,11 @@ async function resolvePipelineSource(
     }
     return fetch(input, options);
   };
-  const source = await downloadMlsMedia(mediaUrl, env.MLS_ACCESS_KEY, budgetedFetch, {
-    demo: new URL(env.MLS_API_URL).hostname === 'api-demo.mlsgrid.com',
-  });
+  const download = (url: string) =>
+    downloadMlsMedia(url, env.MLS_ACCESS_KEY, budgetedFetch, {
+      demo: new URL(env.MLS_API_URL).hostname === 'api-demo.mlsgrid.com',
+    });
+  const source = await downloadMlsMediaWithUrlRefresh(getMediaUrl, download);
   mlsQuotaTracker.recordResponseBytes(source.size);
   return {
     source,
@@ -365,18 +366,21 @@ async function upsertProcessedMedia(
   const pipelineSource = await resolvePipelineSource(candidate, getMediaUrl);
   const filename = path.basename(resolveExpectedFullPath(candidate)).replace(/_full\.webp$/, '');
 
-  const result = await processImage({
+  const imageOptions = {
     source: pipelineSource.source,
     filename,
     durableFull: true,
     preserveFullWebp: pipelineSource.sourceOrigin === 'local',
     organizationId: candidate.resourceRecordKey,
     storage: {
-      provider: 'local',
+      provider: 'local' as const,
       basePath: localBasePath(candidate.entityType),
       publicBaseUrl: localPublicBaseUrl(candidate.entityType),
     },
-  });
+  };
+  const result = candidate.isPrimaryPhoto
+    ? await processImage(imageOptions)
+    : await processImage({ ...imageOptions, variantProfile: 'full-only' });
 
   const fullVariant = result.variants.full;
   const title = buildMediaTitle(candidate);
@@ -434,38 +438,18 @@ async function upsertProcessedMedia(
       finalMediaId = inserted[0]!.id;
     }
 
-    await tx.insert(mediaVariants).values([
-      {
+    await tx.insert(mediaVariants).values(
+      Object.values(result.variants).map((variant) => ({
         mediaId: finalMediaId,
-        variantName: 'thumbnail',
-        width: result.variants.thumbnail.width,
-        height: result.variants.thumbnail.height,
-        fileSize: result.variants.thumbnail.fileSize,
-        url: result.variants.thumbnail.url,
-        storagePath: result.variants.thumbnail.storagePath,
-        storageKey: result.variants.thumbnail.storageKey,
-      },
-      {
-        mediaId: finalMediaId,
-        variantName: 'preview',
-        width: result.variants.preview.width,
-        height: result.variants.preview.height,
-        fileSize: result.variants.preview.fileSize,
-        url: result.variants.preview.url,
-        storagePath: result.variants.preview.storagePath,
-        storageKey: result.variants.preview.storageKey,
-      },
-      {
-        mediaId: finalMediaId,
-        variantName: 'full',
-        width: result.variants.full.width,
-        height: result.variants.full.height,
-        fileSize: result.variants.full.fileSize,
-        url: result.variants.full.url,
-        storagePath: result.variants.full.storagePath,
-        storageKey: result.variants.full.storageKey,
-      },
-    ]);
+        variantName: variant.variantName,
+        width: variant.width,
+        height: variant.height,
+        fileSize: variant.fileSize,
+        url: variant.url,
+        storagePath: variant.storagePath,
+        storageKey: variant.storageKey,
+      })),
+    );
 
     await tx
       .update(mlsMedia)
@@ -656,7 +640,22 @@ export async function runMlsMediaSync(
                 outcome.skipped += 1;
                 continue;
               }
-              const getMediaUrl = async () => {
+              const getMediaUrl = async (forceRefresh = false) => {
+                if (
+                  !forceRefresh &&
+                  isFreshCachedMlsMediaUrl(candidate.mediaURL, candidate.mediaUrlUpdatedAt)
+                ) {
+                  await db
+                    .update(mlsMedia)
+                    .set({ lastAttemptAt: new Date() })
+                    .where(
+                      and(
+                        eq(mlsMedia.mediaKey, candidate.mediaKey),
+                        eq(mlsMedia.acquisitionToken, token),
+                      ),
+                    );
+                  return candidate.mediaURL!;
+                }
                 snapshot ??= fetchFreshParentMedia(
                   candidate.entityType,
                   candidate.resourceRecordKey,
@@ -689,7 +688,11 @@ export async function runMlsMediaSync(
                 }
                 await db
                   .update(mlsMedia)
-                  .set({ lastAttemptAt: new Date() })
+                  .set({
+                    mediaURL: fresh.MediaURL,
+                    updatedAt: new Date(),
+                    lastAttemptAt: new Date(),
+                  })
                   .where(
                     and(
                       eq(mlsMedia.mediaKey, candidate.mediaKey),

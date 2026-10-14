@@ -1,4 +1,10 @@
-import type { ImagePipelineOptions, ImagePipelineResult, ImageVariantResult } from './types.js';
+import type {
+  FullOnlyImagePipelineOptions,
+  FullOnlyImagePipelineResult,
+  ImagePipelineOptions,
+  ImagePipelineResult,
+  ImageVariantResult,
+} from './types.js';
 
 import { extractImageMetadata } from './extract-metadata.js';
 import { processVariants } from './process-variants.js';
@@ -11,11 +17,9 @@ import { writeVariants } from './storage.js';
  * 1. **Resolve** — converts any supported source (URL, S3 path, local file,
  *    Blob, ArrayBuffer) into an in-memory `Blob`.
  * 2. **Decode** — creates a `Bun.Image` instance (zero-copy; SIMD-accelerated).
- * 3. **Metadata + variants** — extracts rich metadata and produces three WebP
- *    variants (thumbnail ≥120 px wide, preview ≥600 px wide, full size) in
- *    parallel via `Promise.all`.  All image processing runs off the main thread.
- * 4. **Store** — writes the three blobs to the configured storage provider
- *    (local disk, S3, or R2) in parallel.
+ * 3. **Metadata + variants** — extracts rich metadata and produces all WebP
+ *    variants by default, or only the full-size variant when requested.
+ * 4. **Store** — writes the selected blobs to the configured storage provider.
  * 5. **Return** — yields an `ImagePipelineResult` ready for direct insertion
  *    into the `media` and `mediaVariants` database tables.  No DB writes are
  *    performed here; that is the caller's responsibility.
@@ -44,7 +48,13 @@ import { writeVariants } from './storage.js';
  * });
  * ```
  */
-export async function processImage(options: ImagePipelineOptions): Promise<ImagePipelineResult> {
+export function processImage(
+  options: FullOnlyImagePipelineOptions,
+): Promise<FullOnlyImagePipelineResult>;
+export function processImage(options: ImagePipelineOptions): Promise<ImagePipelineResult>;
+export async function processImage(
+  options: ImagePipelineOptions | FullOnlyImagePipelineOptions,
+): Promise<ImagePipelineResult | FullOnlyImagePipelineResult> {
   const {
     source,
     filename,
@@ -66,6 +76,28 @@ export async function processImage(options: ImagePipelineOptions): Promise<Image
   // header without fully decoding pixel data.  We need dimensions before we
   // can pre-compute output sizes for the resize variants.
   const metadata = await extractImageMetadata(image);
+
+  if (options.variantProfile === 'full-only') {
+    const fullBlob =
+      options.preserveFullWebp && metadata.format === 'webp'
+        ? blob
+        : await image.webp(webpOptions).blob();
+    const [full] = await writeVariants(
+      [
+        {
+          variantName: 'full',
+          blob: fullBlob,
+          width: metadata.width,
+          height: metadata.height,
+        },
+      ],
+      storage,
+      filename,
+      organizationId,
+    );
+
+    return { source: metadata, variants: { full: full! } };
+  }
 
   const fullSource =
     options.preserveFullWebp && metadata.format === 'webp'

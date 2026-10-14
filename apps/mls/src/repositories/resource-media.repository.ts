@@ -17,6 +17,24 @@ export interface ResourceMediaBatchItem {
   mediaRecords: MappedMedia[];
 }
 
+async function upsertResourceMediaWithinTransaction(
+  tx: MlsTransaction,
+  item: ResourceMediaBatchItem,
+): Promise<void> {
+  if (item.mediaRecords.length === 0) return;
+
+  const now = new Date();
+  for (const chunk of chunkArray(item.mediaRecords, MEDIA_UPSERT_CHUNK_SIZE)) {
+    await tx
+      .insert(mlsMedia)
+      .values(chunk)
+      .onConflictDoUpdate({
+        target: mlsMedia.mediaKey,
+        set: buildMlsMediaConflictSet(now),
+      });
+  }
+}
+
 export async function reconcileResourceMediaWithinTransaction(
   tx: MlsTransaction,
   item: ResourceMediaBatchItem,
@@ -39,20 +57,16 @@ export async function reconcileResourceMediaWithinTransaction(
       .where(eq(mlsMedia.resourceRecordKey, item.resourceRecordKey));
   }
 
-  if (item.mediaRecords.length === 0) {
-    return;
-  }
+  await upsertResourceMediaWithinTransaction(tx, item);
+}
 
-  const now = new Date();
-  for (const chunk of chunkArray(item.mediaRecords, MEDIA_UPSERT_CHUNK_SIZE)) {
-    await tx
-      .insert(mlsMedia)
-      .values(chunk)
-      .onConflictDoUpdate({
-        target: mlsMedia.mediaKey,
-        set: buildMlsMediaConflictSet(now),
-      });
-  }
+export async function enqueueResourceMediaBatch(items: ResourceMediaBatchItem[]): Promise<void> {
+  if (items.length === 0) return;
+  await db.transaction(async (tx) => {
+    for (const item of items) {
+      await upsertResourceMediaWithinTransaction(tx, item);
+    }
+  });
 }
 
 export async function reconcileResourceMediaBatch(items: ResourceMediaBatchItem[]): Promise<void> {

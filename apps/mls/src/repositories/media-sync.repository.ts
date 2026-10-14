@@ -71,7 +71,8 @@ export type MlsMediaAssociationMode =
 
 export interface MlsMediaSyncCandidate {
   mediaKey: string;
-  mediaURL: string;
+  mediaURL: string | null;
+  mediaUrlUpdatedAt: Date | null;
   resourceRecordKey: string;
   listingId: string | null;
   mediaId: UUIDv7 | null;
@@ -162,6 +163,7 @@ export interface ListMlsMediaSyncCandidatesOptions {
 type CandidateRow = {
   mediaKey: string;
   mediaURL: string | null;
+  mediaUrlUpdatedAt: Date | null;
   resourceRecordKey: string | null;
   mediaId: UUIDv7 | null;
   mlsUpdatedAt: string | null;
@@ -207,7 +209,8 @@ function toMlsMediaSyncCandidates(rows: CandidateRow[]): MlsMediaSyncCandidate[]
     return [
       {
         mediaKey: row.mediaKey,
-        mediaURL: '',
+        mediaURL: row.mediaURL,
+        mediaUrlUpdatedAt: row.mediaUrlUpdatedAt,
         resourceRecordKey: row.resourceRecordKey,
         listingId: row.listingId,
         mediaId: (row.mediaId as UUIDv7 | null) ?? null,
@@ -517,6 +520,7 @@ export async function listMlsMediaSyncCandidates(
     .select({
       mediaKey: mlsMedia.mediaKey,
       mediaURL: mlsMedia.mediaURL,
+      mediaUrlUpdatedAt: mlsMedia.updatedAt,
       resourceRecordKey: mlsMedia.resourceRecordKey,
       mediaId: mlsMedia.mediaId,
       mlsUpdatedAt: mlsMedia.mediaModificationTimestamp,
@@ -572,6 +576,7 @@ export async function listUnsyncedMediaForListing(
     .select({
       mediaKey: mlsMedia.mediaKey,
       mediaURL: mlsMedia.mediaURL,
+      mediaUrlUpdatedAt: mlsMedia.updatedAt,
       resourceRecordKey: mlsMedia.resourceRecordKey,
       mediaId: mlsMedia.mediaId,
       mlsUpdatedAt: mlsMedia.mediaModificationTimestamp,

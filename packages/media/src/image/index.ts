@@ -3,6 +3,8 @@ export { resolveImageSource } from './resolve-source.js';
 export { VARIANT_TARGET_WIDTHS } from './types.js';
 export type {
   CloudStorageOptions,
+  FullOnlyImagePipelineOptions,
+  FullOnlyImagePipelineResult,
   ImagePipelineOptions,
   ImagePipelineResult,
   ImageVariantName,
