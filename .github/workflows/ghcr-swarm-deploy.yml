@@ -3,16 +3,22 @@ name: Deploy GHCR images to Swarm
 on:
   registry_package:
     types: [published, updated]
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
 
 concurrency:
-  group: production-swarm-${{ github.event.registry_package.name }}
+  group: production-swarm
   cancel-in-progress: false
 
 jobs:
   deploy:
     if: >-
-      github.event.registry_package.package_type == 'container' &&
-      contains(github.event.registry_package.package_version.metadata.container.tags, 'latest')
+      github.event_name != 'registry_package' ||
+      (
+        github.event.registry_package.package_type == 'container' &&
+        contains(github.event.registry_package.package_version.metadata.container.tags, 'latest')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -34,20 +40,24 @@ jobs:
 
           package_name="${PACKAGE_NAME,,}"
           ghcr_owner="${GHCR_OWNER,,}"
-          case "$package_name" in
-            kyleweberseattle.com|*/kyleweberseattle.com)
-              image="ghcr.io/${ghcr_owner}/kyleweberseattle.com:latest"
-              service="${SWARM_STACK_NAME}_web"
-              ;;
-            kyleweberseattle.com-mls|*/kyleweberseattle.com-mls)
-              image="ghcr.io/${ghcr_owner}/kyleweberseattle.com-mls:latest"
-              service="${SWARM_STACK_NAME}_mls"
-              ;;
-            *)
-              echo "Ignoring unpublished app package: ${PACKAGE_NAME}"
-              exit 0
-              ;;
-          esac
+          deployments=()
+          if [[ "$GITHUB_EVENT_NAME" == "registry_package" ]]; then
+            case "$package_name" in
+              kyleweberseattle.com|*/kyleweberseattle.com)
+                deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com:latest|${SWARM_STACK_NAME}_web")
+                ;;
+              kyleweberseattle.com-mls|*/kyleweberseattle.com-mls)
+                deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com-mls:latest|${SWARM_STACK_NAME}_mls")
+                ;;
+              *)
+                echo "Ignoring unrelated package: ${PACKAGE_NAME}"
+                exit 0
+                ;;
+            esac
+          else
+            deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com:latest|${SWARM_STACK_NAME}_web")
+            deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com-mls:latest|${SWARM_STACK_NAME}_mls")
+          fi
 
           key_file="$(mktemp)"
           known_hosts_file="$(mktemp)"
@@ -62,5 +72,9 @@ jobs:
             ssh "${ssh_args[@]}" -p "$SSH_PORT" "$swarm_host" \
               "docker login ghcr.io --username '$GHCR_USERNAME' --password-stdin"
 
-          ssh "${ssh_args[@]}" -p "$SSH_PORT" "$swarm_host" \
-            "docker pull '$image' >/dev/null && image_digest=\$(docker image inspect --format '{{index .RepoDigests 0}}' '$image') && docker service update --detach=false --with-registry-auth --force --image \"\$image_digest\" '$service'"
+          for deployment in "${deployments[@]}"; do
+            IFS='|' read -r image service <<< "$deployment"
+            echo "Checking $image for $service"
+            ssh "${ssh_args[@]}" -p "$SSH_PORT" "$swarm_host" \
+              "docker pull '$image' >/dev/null && desired_image=\$(docker image inspect --format '{{index .RepoDigests 0}}' '$image') && current_image=\$(docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' '$service') && if [ \"\$current_image\" = \"\$desired_image\" ]; then echo 'Service already runs this digest'; else docker service update --detach=false --with-registry-auth --image \"\$desired_image\" '$service'; fi"
+          done

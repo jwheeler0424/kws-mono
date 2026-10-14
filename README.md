@@ -154,9 +154,10 @@ Notes:
 
 The `ghcr-swarm-deploy` GitHub Actions workflow listens for published or updated GHCR container
 packages and updates only the matching `web` or `mls` Swarm service when the event includes the
-`latest` tag. This filters manifest-only events from multi-architecture pushes. The workflow pulls
-`latest` on the Swarm manager and updates the service by the resolved digest, so the deployed image
-is explicit rather than a mutable tag.
+`latest` tag. This filters manifest-only events from multi-architecture pushes. Since GitHub may not
+deliver package events for every push, the workflow also checks both images every 10 minutes and
+supports manual dispatch. It pulls `latest` on the Swarm manager and updates a service only when the
+resolved digest differs from the running image.
 
 Configure these repository Actions secrets and variables:
 
@@ -171,10 +172,9 @@ Optional Actions variables are `SWARM_STACK_NAME` (defaults to `kws`) and `GHCR_
 the GitHub repository owner). The workflow runs on GitHub-hosted runners and cannot read the VPS `.env`
 file, so adding credentials only to that file is not sufficient. The GHCR packages must be associated
 with this repository. The web and MLS Dockerfiles include the OCI source label for future CLI pushes.
-For packages already published, connect each package to this repository in its GHCR package settings;
-then publish a new image to generate a package event. If images are pushed from another Actions workflow using its built-in
-`GITHUB_TOKEN`, GitHub may suppress the follow-on package event; use a package-capable PAT for the push
-or deploy in that same build workflow. Existing `SWARM_SSH_HOST`, `SWARM_SSH_USER`,
+For packages already published, connect each package to this repository in its GHCR package settings.
+If images are pushed from another Actions workflow using its built-in `GITHUB_TOKEN`, GitHub may
+suppress the follow-on package event; the scheduled check will still detect the new digest. Existing `SWARM_SSH_HOST`, `SWARM_SSH_USER`,
 `SWARM_SSH_PRIVATE_KEY`, and `SWARM_SSH_KNOWN_HOSTS` secrets are still accepted as fallbacks.
 
 ## Local Production Rehearsal (minimal root env)
