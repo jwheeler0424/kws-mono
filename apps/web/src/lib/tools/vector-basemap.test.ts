@@ -5,12 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVectorBasemapLayer, transformVectorBasemapStyle } from './vector-basemap';
 
 const layerMocks = vi.hoisted(() => ({
-  once: vi.fn(),
-  setStyle: vi.fn(),
+  once: vi.fn<(...args: unknown[]) => void>(),
+  setStyle: vi.fn<(...args: unknown[]) => void>(),
 }));
 
 vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
-  maplibreGL: vi.fn(() => ({
+  maplibreGL: vi.fn<(...args: unknown[]) => unknown>(() => ({
     options: {},
     once: layerMocks.once,
     getMaplibreMap: () => ({ setStyle: layerMocks.setStyle }),

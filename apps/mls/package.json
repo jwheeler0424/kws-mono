@@ -26,13 +26,13 @@
     "drizzle-orm": "^1.0.0-rc.5-ab785fc",
     "h3-js": "^4.4.0",
     "pg": "^8.23.1",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@kws/types": "*",
     "@kws/typescript": "*",
     "@kws/utils": "*",
-    "@types/bun": "1.4.2",
+    "@types/bun": "1.4.3",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^1.0.0-rc.5-ab785fc",
     "esbuild": "^0.28.2"

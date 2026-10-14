@@ -8,11 +8,11 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@kws/typescript": "*",
-    "@types/bun": "1.4.2"
+    "@types/bun": "1.4.3"
   },
   "peerDependencies": {
     "typescript": "^7"

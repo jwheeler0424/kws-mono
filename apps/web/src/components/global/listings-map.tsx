@@ -70,24 +70,26 @@ export function ListingsMap({ search }: { search: Partial<TListingsSearch> }) {
     retry: 1,
   });
 
+  const {
+    fetchNextPage: fetchNextMarkersPage,
+    hasNextPage: hasNextMarkersPage,
+    isFetchingNextPage: isFetchingNextMarkersPage,
+  } = streamedMarkersQuery;
+
   React.useEffect(() => {
-    if (
-      !viewportQuery.isSuccess ||
-      !streamedMarkersQuery.hasNextPage ||
-      streamedMarkersQuery.isFetchingNextPage
-    ) {
+    if (!viewportQuery.isSuccess || !hasNextMarkersPage || isFetchingNextMarkersPage) {
       return;
     }
 
     const timeout = setTimeout(() => {
-      void streamedMarkersQuery.fetchNextPage();
+      void fetchNextMarkersPage();
     }, 200);
 
     return () => clearTimeout(timeout);
   }, [
-    streamedMarkersQuery.fetchNextPage,
-    streamedMarkersQuery.hasNextPage,
-    streamedMarkersQuery.isFetchingNextPage,
+    fetchNextMarkersPage,
+    hasNextMarkersPage,
+    isFetchingNextMarkersPage,
     viewportQuery.isSuccess,
   ]);
 
