@@ -120,9 +120,9 @@ const normalizeBounds = (bounds: TMapBounds | null | undefined): TMapBounds | nu
 const toOptionalRangeFilter = (
   min: number | null,
   max: number | null,
-): TRangeFilterValue | undefined => {
+): TRangeFilterValue | null => {
   if (min === null && max === null) {
-    return undefined;
+    return null;
   }
 
   return {
@@ -527,27 +527,27 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
     const input = e.target.value;
     const value = input.replace(/[^\d.]/g, '');
     if (value === '') {
-      setPriceValuesLocal([null, priceMax]);
+      setPriceValuesLocal([null, priceValues[1]]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null) {
-      setPriceValuesLocal([null, priceMax]);
+      setPriceValuesLocal([null, priceValues[1]]);
       return;
     }
-    setPriceValuesLocal([newValue, priceMax]);
+    setPriceValuesLocal([newValue, priceValues[1]]);
   };
 
   const handleInputMinPriceBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/[^\d.]/g, '');
     if (value === '') {
-      setPriceValuesLocal([null, priceMax]);
+      setPriceValuesLocal([null, priceValues[1]]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null || newValue < minPrice) {
-      setPriceValuesLocal([null, priceMax]);
+      setPriceValuesLocal([null, priceValues[1]]);
       toast.error(
         `Please enter a valid minimum price between ${numberFormatInternational(minPrice, {
           currency: 'USD',
@@ -563,8 +563,8 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
       );
       return;
     }
-    if (maxPrice === null && newValue > maxPrice) {
-      setPriceValuesLocal([null, priceMax]);
+    if (newValue > maxPrice) {
+      setPriceValuesLocal([null, priceValues[1]]);
       toast.error(
         `Please enter a valid minimum price between ${numberFormatInternational(minPrice, {
           currency: 'USD',
@@ -580,40 +580,40 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
       );
       return;
     }
-    if (priceMax !== null && newValue >= priceMax) {
-      setPriceValuesLocal([priceMax, priceMax]);
+    if (priceValues[1] !== null && newValue >= priceValues[1]) {
+      setPriceValuesLocal([priceValues[1], priceValues[1]]);
       return;
     }
-    setPriceValuesLocal([newValue, priceMax]);
+    setPriceValuesLocal([newValue, priceValues[1]]);
   };
 
   const handleInputMaxPrice = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/[^\d.]/g, '');
     if (value === '') {
-      setPriceValuesLocal([priceMin, null]);
+      setPriceValuesLocal([priceValues[0], null]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null) {
-      setPriceValuesLocal([priceMin, null]);
+      setPriceValuesLocal([priceValues[0], null]);
       return;
     }
-    setPriceValuesLocal([priceMin, newValue]);
+    setPriceValuesLocal([priceValues[0], newValue]);
   };
 
   const handleInputMaxPriceBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/[^\d.]/g, '');
     if (value === '') {
-      setPriceValuesLocal([priceMin, null]);
+      setPriceValuesLocal([priceValues[0], null]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null || newValue > maxPrice) {
-      setPriceValuesLocal([priceMin, null]);
+      setPriceValuesLocal([priceValues[0], null]);
       toast.error(
-        `Please enter a valid minimum price between ${numberFormatInternational(minPrice, {
+        `Please enter a valid maximum price between ${numberFormatInternational(minPrice, {
           currency: 'USD',
           style: 'currency',
           minimumFractionDigits: 0,
@@ -627,10 +627,10 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
       );
       return;
     }
-    if (priceMin === null && newValue < minPrice) {
-      setPriceValuesLocal([priceMin, null]);
+    if (priceValues[0] === null && newValue < minPrice) {
+      setPriceValuesLocal([priceValues[0], null]);
       toast.error(
-        `Please enter a valid minimum price between ${numberFormatInternational(minPrice, {
+        `Please enter a valid maximum price between ${numberFormatInternational(minPrice, {
           currency: 'USD',
           style: 'currency',
           minimumFractionDigits: 0,
@@ -644,275 +644,275 @@ export default function ListingsSearch({ search }: ListingsSearchProps) {
       );
       return;
     }
-    if (priceMin !== null && newValue <= priceMin) {
-      setPriceValuesLocal([priceMin, priceMin]);
+    if (priceValues[0] !== null && newValue <= priceValues[0]) {
+      setPriceValuesLocal([priceValues[0], priceValues[0]]);
       return;
     }
-    setPriceValuesLocal([priceMin, newValue]);
+    setPriceValuesLocal([priceValues[0], newValue]);
   };
 
   const handleInputMinSqFt = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setSqFtValuesLocal([null, sqFtMax]);
+      setSqFtValuesLocal([null, sqFtValues[1]]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null) {
-      setSqFtValuesLocal([null, sqFtMax]);
+      setSqFtValuesLocal([null, sqFtValues[1]]);
       return;
     }
-    setSqFtValuesLocal([newValue, sqFtMax]);
+    setSqFtValuesLocal([newValue, sqFtValues[1]]);
   };
 
   const handleInputMinSqFtBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setSqFtValuesLocal([null, sqFtMax]);
+      setSqFtValuesLocal([null, sqFtValues[1]]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null || newValue < minSqFt) {
-      setSqFtValuesLocal([null, sqFtMax]);
+      setSqFtValuesLocal([null, sqFtValues[1]]);
       toast.error(
         `Please enter a valid minimum square footage between ${numberFormatInternational(minSqFt)} and ${numberFormatInternational(maxSqFt)}.`,
       );
       return;
     }
-    if (sqFtMax === null && newValue > maxSqFt) {
-      setSqFtValuesLocal([null, sqFtMax]);
+    if (newValue > maxSqFt) {
+      setSqFtValuesLocal([null, sqFtValues[1]]);
       toast.error(
         `Please enter a valid minimum square footage between ${numberFormatInternational(minSqFt)} and ${numberFormatInternational(maxSqFt)}.`,
       );
       return;
     }
-    if (sqFtMax !== null && newValue >= sqFtMax) {
-      setSqFtValuesLocal([sqFtMax, sqFtMax]);
+    if (sqFtValues[1] !== null && newValue >= sqFtValues[1]) {
+      setSqFtValuesLocal([sqFtValues[1], sqFtValues[1]]);
       return;
     }
-    setSqFtValuesLocal([newValue, sqFtMax]);
+    setSqFtValuesLocal([newValue, sqFtValues[1]]);
   };
 
   const handleInputMaxSqFt = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setSqFtValuesLocal([sqFtMin, null]);
+      setSqFtValuesLocal([sqFtValues[0], null]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null) {
-      setSqFtValuesLocal([sqFtMin, null]);
+      setSqFtValuesLocal([sqFtValues[0], null]);
       return;
     }
-    setSqFtValuesLocal([sqFtMin, newValue]);
+    setSqFtValuesLocal([sqFtValues[0], newValue]);
   };
 
   const handleInputMaxSqFtBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setSqFtValuesLocal([sqFtMin, null]);
+      setSqFtValuesLocal([sqFtValues[0], null]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null || newValue > maxSqFt) {
-      setSqFtValuesLocal([sqFtMin, null]);
+      setSqFtValuesLocal([sqFtValues[0], null]);
       toast.error(
-        `Please enter a valid minimum square footage between ${numberFormatInternational(minSqFt)} and ${numberFormatInternational(maxSqFt)}.`,
+        `Please enter a valid maximum square footage between ${numberFormatInternational(minSqFt)} and ${numberFormatInternational(maxSqFt)}.`,
       );
       return;
     }
-    if (sqFtMin === null && newValue < minSqFt) {
-      setSqFtValuesLocal([sqFtMin, null]);
+    if (sqFtValues[0] === null && newValue < minSqFt) {
+      setSqFtValuesLocal([sqFtValues[0], null]);
       toast.error(
-        `Please enter a valid minimum square footage between ${numberFormatInternational(minSqFt)} and ${numberFormatInternational(maxSqFt)}.`,
+        `Please enter a valid maximum square footage between ${numberFormatInternational(minSqFt)} and ${numberFormatInternational(maxSqFt)}.`,
       );
       return;
     }
-    if (sqFtMin !== null && newValue <= sqFtMin) {
-      setSqFtValuesLocal([sqFtMin, sqFtMin]);
+    if (sqFtValues[0] !== null && newValue <= sqFtValues[0]) {
+      setSqFtValuesLocal([sqFtValues[0], sqFtValues[0]]);
       return;
     }
-    setSqFtValuesLocal([sqFtMin, newValue]);
+    setSqFtValuesLocal([sqFtValues[0], newValue]);
   };
 
   const handleInputMinBedroom = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setBedroomValuesLocal([null, bedroomsMax]);
+      setBedroomValuesLocal([null, bedroomValues[1]]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null) {
-      setBedroomValuesLocal([null, bedroomsMax]);
+      setBedroomValuesLocal([null, bedroomValues[1]]);
       return;
     }
-    setBedroomValuesLocal([newValue, bedroomsMax]);
+    setBedroomValuesLocal([newValue, bedroomValues[1]]);
   };
 
   const handleInputMinBedroomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setBedroomValuesLocal([null, bedroomsMax]);
+      setBedroomValuesLocal([null, bedroomValues[1]]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null || newValue < minBedroom) {
-      setBedroomValuesLocal([null, bedroomsMax]);
+      setBedroomValuesLocal([null, bedroomValues[1]]);
       toast.error(
         `Please enter a valid minimum bedroom count between ${numberFormatInternational(minBedroom + 1)} and ${numberFormatInternational(maxBedroom - 1)}.`,
       );
       return;
     }
-    if (bedroomsMax === null && newValue > maxBedroom) {
-      setBedroomValuesLocal([null, bedroomsMax]);
+    if (newValue > maxBedroom) {
+      setBedroomValuesLocal([null, bedroomValues[1]]);
       toast.error(
         `Please enter a valid minimum bedroom count between ${numberFormatInternational(minBedroom + 1)} and ${numberFormatInternational(maxBedroom - 1)}.`,
       );
       return;
     }
-    if (bedroomsMax !== null && newValue >= bedroomsMax) {
-      setBedroomValuesLocal([bedroomsMax, bedroomsMax]);
+    if (bedroomValues[1] !== null && newValue >= bedroomValues[1]) {
+      setBedroomValuesLocal([bedroomValues[1], bedroomValues[1]]);
       return;
     }
-    setBedroomValuesLocal([newValue, bedroomsMax]);
+    setBedroomValuesLocal([newValue, bedroomValues[1]]);
   };
 
   const handleInputMaxBedroom = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setBedroomValuesLocal([bedroomsMin, null]);
+      setBedroomValuesLocal([bedroomValues[0], null]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null) {
-      setBedroomValuesLocal([bedroomsMin, null]);
+      setBedroomValuesLocal([bedroomValues[0], null]);
       return;
     }
-    setBedroomValuesLocal([bedroomsMin, newValue]);
+    setBedroomValuesLocal([bedroomValues[0], newValue]);
   };
 
   const handleInputMaxBedroomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setBedroomValuesLocal([bedroomsMin, null]);
+      setBedroomValuesLocal([bedroomValues[0], null]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null || newValue > maxBedroom) {
-      setBedroomValuesLocal([bedroomsMin, null]);
+      setBedroomValuesLocal([bedroomValues[0], null]);
       toast.error(
-        `Please enter a valid minimum bedroom count between ${numberFormatInternational(minBedroom + 1)} and ${numberFormatInternational(maxBedroom - 1)}.`,
+        `Please enter a valid maximum bedroom count between ${numberFormatInternational(minBedroom + 1)} and ${numberFormatInternational(maxBedroom - 1)}.`,
       );
       return;
     }
-    if (bedroomsMin === null && newValue < minBedroom) {
-      setBedroomValuesLocal([bedroomsMin, null]);
+    if (bedroomValues[0] === null && newValue < minBedroom) {
+      setBedroomValuesLocal([bedroomValues[0], null]);
       toast.error(
-        `Please enter a valid minimum bedroom count between ${numberFormatInternational(minBedroom + 1)} and ${numberFormatInternational(maxBedroom - 1)}.`,
+        `Please enter a valid maximum bedroom count between ${numberFormatInternational(minBedroom + 1)} and ${numberFormatInternational(maxBedroom - 1)}.`,
       );
       return;
     }
-    if (bedroomsMin !== null && newValue <= bedroomsMin) {
-      setBedroomValuesLocal([bedroomsMin, bedroomsMin]);
+    if (bedroomValues[0] !== null && newValue <= bedroomValues[0]) {
+      setBedroomValuesLocal([bedroomValues[0], bedroomValues[0]]);
       return;
     }
-    setBedroomValuesLocal([bedroomsMin, newValue]);
+    setBedroomValuesLocal([bedroomValues[0], newValue]);
   };
 
   const handleInputMinBathroom = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setBathroomValuesLocal([null, bathroomsMax]);
+      setBathroomValuesLocal([null, bathroomValues[1]]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null) {
-      setBathroomValuesLocal([null, bathroomsMax]);
+      setBathroomValuesLocal([null, bathroomValues[1]]);
       return;
     }
-    setBathroomValuesLocal([newValue, bathroomsMax]);
+    setBathroomValuesLocal([newValue, bathroomValues[1]]);
   };
 
   const handleInputMinBathroomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setBathroomValuesLocal([null, bathroomsMax]);
+      setBathroomValuesLocal([null, bathroomValues[1]]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null || newValue < minBathroom) {
-      setBathroomValuesLocal([null, bathroomsMax]);
+      setBathroomValuesLocal([null, bathroomValues[1]]);
       toast.error(
         `Please enter a valid minimum bathroom count between ${numberFormatInternational(minBathroom + 1)} and ${numberFormatInternational(maxBathroom - 1)}.`,
       );
       return;
     }
-    if (bathroomsMax === null && newValue > maxBathroom) {
-      setBathroomValuesLocal([null, bathroomsMax]);
+    if (newValue > maxBathroom) {
+      setBathroomValuesLocal([null, bathroomValues[1]]);
       toast.error(
         `Please enter a valid minimum bathroom count between ${numberFormatInternational(minBathroom + 1)} and ${numberFormatInternational(maxBathroom - 1)}.`,
       );
       return;
     }
-    if (bathroomsMax !== null && newValue >= bathroomsMax) {
-      setBathroomValuesLocal([bathroomsMax, bathroomsMax]);
+    if (bathroomValues[1] !== null && newValue >= bathroomValues[1]) {
+      setBathroomValuesLocal([bathroomValues[1], bathroomValues[1]]);
       return;
     }
-    setBathroomValuesLocal([newValue, bathroomsMax]);
+    setBathroomValuesLocal([newValue, bathroomValues[1]]);
   };
 
   const handleInputMaxBathroom = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setBathroomValuesLocal([bathroomsMin, null]);
+      setBathroomValuesLocal([bathroomValues[0], null]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null) {
-      setBathroomValuesLocal([bathroomsMin, null]);
+      setBathroomValuesLocal([bathroomValues[0], null]);
       return;
     }
-    setBathroomValuesLocal([bathroomsMin, newValue]);
+    setBathroomValuesLocal([bathroomValues[0], newValue]);
   };
 
   const handleInputMaxBathroomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const input = e.target.value;
     const value = input.replace(/\D/g, '');
     if (value === '') {
-      setBathroomValuesLocal([bathroomsMin, null]);
+      setBathroomValuesLocal([bathroomValues[0], null]);
       return;
     }
     const newValue = !Number.isNaN(value) ? parseInt(value) : null;
     if (newValue === null || newValue > maxBathroom) {
-      setBathroomValuesLocal([bathroomsMin, null]);
+      setBathroomValuesLocal([bathroomValues[0], null]);
       toast.error(
-        `Please enter a valid minimum bathroom count between ${numberFormatInternational(minBathroom + 1)} and ${numberFormatInternational(maxBathroom - 1)}.`,
+        `Please enter a valid maximum bathroom count between ${numberFormatInternational(minBathroom + 1)} and ${numberFormatInternational(maxBathroom - 1)}.`,
       );
       return;
     }
-    if (bathroomsMin === null && newValue < minBathroom) {
-      setBathroomValuesLocal([bathroomsMin, null]);
+    if (bathroomValues[0] === null && newValue < minBathroom) {
+      setBathroomValuesLocal([bathroomValues[0], null]);
       toast.error(
-        `Please enter a valid minimum bathroom count between ${numberFormatInternational(minBathroom + 1)} and ${numberFormatInternational(maxBathroom - 1)}.`,
+        `Please enter a valid maximum bathroom count between ${numberFormatInternational(minBathroom + 1)} and ${numberFormatInternational(maxBathroom - 1)}.`,
       );
       return;
     }
-    if (bathroomsMin !== null && newValue <= bathroomsMin) {
-      setBathroomValuesLocal([bathroomsMin, bathroomsMin]);
+    if (bathroomValues[0] !== null && newValue <= bathroomValues[0]) {
+      setBathroomValuesLocal([bathroomValues[0], bathroomValues[0]]);
       return;
     }
-    setBathroomValuesLocal([bathroomsMin, newValue]);
+    setBathroomValuesLocal([bathroomValues[0], newValue]);
   };
 
   return (

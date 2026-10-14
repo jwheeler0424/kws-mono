@@ -3,7 +3,7 @@
 import type { TPropertyCard } from '@kws/schema';
 
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { VirtualPropertyGrid } from './virtual-property-grid';
@@ -65,7 +65,7 @@ describe('VirtualPropertyGrid scroll viewport', () => {
     );
   });
 
-  it('measures the card grid offset in the scroll viewport coordinate system', () => {
+  it('measures the card grid offset in the scroll viewport coordinate system', async () => {
     const { container } = render(
       <div data-slot='scroll-area-viewport'>
         <VirtualPropertyGrid
@@ -78,6 +78,8 @@ describe('VirtualPropertyGrid scroll viewport', () => {
     viewport.scrollTop = 2000;
     fireEvent.resize(window);
 
-    expect(vi.mocked(useVirtualizer).mock.lastCall?.[0].scrollMargin).toBe(2340);
+    await waitFor(() => {
+      expect(vi.mocked(useVirtualizer).mock.lastCall?.[0].scrollMargin).toBe(2340);
+    });
   });
 });

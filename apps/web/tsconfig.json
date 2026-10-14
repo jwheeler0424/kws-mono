@@ -16,6 +16,6 @@
     }
   },
   "types": ["bun", "node", "react", "react-dom", "supercluster", "vite/client"],
-  "include": ["src", "vite.config.ts", "server.ts"],
+  "include": ["src", "e2e", "playwright.config.ts", "vite.config.ts", "server.ts"],
   "exclude": ["node_modules", "dist"]
 }

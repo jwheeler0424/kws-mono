@@ -6,8 +6,8 @@ import { BeatLoader } from 'react-spinners';
 
 import { PropertyCard } from '@/components/global/property-card';
 import {
-    PROPERTY_CARD_HEIGHT,
-    PROPERTY_CARD_MAX_WIDTH,
+  PROPERTY_CARD_HEIGHT,
+  PROPERTY_CARD_MAX_WIDTH,
 } from '@/components/global/property-card.constants';
 import { cn } from '@/lib/utils';
 
@@ -204,6 +204,7 @@ export function VirtualPropertyGrid({
     count: totalRows + (hasLoaderRow ? 1 : 0),
     estimateSize: (index) => (index === loaderRowIndex ? LOADER_ROW_ESTIMATE : estimatedRowHeight),
     overscan: overscanRows,
+    useAnimationFrameWithResizeObserver: true,
     gap: layout.rowGap,
     scrollMargin,
     getItemKey,
@@ -236,30 +237,34 @@ export function VirtualPropertyGrid({
     }
 
     let frame = 0;
+    const scheduleSyncMetrics = () => {
+      if (frame !== 0) {
+        return;
+      }
 
-    const syncMetrics = () => {
-      syncContainerMetrics();
-      cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
+        frame = 0;
         syncContainerMetrics();
       });
     };
 
-    syncMetrics();
+    scheduleSyncMetrics();
 
     const resizeObserver = new ResizeObserver(() => {
-      syncMetrics();
+      scheduleSyncMetrics();
     });
 
     resizeObserver.observe(observedElement);
-    window.addEventListener('resize', syncMetrics);
-    window.addEventListener('load', syncMetrics);
-    void document.fonts?.ready.then(syncMetrics);
+    window.addEventListener('resize', scheduleSyncMetrics);
+    window.addEventListener('load', scheduleSyncMetrics);
+    void document.fonts?.ready.then(scheduleSyncMetrics);
 
     return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('resize', syncMetrics);
-      window.removeEventListener('load', syncMetrics);
+      if (frame !== 0) {
+        cancelAnimationFrame(frame);
+      }
+      window.removeEventListener('resize', scheduleSyncMetrics);
+      window.removeEventListener('load', scheduleSyncMetrics);
       resizeObserver.unobserve(observedElement);
       resizeObserver.disconnect();
     };

@@ -124,7 +124,7 @@ function InputDebounced({
   extendOnKeyUp = false,
   describedById,
   getStatusMessage,
-  devKey = 'InputDebounced',
+  devKey,
   ref,
   ...rest
 }: InputDebouncedProps) {
