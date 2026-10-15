@@ -1,7 +1,23 @@
 import { env } from '@kws/config';
 import { describe, expect, it } from 'bun:test';
 
-import { buildFreshParentMediaUrl, resolveMlsApiRequestUrl } from './fetch';
+import {
+  buildActivePropertyMediaChunkUrl,
+  buildFreshParentMediaUrl,
+  resolveMlsApiRequestUrl,
+} from './fetch';
+
+describe('MLS media queue chunk request', () => {
+  it('requests up to 1000 active listings with Media from the oldest incomplete timestamp', () => {
+    const url = new URL(buildActivePropertyMediaChunkUrl(new Date('2026-10-01T00:00:00Z'), 5000));
+    const filter = url.searchParams.get('$filter');
+    expect(filter).toContain("StandardStatus in ('Active','Active Under Contract','Coming Soon')");
+    expect(filter).toContain('ModificationTimestamp ge 2026-10-01T00:00:00.000Z');
+    expect(filter).toContain('MlgCanView eq true');
+    expect(url.searchParams.get('$expand')).toBe('Media');
+    expect(url.searchParams.get('$top')).toBe('1000');
+  });
+});
 
 describe('MLS API request URL validation', () => {
   it('allows same-origin continuation links and rejects cross-origin URLs', () => {

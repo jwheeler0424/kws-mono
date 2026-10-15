@@ -39,6 +39,13 @@ export const MLS_MEDIA_BUDGET_DEFAULTS = {
   parentUnavailableRetryMs: 24 * 60 * 60 * 1000,
 } as const;
 
+export const MLS_MEDIA_QUEUE_DEFAULTS = {
+  chunkSize: 1000,
+  // Queued MLS Grid URLs expire after an hour, so stop issuing more than workers can drain.
+  maxPendingFreshUrls: 4000,
+  rateLimitedSkipMs: HOUR_MS,
+} as const;
+
 export const MLS_HISTORY_DEFAULTS = {
   storeEnabled: true,
   storePath: 'data',

@@ -8,21 +8,21 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import type { MlsMediaPayload } from '@/types';
-
 import { MLS_MEDIA_BUDGET_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
 import { mlsLogger } from '@/lib/logger';
-import { fetchFreshParentMedia } from '@/lib/utils/fetch';
 import { downloadMlsMedia, MlsMediaDownloadError } from '@/lib/utils/media-download';
-import { downloadMlsMediaWithUrlRefresh, isFreshCachedMlsMediaUrl } from '@/lib/utils/media-url';
+import {
+  downloadQueuedMlsMedia,
+  MLS_MEDIA_URL_REFRESH_REQUIRED,
+  MlsMediaUrlRefreshRequiredError,
+} from '@/lib/utils/media-url';
 import {
   isMlsMediaBudgetExhausted,
   MlsQuotaExceededError,
   mlsQuotaTracker,
 } from '@/lib/utils/quota';
 import { throttle } from '@/lib/utils/rate-limit';
-import { resolveMlsMediaKey } from '@/maps/media.mapper';
 
 import {
   listMlsMediaSyncCandidates,
@@ -249,7 +249,7 @@ async function areAllCanonicalVariantsPresent(candidate: MlsMediaSyncCandidate):
 
 async function resolvePipelineSource(
   candidate: MlsMediaSyncCandidate,
-  getMediaUrl: (forceRefresh?: boolean) => Promise<string>,
+  markAttempt: () => Promise<void>,
 ): Promise<{
   source: string | Blob;
   sourceOrigin: 'local' | 'remote';
@@ -276,7 +276,12 @@ async function resolvePipelineSource(
     downloadMlsMedia(url, env.MLS_ACCESS_KEY, budgetedFetch, {
       demo: new URL(env.MLS_API_URL).hostname === 'api-demo.mlsgrid.com',
     });
-  const source = await downloadMlsMediaWithUrlRefresh(getMediaUrl, download);
+  const source = await downloadQueuedMlsMedia(
+    candidate.mediaURL,
+    candidate.mediaUrlUpdatedAt,
+    markAttempt,
+    download,
+  );
   mlsQuotaTracker.recordResponseBytes(source.size);
   return {
     source,
@@ -306,13 +311,6 @@ function buildMediaTitle(candidate: MlsMediaSyncCandidate): string {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-class MlsMediaUnavailableError extends Error {
-  constructor() {
-    super('Fresh MLS media is absent or private');
-    this.name = 'MlsMediaUnavailableError';
-  }
 }
 
 function getRetryAfterMs(error: unknown): number {
@@ -358,12 +356,22 @@ async function markMlsMediaRowAsUnprocessable(
   return updatedRows.length > 0;
 }
 
+async function markMlsMediaRowForUrlRefresh(
+  candidate: MlsMediaSyncCandidate,
+  token: string,
+): Promise<void> {
+  await db
+    .update(mlsMedia)
+    .set({ mediaURL: null, lastAcquisitionError: MLS_MEDIA_URL_REFRESH_REQUIRED })
+    .where(and(eq(mlsMedia.mediaKey, candidate.mediaKey), eq(mlsMedia.acquisitionToken, token)));
+}
+
 async function upsertProcessedMedia(
   candidate: MlsMediaSyncCandidate,
   token: string,
-  getMediaUrl: () => Promise<string>,
+  markAttempt: () => Promise<void>,
 ): Promise<{ mode: 'created' | 'updated'; sourceOrigin: 'local' | 'remote' }> {
-  const pipelineSource = await resolvePipelineSource(candidate, getMediaUrl);
+  const pipelineSource = await resolvePipelineSource(candidate, markAttempt);
   const filename = path.basename(resolveExpectedFullPath(candidate)).replace(/_full\.webp$/, '');
 
   const imageOptions = {
@@ -517,7 +525,7 @@ export async function runMlsMediaSync(
   const processCandidate = async (
     candidate: MlsMediaSyncCandidate,
     token: string,
-    getMediaUrl: () => Promise<string>,
+    markAttempt: () => Promise<void>,
     onFailure: (error: unknown) => void,
   ): Promise<'processed' | 'skipped' | 'failed'> => {
     if (!candidate.resourceRecordKey) {
@@ -526,7 +534,7 @@ export async function runMlsMediaSync(
     }
 
     try {
-      const outcome = await upsertProcessedMedia(candidate, token, getMediaUrl);
+      const outcome = await upsertProcessedMedia(candidate, token, markAttempt);
       summary.processed += 1;
       if (outcome.sourceOrigin === 'local') {
         summary.localSourceUsed += 1;
@@ -546,9 +554,8 @@ export async function runMlsMediaSync(
         return 'skipped';
       }
 
-      // The fresh snapshot is authoritative: retire this row without blocking the rest of the listing.
-      if (error instanceof MlsMediaUnavailableError) {
-        await markMlsMediaRowAsUnprocessable(candidate, token).catch(() => false);
+      if (error instanceof MlsMediaUrlRefreshRequiredError) {
+        await markMlsMediaRowForUrlRefresh(candidate, token);
         summary.skipped += 1;
         return 'skipped';
       }
@@ -621,7 +628,6 @@ export async function runMlsMediaSync(
             outcome.skipped += group.length;
             continue;
           }
-          let snapshot: Promise<MlsMediaPayload[]> | undefined;
           let failure: unknown;
           const started = Date.now();
           const onFailure = (error: unknown) => {
@@ -640,68 +646,18 @@ export async function runMlsMediaSync(
                 outcome.skipped += 1;
                 continue;
               }
-              const getMediaUrl = async (forceRefresh = false) => {
-                if (
-                  !forceRefresh &&
-                  isFreshCachedMlsMediaUrl(candidate.mediaURL, candidate.mediaUrlUpdatedAt)
-                ) {
-                  await db
-                    .update(mlsMedia)
-                    .set({ lastAttemptAt: new Date() })
-                    .where(
-                      and(
-                        eq(mlsMedia.mediaKey, candidate.mediaKey),
-                        eq(mlsMedia.acquisitionToken, token),
-                      ),
-                    );
-                  return candidate.mediaURL!;
-                }
-                snapshot ??= fetchFreshParentMedia(
-                  candidate.entityType,
-                  candidate.resourceRecordKey,
-                  candidate.listingId,
-                );
-                const matches = (await snapshot).filter(
-                  (item) =>
-                    resolveMlsMediaKey(item, candidate.resourceRecordKey, candidate.entityType) ===
-                    candidate.mediaKey,
-                );
-                const fresh = matches.length === 1 ? matches[0] : undefined;
-                if (
-                  !fresh?.MediaURL ||
-                  fresh.MlgCanView === false ||
-                  (Array.isArray(fresh.Permission) &&
-                    fresh.Permission.some(
-                      (permission: unknown) =>
-                        typeof permission === 'string' && permission.toLowerCase() === 'private',
-                    ))
-                ) {
-                  throw new MlsMediaUnavailableError();
-                }
-                if (
-                  candidate.mlsUpdatedAt &&
-                  (!fresh.MediaModificationTimestamp ||
-                    Date.parse(fresh.MediaModificationTimestamp) !==
-                      Date.parse(candidate.mlsUpdatedAt))
-                ) {
-                  throw new Error('MLS media source changed; waiting for replication');
-                }
+              const markAttempt = async () => {
                 await db
                   .update(mlsMedia)
-                  .set({
-                    mediaURL: fresh.MediaURL,
-                    updatedAt: new Date(),
-                    lastAttemptAt: new Date(),
-                  })
+                  .set({ lastAttemptAt: new Date() })
                   .where(
                     and(
                       eq(mlsMedia.mediaKey, candidate.mediaKey),
                       eq(mlsMedia.acquisitionToken, token),
                     ),
                   );
-                return fresh.MediaURL;
               };
-              const status = await processCandidate(candidate, token, getMediaUrl, onFailure);
+              const status = await processCandidate(candidate, token, markAttempt, onFailure);
               outcome[status] += 1;
             }
           } finally {

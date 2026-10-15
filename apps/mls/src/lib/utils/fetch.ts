@@ -159,6 +159,29 @@ export function buildFreshParentMediaUrl(
   return `${baseUrl(resource as MlsResource)}?${params.toString()}`;
 }
 
+const ACTIVE_STANDARD_STATUS_FILTER_VALUES = ['Active', 'Active Under Contract', 'Coming Soon'];
+
+export function buildActivePropertyMediaChunkUrl(fromTimestamp: Date, top: number): string {
+  const statuses = ACTIVE_STANDARD_STATUS_FILTER_VALUES.map((status) => `'${status}'`).join(',');
+  const params = new URLSearchParams({
+    $filter: `OriginatingSystemName eq '${escapeODataString(env.MLS_ORIGINATING_SYSTEM_NAME)}' and MlgCanView eq true and StandardStatus in (${statuses}) and ModificationTimestamp ge ${fromTimestamp.toISOString()}`,
+    $expand: 'Media',
+    $top: String(Math.min(top, MLS_SYNC_DEFAULTS.maxPageSizeWithExpand)),
+  });
+  return `${baseUrl('Property')}?${params.toString()}`;
+}
+
+export async function fetchActivePropertyMediaChunk(
+  fromTimestamp: Date,
+  top: number,
+): Promise<MlsPropertyPayload[]> {
+  const page = await fetchPage<MlsPropertyPayload>(
+    buildActivePropertyMediaChunkUrl(fromTimestamp, top),
+    { retryRateLimited: false },
+  );
+  return page.value;
+}
+
 export async function fetchFreshParentMedia(
   entityType: 'properties' | 'members' | 'offices',
   recordKey: string,
@@ -198,7 +221,10 @@ export async function* paginate<T>(initialUrl: string): AsyncGenerator<ODataPage
 // fetchPage — core primitive used by the resource generators
 // ---------------------------------------------------------------------------
 
-export async function fetchPage<T>(url: string): Promise<ODataPage<T>> {
+export async function fetchPage<T>(
+  url: string,
+  options: { retryRateLimited?: boolean } = {},
+): Promise<ODataPage<T>> {
   await throttle();
 
   let attempt = 0;
@@ -305,7 +331,10 @@ export async function fetchPage<T>(url: string): Promise<ODataPage<T>> {
     const bodyPreview = getBodyPreview(body, 240);
 
     // Retriable: rate-limited or server error
-    if ((res.status === 429 || res.status >= 500) && attempt < MAX_RETRIES) {
+    if (
+      ((res.status === 429 && options.retryRateLimited !== false) || res.status >= 500) &&
+      attempt < MAX_RETRIES
+    ) {
       attempt++;
       const delayMs = getRetryDelayMs(res, attempt);
       logger.debug('mls api request retry scheduled', {

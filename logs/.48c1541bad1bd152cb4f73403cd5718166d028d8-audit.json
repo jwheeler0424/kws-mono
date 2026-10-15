@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "c:\\Projects\\kws-mono\\logs\\.48c1541bad1bd152cb4f73403cd5718166d028d8-audit.json",
+    "files": [
+        {
+            "date": 1792081188487,
+            "name": "c:\\Projects\\kws-mono\\logs\\KyleWeberSeattle.com-2026-10-15.log",
+            "hash": "e17b235416ec74ce57cd993141b79afa9411e74a8c76d1797933f55107135fe9"
+        }
+    ],
+    "hashType": "sha256"
+}

@@ -1,4 +1,7 @@
+import { mlsMedia } from '@kws/schema';
 import { sql } from 'drizzle-orm';
+
+import { MLS_MEDIA_URL_REFRESH_REQUIRED } from '@/lib/utils/media-url';
 
 /**
  * Shared excluded-column mapping for mls_media conflict updates.
@@ -18,6 +21,7 @@ export function buildMlsMediaConflictSet(updatedAt: Date) {
     preferredPhotoYN: sql`excluded.preferred_photo_yn`,
     resourceRecordKey: sql`excluded.resource_record_key`,
     deletedAt: sql`excluded.deleted_at`,
+    lastAcquisitionError: sql`case when excluded.media_url is not null and ${mlsMedia.lastAcquisitionError} = ${MLS_MEDIA_URL_REFRESH_REQUIRED} then null else ${mlsMedia.lastAcquisitionError} end`,
     updatedAt,
   };
 }

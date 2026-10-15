@@ -22,13 +22,20 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
   let listMlsMediaSyncCandidates: typeof import('./media-sync.repository').listMlsMediaSyncCandidates;
   let enqueueResourceMediaBatch: typeof import('./resource-media.repository').enqueueResourceMediaBatch;
   let reconcileResourceMediaBatch: typeof import('./resource-media.repository').reconcileResourceMediaBatch;
-  let claimMlsMediaDiscoveryCursor: typeof import('./media-discovery-cursor.repository').claimMlsMediaDiscoveryCursor;
-  let checkpointMlsMediaDiscoveryCursor: typeof import('./media-discovery-cursor.repository').checkpointMlsMediaDiscoveryCursor;
-  let finishMlsMediaDiscoveryCursor: typeof import('./media-discovery-cursor.repository').finishMlsMediaDiscoveryCursor;
+  let claimMlsMediaQueueCursor: typeof import('./media-queue-cursor.repository').claimMlsMediaQueueCursor;
+  let checkpointMlsMediaQueueCursor: typeof import('./media-queue-cursor.repository').checkpointMlsMediaQueueCursor;
+  let finishMlsMediaQueueCursor: typeof import('./media-queue-cursor.repository').finishMlsMediaQueueCursor;
+  let listIncompleteActiveListingKeys: typeof import('./media-queue.repository').listIncompleteActiveListingKeys;
+  let findOldestIncompleteActiveListingTimestamp: typeof import('./media-queue.repository').findOldestIncompleteActiveListingTimestamp;
+  let countPendingFreshMediaUrls: typeof import('./media-queue.repository').countPendingFreshMediaUrls;
+  let clearDeadMlsMediaQueueEntries: typeof import('./media-queue.repository').clearDeadMlsMediaQueueEntries;
+  let purgeRetiredMlsMediaRows: typeof import('./media-queue.repository').purgeRetiredMlsMediaRows;
   let claimSyncCursor: typeof import('./sync-cursor.repository').claimSyncCursor;
   let checkpointSyncCursor: typeof import('./sync-cursor.repository').checkpointSyncCursor;
   let finishSyncCursor: typeof import('./sync-cursor.repository').finishSyncCursor;
   let purgeScopedMlsMediaBeforeSync: typeof import('./media-cleanup.repository').purgeScopedMlsMediaBeforeSync;
+  let isInitialSeedComplete: typeof import('./seed-state.repository').isInitialSeedComplete;
+  let markInitialSeedComplete: typeof import('./seed-state.repository').markInitialSeedComplete;
   const localId = '0199aabb-0000-7000-8000-000000000001';
 
   beforeAll(async () => {
@@ -66,14 +73,19 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
       await import('./media-sync.repository'));
     ({ enqueueResourceMediaBatch, reconcileResourceMediaBatch } =
       await import('./resource-media.repository'));
+    ({ claimMlsMediaQueueCursor, checkpointMlsMediaQueueCursor, finishMlsMediaQueueCursor } =
+      await import('./media-queue-cursor.repository'));
     ({
-      claimMlsMediaDiscoveryCursor,
-      checkpointMlsMediaDiscoveryCursor,
-      finishMlsMediaDiscoveryCursor,
-    } = await import('./media-discovery-cursor.repository'));
+      listIncompleteActiveListingKeys,
+      findOldestIncompleteActiveListingTimestamp,
+      countPendingFreshMediaUrls,
+      clearDeadMlsMediaQueueEntries,
+      purgeRetiredMlsMediaRows,
+    } = await import('./media-queue.repository'));
     ({ claimSyncCursor, checkpointSyncCursor, finishSyncCursor } =
       await import('./sync-cursor.repository'));
     ({ purgeScopedMlsMediaBeforeSync } = await import('./media-cleanup.repository'));
+    ({ isInitialSeedComplete, markInitialSeedComplete } = await import('./seed-state.repository'));
   }, 30_000);
 
   afterAll(async () => {
@@ -117,25 +129,138 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     await pool.query("DELETE FROM mls_media WHERE media_key='discovered-photo'");
   });
 
-  it('leases and resumes the one-time media discovery cursor', async () => {
-    const first = await claimMlsMediaDiscoveryCursor('nwmls-discovery-test');
-    expect(first?.state).toEqual({ phase: 'properties', lastKey: null });
-    expect(await claimMlsMediaDiscoveryCursor('nwmls-discovery-test')).toBeNull();
+  it('leases and resumes the media queue refresh cursor', async () => {
+    const first = await claimMlsMediaQueueCursor('nwmls-queue-test');
+    expect(first?.resumeFrom).toBeNull();
+    expect(await claimMlsMediaQueueCursor('nwmls-queue-test')).toBeNull();
 
-    await checkpointMlsMediaDiscoveryCursor(first!.token, {
-      phase: 'members',
-      lastKey: 'NWM_MEMBER_1',
+    await checkpointMlsMediaQueueCursor(first!.token, new Date('2026-10-01T00:00:00Z'));
+    await finishMlsMediaQueueCursor(first!.token);
+
+    const resumed = await claimMlsMediaQueueCursor('nwmls-queue-test');
+    expect(resumed?.resumeFrom?.toISOString()).toBe('2026-10-01T00:00:00.000Z');
+    await checkpointMlsMediaQueueCursor(resumed!.token, null);
+    await finishMlsMediaQueueCursor(resumed!.token);
+  });
+
+  it('treats only galleries without a downloadable fresh URL as incomplete', async () => {
+    const freshExpiry = Math.floor((Date.now() + 30 * 60_000) / 1_000);
+    await pool.query(
+      `INSERT INTO properties(listing_key, listing_id, standard_status, mlg_can_view, modification_timestamp, photos_count)
+       VALUES
+         ('NWM_QUEUE_STALE', 'NWMQ1', 'Active', true, '2026-09-01T00:00:00Z', 2),
+         ('NWM_QUEUE_FRESH', 'NWMQ2', 'Active', true, '2026-08-01T00:00:00Z', 1),
+         ('NWM_QUEUE_UNSEEN', 'NWMQ3', 'Active', true, '2026-10-01T00:00:00Z', 3),
+         ('NWM_QUEUE_PENDING', 'NWMQ4', 'Pending', true, '2026-07-01T00:00:00Z', 1)`,
+    );
+    await pool.query(
+      `INSERT INTO mls_media(media_key, resource_record_key, media_url, last_acquisition_error, media_modification_timestamp)
+       VALUES
+         ('queue-stale', 'NWM_QUEUE_STALE', null, 'MLS media URL refresh required', '2026-09-01T00:00:00Z'),
+         ('queue-fresh', 'NWM_QUEUE_FRESH', $1, null, '2026-08-01T00:00:00Z'),
+         ('queue-pending', 'NWM_QUEUE_PENDING', null, null, '2026-07-01T00:00:00Z')`,
+      [`https://media.mlsgrid.com/token=x&expires=${freshExpiry}&id=a/photo.jpeg`],
+    );
+
+    const incomplete = await listIncompleteActiveListingKeys([
+      'NWM_QUEUE_STALE',
+      'NWM_QUEUE_FRESH',
+      'NWM_QUEUE_UNSEEN',
+      'NWM_QUEUE_PENDING',
+    ]);
+    expect([...incomplete].sort()).toEqual(['NWM_QUEUE_STALE', 'NWM_QUEUE_UNSEEN']);
+    expect((await findOldestIncompleteActiveListingTimestamp(null))?.toISOString()).toBe(
+      '2026-09-01T00:00:00.000Z',
+    );
+
+    await pool.query("DELETE FROM mls_media WHERE resource_record_key LIKE 'NWM_QUEUE_%'");
+    await pool.query("DELETE FROM properties WHERE listing_key LIKE 'NWM_QUEUE_%'");
+  });
+
+  it('counts only usable links as backlog and clears dead links and retired rows', async () => {
+    const now = Date.now();
+    const fresh = `https://media.mlsgrid.com/token=x&expires=${Math.floor((now + 30 * 60_000) / 1_000)}&id=a/photo.jpeg`;
+    const expired = `https://media.mlsgrid.com/token=x&expires=${Math.floor((now - 60_000) / 1_000)}&id=a/photo.jpeg`;
+    const downloadedId = '0199aabb-0000-7000-8000-000000000020';
+    await pool.query(
+      `INSERT INTO properties(listing_key, listing_id, standard_status, mlg_can_view)
+       VALUES ('NWM_DEAD', 'NWMD1', 'Active', true), ('NWM_DEAD_PENDING', 'NWMD2', 'Pending', true)`,
+    );
+    await pool.query(
+      "INSERT INTO mls_media(media_key, resource_record_key, media_url, media_modification_timestamp) VALUES ('pending-parent-link', 'NWM_DEAD_PENDING', $1, '2026-09-01T00:00:00Z')",
+      [
+        `https://media.mlsgrid.com/token=x&expires=${Math.floor((now + 30 * 60_000) / 1_000)}&id=b/photo.jpeg`,
+      ],
+    );
+    await pool.query(
+      "INSERT INTO media(id, filename, original_filename, mime_type, file_size, file_extension, storage_path, storage_key, url) VALUES ($1, 'done.webp', 'done.jpg', 'image/webp', 1, 'webp', '/test/done.webp', 'done', '/media/done.webp')",
+      [downloadedId],
+    );
+    await pool.query(
+      `INSERT INTO mls_media(media_key, resource_record_key, media_id, media_url, downloaded_source_timestamp, media_modification_timestamp, deleted_at, last_acquisition_error)
+       VALUES
+         ('dead-pending', 'NWM_DEAD', null, $1, null, '2026-09-01T00:00:00Z', null, null),
+         ('dead-done', 'NWM_DEAD', $3, $1, '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', null, null),
+         ('live-pending', 'NWM_DEAD', null, $2, null, '2026-09-01T00:00:00Z', null, null),
+         ('live-done', 'NWM_DEAD', $3, $2, '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', null, null),
+         ('legacy-pending', 'NWM_DEAD', null, null, null, '2026-09-01T00:00:00Z', null, null),
+         ('retired-marked', 'NWM_DEAD', null, null, null, '2026-09-01T00:00:00Z', '2026-01-01T00:00:00Z', 'MLS media URL refresh required'),
+         ('retired-recent', 'NWM_DEAD', null, null, null, '2026-09-01T00:00:00Z', now(), null)`,
+      [expired, fresh, downloadedId],
+    );
+
+    expect(await countPendingFreshMediaUrls()).toBe(1);
+    expect(await clearDeadMlsMediaQueueEntries()).toEqual({
+      expiredUrlsCleared: 2,
+      urlLessRowsMarked: 1,
+      deadRefreshMarkersCleared: 1,
     });
-    await finishMlsMediaDiscoveryCursor(first!.token);
+    const rows = await pool.query(
+      "SELECT media_key, media_url IS NOT NULL AS has_url, last_acquisition_error FROM mls_media WHERE resource_record_key='NWM_DEAD' ORDER BY media_key",
+    );
+    expect(rows.rows).toEqual([
+      { media_key: 'dead-done', has_url: false, last_acquisition_error: null },
+      {
+        media_key: 'dead-pending',
+        has_url: false,
+        last_acquisition_error: 'MLS media URL refresh required',
+      },
+      {
+        media_key: 'legacy-pending',
+        has_url: false,
+        last_acquisition_error: 'MLS media URL refresh required',
+      },
+      { media_key: 'live-done', has_url: true, last_acquisition_error: null },
+      { media_key: 'live-pending', has_url: true, last_acquisition_error: null },
+      { media_key: 'retired-marked', has_url: false, last_acquisition_error: null },
+      { media_key: 'retired-recent', has_url: false, last_acquisition_error: null },
+    ]);
+    expect(await clearDeadMlsMediaQueueEntries()).toEqual({
+      expiredUrlsCleared: 0,
+      urlLessRowsMarked: 0,
+      deadRefreshMarkersCleared: 0,
+    });
 
-    const resumed = await claimMlsMediaDiscoveryCursor('nwmls-discovery-test');
-    expect(resumed?.state).toEqual({ phase: 'members', lastKey: 'NWM_MEMBER_1' });
-    await checkpointMlsMediaDiscoveryCursor(resumed!.token, { phase: 'complete', lastKey: null });
-    await finishMlsMediaDiscoveryCursor(resumed!.token);
+    expect(await purgeRetiredMlsMediaRows(new Date('2026-06-01T00:00:00Z'))).toBe(1);
+    const remaining = await pool.query(
+      "SELECT media_key FROM mls_media WHERE resource_record_key='NWM_DEAD' ORDER BY media_key",
+    );
+    expect(remaining.rows.map((row: { media_key: string }) => row.media_key)).toEqual([
+      'dead-done',
+      'dead-pending',
+      'legacy-pending',
+      'live-done',
+      'live-pending',
+      'retired-recent',
+    ]);
 
-    const completed = await claimMlsMediaDiscoveryCursor('nwmls-discovery-test');
-    expect(completed?.state).toEqual({ phase: 'complete', lastKey: null });
-    await finishMlsMediaDiscoveryCursor(completed!.token);
+    await pool.query(
+      "DELETE FROM mls_media WHERE resource_record_key IN ('NWM_DEAD', 'NWM_DEAD_PENDING')",
+    );
+    await pool.query(
+      "DELETE FROM properties WHERE listing_key IN ('NWM_DEAD', 'NWM_DEAD_PENDING')",
+    );
+    await pool.query('DELETE FROM media WHERE id=$1', [downloadedId]);
   });
 
   it('permits one concurrent parent claim and persists a failed-download cooldown', async () => {
@@ -339,6 +464,33 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     await pool.query("DELETE FROM properties WHERE listing_key='NWM_PRIMARY_CLEANUP'");
     await pool.query("DELETE FROM members WHERE member_mls_id='NWM_MEMBER_CLEANUP'");
     await pool.query("DELETE FROM offices WHERE office_mls_id='NWM_OFFICE_CLEANUP'");
+  });
+
+  it('gates media jobs until a seed or a full set of delta runs has succeeded', async () => {
+    expect(await isInitialSeedComplete('nwmls-seed-fresh')).toBe(false);
+    await markInitialSeedComplete('nwmls-seed-fresh');
+    expect(await isInitialSeedComplete('nwmls-seed-fresh')).toBe(true);
+
+    const resources = ['Lookup', 'Office', 'Member', 'Property', 'OpenHouse'];
+    for (const resource of resources.slice(0, 4)) {
+      await pool.query(
+        "INSERT INTO mls_sync_cursors(resource, originating_system_name, last_run_status) VALUES ($1, 'nwmls-seed-legacy', 'success')",
+        [resource],
+      );
+    }
+    expect(await isInitialSeedComplete('nwmls-seed-legacy')).toBe(false);
+    await pool.query(
+      "INSERT INTO mls_sync_cursors(resource, originating_system_name, last_run_status) VALUES ('OpenHouse', 'nwmls-seed-legacy', 'success')",
+    );
+    expect(await isInitialSeedComplete('nwmls-seed-legacy')).toBe(true);
+    await pool.query(
+      "UPDATE mls_sync_cursors SET last_run_status='error' WHERE originating_system_name='nwmls-seed-legacy' AND resource <> 'InitialSeed'",
+    );
+    expect(await isInitialSeedComplete('nwmls-seed-legacy')).toBe(true);
+
+    await pool.query(
+      "DELETE FROM mls_sync_cursors WHERE originating_system_name IN ('nwmls-seed-fresh', 'nwmls-seed-legacy')",
+    );
   });
 
   it('serializes resource replication and does not regress received watermarks', async () => {

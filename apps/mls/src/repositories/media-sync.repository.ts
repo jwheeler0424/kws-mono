@@ -6,6 +6,7 @@ import { and, asc, eq, gt, inArray, isNotNull, isNull, or, sql } from 'drizzle-o
 import { randomUUID } from 'node:crypto';
 
 import { db } from '@/lib/database';
+import { MLS_MEDIA_URL_REFRESH_REQUIRED } from '@/lib/utils/media-url';
 
 import { buildPrimaryMlsMediaClause } from './mls-media-primary';
 
@@ -50,7 +51,9 @@ export async function releaseParentMedia(
       acquisitionToken: null,
       acquisitionLeaseUntil: null,
       nextAttemptAt: error ? new Date(Date.now() + retryAfterMs) : null,
-      lastAcquisitionError: error?.slice(0, 255) ?? null,
+      lastAcquisitionError: error
+        ? error.slice(0, 255)
+        : sql`case when ${mlsMedia.lastAcquisitionError} = ${MLS_MEDIA_URL_REFRESH_REQUIRED} then ${MLS_MEDIA_URL_REFRESH_REQUIRED} else null end`,
     })
     .where(eq(mlsMedia.acquisitionToken, token));
 }
@@ -289,6 +292,7 @@ export async function listMlsMediaSyncCandidates(
     sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
     sql`(${mlsMedia.nextAttemptAt} is null or ${mlsMedia.nextAttemptAt} <= now())`,
     sql`(${mlsMedia.acquisitionLeaseUntil} is null or ${mlsMedia.acquisitionLeaseUntil} <= now())`,
+    sql`${mlsMedia.lastAcquisitionError} is distinct from ${MLS_MEDIA_URL_REFRESH_REQUIRED}`,
     isNotNull(mlsMedia.resourceRecordKey),
   );
 

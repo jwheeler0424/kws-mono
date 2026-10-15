@@ -8,6 +8,8 @@
 //   4. Return aggregate run metrics
 // ---------------------------------------------------------------------------
 
+import { env } from '@kws/config';
+
 import type { MlsResource } from '@/types';
 
 import { MLS_SYNC_DEFAULTS } from '@/lib/constants';
@@ -45,6 +47,8 @@ export interface SyncResourceConfig<TPayload extends Record<string, unknown>> {
   getTimestamp: (record: TPayload) => string | undefined;
   /** Upsert a visible record */
   upsert: (records: TPayload[]) => Promise<Date>;
+  /** Start point when neither the DB nor the cursor has a watermark; defaults to MLS_START_DATE */
+  defaultAfterTimestamp?: Date;
 }
 
 export interface SyncResourceDependencies {
@@ -98,7 +102,8 @@ export async function syncResource<TPayload extends Record<string, unknown>>(
   const dbWatermark = normalizeTimestamp(await config.getLatestTimestamp());
   const cursor = await dependencies.claimSyncCursor(resource, osn, dbWatermark);
   if (!cursor) return { resource, osn, upserted: 0, errors: 0, durationMs: Date.now() - startedAt };
-  let activeAfterTimestamp = normalizeTimestamp(cursor.timestamp);
+  let activeAfterTimestamp =
+    normalizeTimestamp(cursor.timestamp) ?? config.defaultAfterTimestamp ?? env.MLS_START_DATE;
 
   const overlapMs = Math.max(MLS_SYNC_DEFAULTS.deltaOverlapMs, MLS_SYNC_DEFAULTS.minDeltaOverlapMs);
   const precisionSafetyMs = MLS_SYNC_DEFAULTS.timestampPrecisionSafetyMs;

@@ -15,8 +15,9 @@ import {
   purgeUnavailableMlsMedia,
   purgeScopedMlsMediaBeforeSync,
 } from '../repositories/media-cleanup.repository';
+import { isInitialSeedComplete } from '../repositories/seed-state.repository';
 import { runMlsCleanup } from './cleanup';
-import { discoverLegacyMlsMedia } from './media-discovery';
+import { refreshMlsMediaQueue } from './media-queue-refresh';
 import { isMlsDeltaResourceName, runDeltaSyncResource } from './orchestrator';
 import { runPrioritizedMlsMediaSync } from './seed-media';
 
@@ -149,7 +150,15 @@ async function runScheduledJob(scheduleId: string, run: () => Promise<void>) {
   }
 }
 
+async function isSeedCompleteFor(job: string): Promise<boolean> {
+  if (await isInitialSeedComplete(env.MLS_ORIGINATING_SYSTEM_NAME)) return true;
+  // Partial MLS data would make cleanup treat unsynced records' media as orphaned.
+  syncMlsLogger.warn('skipping MLS media job until the initial seed completes', { job });
+  return false;
+}
+
 async function runOrphanedMediaCleanup(trigger: 'startup' | 'scheduled') {
+  if (!(await isSeedCompleteFor(`orphan-cleanup:${trigger}`))) return;
   const softDeletedMediaSummary = await purgeSoftDeletedMlsMedia();
   const unavailableMediaSummary = await purgeUnavailableMlsMedia();
   const purgeSummary = await purgeOrphanedMlsMediaFiles();
@@ -173,15 +182,16 @@ async function runScheduledMediaSyncAndCleanup(
     mediaSyncRepairMaxBatches: number;
   },
 ) {
+  if (!(await isSeedCompleteFor(scheduleId))) return;
+  const mediaQueueRefresh = await refreshMlsMediaQueue({
+    originatingSystemName: env.MLS_ORIGINATING_SYSTEM_NAME,
+    memberKeys: (env.MLS_MEMBER_ID ?? []).filter((key) => key.length > 0),
+    officeKeys: (env.MLS_OFFICE_ID ?? []).filter((key) => key.length > 0),
+  });
   const mediaSummary = await runScheduledMediaPhases(input, {
     associationMode: 'stale-or-unprocessed',
     includeMissingFilesRepair: false,
     repairMaxBatches: 1,
-  });
-  const mediaDiscovery = await discoverLegacyMlsMedia({
-    originatingSystemName: env.MLS_ORIGINATING_SYSTEM_NAME,
-    memberKeys: mediaSummary.memberKeys,
-    officeKeys: mediaSummary.officeKeys,
   });
 
   const deadMlsMediaPurgeSummary = await purgeDeadMlsMedia();
@@ -197,7 +207,7 @@ async function runScheduledMediaSyncAndCleanup(
     member: mediaSummary.member,
     officeTargets: mediaSummary.officeKeys.length,
     office: mediaSummary.office,
-    legacyDiscovery: mediaDiscovery,
+    mediaQueueRefresh,
     deadMlsMediaPurgeSummary,
     prunedEmptyDirectories,
   });
@@ -213,6 +223,7 @@ async function runScheduledMediaReconcile(
     mediaSyncRepairMaxBatches: number;
   },
 ) {
+  if (!(await isSeedCompleteFor(scheduleId))) return;
   const mediaSummary = await runScheduledMediaPhases(input, {
     associationMode: 'stale-only',
     includeMissingFilesRepair: input.mediaSyncIncludeMissingFilesRepair,

@@ -12,6 +12,7 @@ import {
   type DeadMlsMediaPurgeSummary,
   type EntityMediaPurgeSummary,
 } from '../repositories/media-cleanup.repository';
+import { purgeRetiredMlsMediaRows } from '../repositories/media-queue.repository';
 
 export interface MlsCleanupSummary {
   cutoffAt: string;
@@ -30,6 +31,7 @@ export interface MlsCleanupSummary {
     deadPropertyMedia: DeadMlsMediaPurgeSummary;
     deadEntityMedia: DeadMlsMediaPurgeSummary;
     prunedEmptyDirectories: number;
+    retiredQueueRows: number;
     totals: EntityMediaPurgeSummary;
   };
   totalDeleted: number;
@@ -90,6 +92,7 @@ export async function runMlsCleanup(
   ]);
 
   const prunedEmptyDirectories = await pruneEmptyMlsMediaDirectories();
+  const retiredQueueRows = await purgeRetiredMlsMediaRows(cutoff);
 
   const [lookupDeleted, officeDeleted, memberDeleted, openHouseDeleted, propertyDeleted] =
     await Promise.all([
@@ -136,6 +139,7 @@ export async function runMlsCleanup(
     deadPropertyMedia: deadPropertyMediaPurge,
     deadEntityMedia: deadEntityMediaPurge,
     prunedEmptyDirectories,
+    retiredQueueRows,
     totals: {
       mediaDeleted:
         membersMediaPurge.mediaDeleted +

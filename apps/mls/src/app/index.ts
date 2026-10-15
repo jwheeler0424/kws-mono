@@ -8,7 +8,7 @@ import { runDeltaSync, runInitialDataSeed } from '@/actions/orchestrator';
 import { logger } from '@/lib/logger';
 import { releaseQuotaDeferredMedia } from '@/repositories/media-sync.repository';
 import { reconcileFeaturedListingFlags } from '@/repositories/property.repository';
-import { hasAnyMlsRecords } from '@/repositories/seed-state.repository';
+import { hasAnyMlsRecords, markInitialSeedComplete } from '@/repositories/seed-state.repository';
 
 function isQuarantineOnlyMessage(message?: string): boolean {
   return typeof message === 'string' && message.startsWith('quarantined=');
@@ -119,6 +119,9 @@ export async function main() {
       if (!dataSeedSuccess) {
         logger.error('MLS data sync completed with errors. Please check the logs for details.');
         process.exit(1);
+      }
+      if (!hasExistingMlsRecords) {
+        await markInitialSeedComplete(env.MLS_ORIGINATING_SYSTEM_NAME);
       }
     } else {
       logger.warn('MLS initial data seed skipped by rollout flag');

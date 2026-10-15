@@ -59,6 +59,36 @@ describe('received-page replication checkpoints', () => {
     expect(completions).toEqual([undefined]);
   });
 
+  it('starts an empty resource from the configured start date instead of the full history', async () => {
+    const requested: Array<Date | undefined> = [];
+    const dependencies = createDependencies();
+    dependencies.claimSyncCursor = async () => ({
+      token: '00000000-0000-4000-8000-000000000000',
+      timestamp: null,
+    });
+    await import('./sync-resource').then(({ syncResource }) =>
+      syncResource<{ ModificationTimestamp?: string }>(
+        {
+          resource: 'Property',
+          osn: 'nwmls',
+          getLatestTimestamp: async () => null,
+          getTimestamp: (record) => record.ModificationTimestamp,
+          defaultAfterTimestamp: new Date('2025-01-01T00:00:00Z'),
+          fetchFn: async function* (_osn, options) {
+            requested.push(options?.afterTimestamp);
+            yield { value: [], requestUrl: 'empty' };
+          },
+          upsert: async () => new Date(0),
+        },
+        dependencies,
+      ),
+    );
+    expect(requested).toHaveLength(1);
+    expect(requested[0]).toBeInstanceOf(Date);
+    expect(requested[0]!.getTime()).toBeLessThanOrEqual(Date.parse('2025-01-01T00:00:00Z'));
+    expect(requested[0]!.getTime()).toBeGreaterThan(Date.parse('2024-12-31T23:59:00Z'));
+  });
+
   it('does not checkpoint a failed page or continue to a later page', async () => {
     const result = await import('./sync-resource').then(({ syncResource }) =>
       syncResource(
