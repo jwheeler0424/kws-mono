@@ -178,41 +178,58 @@ export interface DeadMlsMediaQueueSummary {
   deadRefreshMarkersCleared: number;
 }
 
+const DEAD_QUEUE_BATCH_SIZE = 5_000;
+const DEAD_QUEUE_MAX_BATCHES_PER_PASS = 20;
+
+// Small committed batches keep WAL growth and lock time bounded on million-row backlogs.
+async function updateQueueInBatches(setClause: SQL, whereClause: SQL): Promise<number> {
+  let total = 0;
+  for (let batch = 0; batch < DEAD_QUEUE_MAX_BATCHES_PER_PASS; batch += 1) {
+    const result = await db.execute(sql`
+      update mls_media as queued
+      set ${setClause}
+      where queued.media_key in (
+        select queued.media_key from mls_media as queued
+        where ${whereClause}
+        limit ${DEAD_QUEUE_BATCH_SIZE}
+        for update skip locked
+      )
+    `);
+    const updated = result.rowCount ?? 0;
+    total += updated;
+    if (updated < DEAD_QUEUE_BATCH_SIZE) break;
+  }
+  return total;
+}
+
 /** Drops expired links and refresh markers on retired rows so neither lingers in the queue. */
 export async function clearDeadMlsMediaQueueEntries(): Promise<DeadMlsMediaQueueSummary> {
-  const expired = await db.execute(sql`
-    update mls_media as queued
-    set
+  const expiredUrlsCleared = await updateQueueInBatches(
+    sql`
       media_url = null,
       last_acquisition_error = case
         when ${publicLiveRowClause} and ${rowNeedsDownloadClause}
           then ${MLS_MEDIA_URL_REFRESH_REQUIRED}
         else queued.last_acquisition_error
-      end
-    where queued.media_url is not null and not ${freshUrlClause}
-  `);
+      end`,
+    sql`queued.media_url is not null and not ${freshUrlClause}`,
+  );
   // Legacy rows never held a URL; marking them in bulk spares workers a claim per row.
-  const urlLess = await db.execute(sql`
-    update mls_media as queued
-    set last_acquisition_error = ${MLS_MEDIA_URL_REFRESH_REQUIRED}
-    where queued.media_url is null
+  const urlLessRowsMarked = await updateQueueInBatches(
+    sql`last_acquisition_error = ${MLS_MEDIA_URL_REFRESH_REQUIRED}`,
+    sql`queued.media_url is null
       and queued.last_acquisition_error is distinct from ${MLS_MEDIA_URL_REFRESH_REQUIRED}
       and (queued.next_attempt_at is null or queued.next_attempt_at <= now())
       and (queued.acquisition_lease_until is null or queued.acquisition_lease_until <= now())
       and ${publicLiveRowClause}
-      and ${rowNeedsDownloadClause}
-  `);
-  const deadMarkers = await db.execute(sql`
-    update mls_media as queued
-    set last_acquisition_error = null
-    where queued.last_acquisition_error = ${MLS_MEDIA_URL_REFRESH_REQUIRED}
-      and not ${publicLiveRowClause}
-  `);
-  return {
-    expiredUrlsCleared: expired.rowCount ?? 0,
-    urlLessRowsMarked: urlLess.rowCount ?? 0,
-    deadRefreshMarkersCleared: deadMarkers.rowCount ?? 0,
-  };
+      and ${rowNeedsDownloadClause}`,
+  );
+  const deadRefreshMarkersCleared = await updateQueueInBatches(
+    sql`last_acquisition_error = null`,
+    sql`queued.last_acquisition_error = ${MLS_MEDIA_URL_REFRESH_REQUIRED}
+      and not ${publicLiveRowClause}`,
+  );
+  return { expiredUrlsCleared, urlLessRowsMarked, deadRefreshMarkersCleared };
 }
 
 export async function purgeRetiredMlsMediaRows(cutoff: Date): Promise<number> {

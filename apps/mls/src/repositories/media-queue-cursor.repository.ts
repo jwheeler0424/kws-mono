@@ -5,7 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { db } from '@/lib/database';
 
 const QUEUE_REFRESH_RESOURCE = 'MlsMediaQueueRefresh';
-const QUEUE_REFRESH_LEASE_MS = 60 * 60_000;
+// Expires before the next half-hourly media sync so an abandoned lease can't skip a run.
+const QUEUE_REFRESH_LEASE_MS = 25 * 60_000;
 
 export async function claimMlsMediaQueueCursor(
   originatingSystemName: string,
