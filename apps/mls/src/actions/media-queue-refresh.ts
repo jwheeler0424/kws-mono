@@ -8,6 +8,7 @@ import {
   fetchFreshParentMedia,
   MlsParentUnavailableError,
 } from '@/lib/utils/fetch';
+import { mlsMediaBackoff } from '@/lib/utils/media-backoff';
 import {
   isMlsMediaBudgetExhausted,
   MlsQuotaExceededError,
@@ -180,6 +181,11 @@ export async function refreshMlsMediaQueue(options: {
     entitiesQueued: 0,
     pendingFreshUrls: 0,
   };
+  // Fresh URLs expire within the hour, so don't spend API requests on them while downloads are paused.
+  if (mlsMediaBackoff.isPaused()) {
+    summary.budgetExhausted = true;
+    return summary;
+  }
   const cursor = await claimMlsMediaQueueCursor(options.originatingSystemName);
   if (!cursor) return summary;
   summary.acquired = true;

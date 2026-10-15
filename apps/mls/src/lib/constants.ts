@@ -39,6 +39,16 @@ export const MLS_MEDIA_BUDGET_DEFAULTS = {
   parentUnavailableRetryMs: 24 * 60 * 60 * 1000,
 } as const;
 
+export const MLS_MEDIA_BACKOFF_DEFAULTS = {
+  // Single-use URLs can 429 per listing, so only a streak without successes trips the pause.
+  mediaRateLimitThreshold: 3,
+  basePauseMs: 5 * 60 * 1000,
+  maxPauseMs: 6 * HOUR_MS,
+  // A new trip within this window after the previous pause ends doubles the pause.
+  escalationWindowMs: HOUR_MS,
+  downloadDelayMs: 550,
+} as const;
+
 export const MLS_MEDIA_QUEUE_DEFAULTS = {
   chunkSize: 1000,
   // Queued MLS Grid URLs expire after an hour, so stop issuing more than workers can drain.

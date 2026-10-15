@@ -31,6 +31,7 @@ import {
   parseRetryAfterMs,
   sleep,
 } from './helpers';
+import { mlsMediaBackoff } from './media-backoff';
 import { MlsQuotaExceededError, mlsQuotaTracker } from './quota';
 import { throttle } from './rate-limit';
 
@@ -329,6 +330,9 @@ export async function fetchPage<T>(
       res.headers.get('cf-ray') ??
       null;
     const bodyPreview = getBodyPreview(body, 240);
+
+    // Media downloads are assumed exempt from the request limits; back them off if the API starts refusing us.
+    if (res.status === 429) mlsMediaBackoff.recordRateLimited('api');
 
     // Retriable: rate-limited or server error
     if (

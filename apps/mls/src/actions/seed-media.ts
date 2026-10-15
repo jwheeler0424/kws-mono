@@ -11,6 +11,7 @@ import path from 'node:path';
 import { MLS_MEDIA_BUDGET_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
 import { mlsLogger } from '@/lib/logger';
+import { mlsMediaBackoff, throttleMediaDownload } from '@/lib/utils/media-backoff';
 import { downloadMlsMedia, MlsMediaDownloadError } from '@/lib/utils/media-download';
 import {
   downloadQueuedMlsMedia,
@@ -265,8 +266,11 @@ async function resolvePipelineSource(
   }
 
   const budgetedFetch = async (input: string, options: RequestInit): Promise<Response> => {
-    // Only MLS Grid requests count toward its limits; the storage redirect target does not.
-    if (new URL(input).hostname.endsWith('mlsgrid.com')) {
+    const hostname = new URL(input).hostname;
+    // Media host downloads are assumed outside the request limits; mlsMediaBackoff guards that assumption.
+    if (hostname === 'media.mlsgrid.com' || hostname === 'media-demo.mlsgrid.com') {
+      await throttleMediaDownload();
+    } else if (hostname.endsWith('mlsgrid.com')) {
       await throttle();
       mlsQuotaTracker.prepareRequest();
     }
@@ -276,12 +280,21 @@ async function resolvePipelineSource(
     downloadMlsMedia(url, env.MLS_ACCESS_KEY, budgetedFetch, {
       demo: new URL(env.MLS_API_URL).hostname === 'api-demo.mlsgrid.com',
     });
-  const source = await downloadQueuedMlsMedia(
-    candidate.mediaURL,
-    candidate.mediaUrlUpdatedAt,
-    markAttempt,
-    download,
-  );
+  let source: Blob;
+  try {
+    source = await downloadQueuedMlsMedia(
+      candidate.mediaURL,
+      candidate.mediaUrlUpdatedAt,
+      markAttempt,
+      download,
+    );
+  } catch (error) {
+    if (error instanceof MlsMediaDownloadError && error.status === 429) {
+      mlsMediaBackoff.recordRateLimited('media');
+    }
+    throw error;
+  }
+  mlsMediaBackoff.recordSuccess();
   mlsQuotaTracker.recordResponseBytes(source.size);
   return {
     source,
@@ -615,6 +628,7 @@ export async function runMlsMediaSync(
           const first = group[0]!;
           if (
             summary.budgetExhausted ||
+            mlsMediaBackoff.isPaused() ||
             isMlsMediaBudgetExhausted(mlsQuotaTracker.snapshot(), maxQuotaShare)
           ) {
             summary.budgetExhausted = true;
@@ -635,6 +649,7 @@ export async function runMlsMediaSync(
           };
           try {
             for (const candidate of group) {
+              if (mlsMediaBackoff.isPaused()) summary.budgetExhausted = true;
               if (summary.budgetExhausted) {
                 summary.skipped += 1;
                 outcome.skipped += 1;
@@ -755,6 +770,7 @@ export async function runMlsMediaSync(
     if (summary.budgetExhausted) {
       syncLogger.info('media sync paused to preserve the MLS request budget for replication', {
         quota: mlsQuotaTracker.snapshot(),
+        rateLimitPausedUntil: mlsMediaBackoff.pausedUntil()?.toISOString() ?? null,
       });
       break;
     }
