@@ -95,3 +95,7 @@ jobs:
             ssh "${ssh_args[@]}" -p "$SSH_PORT" "$swarm_host" \
               "docker pull '$image' >/dev/null && desired_image=\$(docker image inspect --format '{{index .RepoDigests 0}}' '$image') && current_image=\$(docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' '$service') && if [ \"\$current_image\" = \"\$desired_image\" ]; then echo 'Service already runs this digest'; else docker service update --detach=false --with-registry-auth --image \"\$desired_image\" '$service'; fi"
           done
+
+          echo "Pruning stopped containers and unused images"
+          ssh "${ssh_args[@]}" -p "$SSH_PORT" "$swarm_host" \
+            "docker container prune -f && docker image prune -a -f"
