@@ -338,11 +338,14 @@ function resolveScheduledMediaSyncBatchSize() {
 }
 
 function resolveScheduledMediaSyncMaxBatches() {
-  return Math.max(1, MLS_SCHEDULER_DEFAULTS.mediaSyncMaxBatches);
+  return Math.max(1, env.MLS_MEDIA_SYNC_MAX_BATCHES ?? MLS_SCHEDULER_DEFAULTS.mediaSyncMaxBatches);
 }
 
 function resolveScheduledMediaSyncProcessConcurrency() {
-  return Math.max(1, MLS_SCHEDULER_DEFAULTS.mediaSyncProcessConcurrency);
+  return Math.max(
+    1,
+    env.MLS_MEDIA_SYNC_PROCESS_CONCURRENCY ?? MLS_SCHEDULER_DEFAULTS.mediaSyncProcessConcurrency,
+  );
 }
 
 function resolveScheduledMediaSyncIncludeMissingFilesRepair() {

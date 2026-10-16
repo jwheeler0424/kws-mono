@@ -118,6 +118,8 @@ const envSchema = z.object({
     .pipe(z.array(resourceCronSchema)),
   MLS_CLEANUP_CRON: cronScheduleSchema,
   MLS_MEDIA_SYNC_CRON: cronScheduleSchema,
+  MLS_MEDIA_SYNC_MAX_BATCHES: z.coerce.number().int().min(1).max(100).optional(),
+  MLS_MEDIA_SYNC_PROCESS_CONCURRENCY: z.coerce.number().int().min(1).max(32).optional(),
   MLS_MEDIA_RECONCILE_CRON: cronScheduleSchema.optional(),
 });
 
