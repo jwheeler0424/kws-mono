@@ -4,6 +4,11 @@ on:
   registry_package:
     types: [published, updated]
   workflow_dispatch:
+    inputs:
+      services:
+        description: Space-separated services to update (web, mls, db)
+        required: false
+        default: web mls db
 
 concurrency:
   group: production-swarm
@@ -21,6 +26,7 @@ jobs:
     timeout-minutes: 20
     env:
       PACKAGE_NAME: ${{ github.event.registry_package.name }}
+      SERVICES: ${{ inputs.services }}
       GHCR_OWNER: ${{ vars.GHCR_OWNER || github.repository_owner }}
       GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
       GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
@@ -31,30 +37,41 @@ jobs:
       SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS || secrets.SSH_KNOWN_HOSTS || secrets.SWARM_SSH_KNOWN_HOSTS }}
       SWARM_STACK_NAME: ${{ vars.SWARM_STACK_NAME || 'kws' }}
     steps:
-      - name: Update the published app service
+      - name: Update the changed services
         shell: bash
         run: |
           set -euo pipefail
 
           package_name="${PACKAGE_NAME,,}"
           ghcr_owner="${GHCR_OWNER,,}"
-          deployments=()
+          services=()
           if [[ "$GITHUB_EVENT_NAME" == "registry_package" ]]; then
             case "$package_name" in
-              kyleweberseattle.com|*/kyleweberseattle.com)
-                deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com:latest|${SWARM_STACK_NAME}_web")
-                ;;
-              kyleweberseattle.com-mls|*/kyleweberseattle.com-mls)
-                deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com-mls:latest|${SWARM_STACK_NAME}_mls")
-                ;;
+              kyleweberseattle.com|*/kyleweberseattle.com) services+=(web) ;;
+              kyleweberseattle.com-mls|*/kyleweberseattle.com-mls) services+=(mls) ;;
+              kyleweberseattle.com-db|*/kyleweberseattle.com-db) services+=(db) ;;
               *)
                 echo "Ignoring unrelated package: ${PACKAGE_NAME}"
                 exit 0
                 ;;
             esac
           else
-            deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com:latest|${SWARM_STACK_NAME}_web")
-            deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com-mls:latest|${SWARM_STACK_NAME}_mls")
+            read -r -a services <<< "${SERVICES:-web mls db}"
+          fi
+
+          deployments=()
+          for service in "${services[@]}"; do
+            case "$service" in
+              web) deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com:latest|${SWARM_STACK_NAME}_web") ;;
+              mls) deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com-mls:latest|${SWARM_STACK_NAME}_mls") ;;
+              db) deployments+=("ghcr.io/${ghcr_owner}/kyleweberseattle.com-db:latest|${SWARM_STACK_NAME}_db") ;;
+              *) echo "Unknown service: $service"; exit 1 ;;
+            esac
+          done
+
+          if [[ ${#deployments[@]} -eq 0 ]]; then
+            echo "No services to update"
+            exit 0
           fi
 
           key_file="$(mktemp)"

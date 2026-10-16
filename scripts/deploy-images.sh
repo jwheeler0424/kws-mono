@@ -100,17 +100,36 @@ docker build -f Dockerfile --target db -t "$DB_IMAGE" .
 echo "[deploy-images] Building nginx image: $NGINX_IMAGE"
 docker build -f docker/nginx/Dockerfile -t "$NGINX_IMAGE" .
 
-echo "[deploy-images] Pushing app image..."
-docker push "$APP_IMAGE"
+remote_digest() {
+  docker buildx imagetools inspect "$1" --format '{{.Manifest.Digest}}' 2>/dev/null || true
+}
 
-echo "[deploy-images] Pushing mls image..."
-docker push "$MLS_IMAGE"
+CHANGED_SERVICES=()
 
-echo "[deploy-images] Pushing db image..."
-docker push "$DB_IMAGE"
+# Usage: push_image <label> <image> [swarm service suffix]
+push_image() {
+  local label="$1" image="$2" service="${3:-}"
+  local before after
 
-echo "[deploy-images] Pushing nginx image..."
-docker push "$NGINX_IMAGE"
+  before="$(remote_digest "$image")"
+  echo "[deploy-images] Pushing $label image..."
+  docker push "$image"
+  after="$(remote_digest "$image")"
+
+  if [[ -n "$after" && "$before" == "$after" ]]; then
+    echo "[deploy-images] $label image unchanged ($after)"
+  else
+    echo "[deploy-images] $label image updated: ${before:-<none>} -> ${after:-<unknown>}"
+    if [[ -n "$service" ]]; then
+      CHANGED_SERVICES+=("$service")
+    fi
+  fi
+}
+
+push_image app "$APP_IMAGE" web
+push_image mls "$MLS_IMAGE" mls
+push_image db "$DB_IMAGE" db
+push_image nginx "$NGINX_IMAGE"
 
 DEPLOY_REPOSITORY="${DEPLOY_REPOSITORY:-jwheeler0424/kws-mono}"
 DEPLOY_WORKFLOW="${DEPLOY_WORKFLOW:-ghcr-swarm-deploy.yml}"
@@ -118,20 +137,23 @@ DEPLOY_REF="${DEPLOY_REF:-main}"
 DEPLOY_TOKEN="${DEPLOY_TOKEN:-$(read_env_value DEPLOY_TOKEN)}"
 DEPLOY_TOKEN="${DEPLOY_TOKEN:-$GHCR_TOKEN}"
 
-if [[ -n "$DEPLOY_TOKEN" ]]; then
-  echo "[deploy-images] Triggering $DEPLOY_WORKFLOW on $DEPLOY_REPOSITORY@$DEPLOY_REF"
+if [[ ${#CHANGED_SERVICES[@]} -eq 0 ]]; then
+  echo "[deploy-images] No deployed images changed; skipping workflow dispatch."
+elif [[ -z "$DEPLOY_TOKEN" ]]; then
+  echo "[deploy-images] No DEPLOY_TOKEN/GHCR_TOKEN set; skipping workflow dispatch."
+else
+  services="${CHANGED_SERVICES[*]}"
+  echo "[deploy-images] Triggering $DEPLOY_WORKFLOW on $DEPLOY_REPOSITORY@$DEPLOY_REF for: $services"
   status="$(curl -sS -o /dev/null -w '%{http_code}' -X POST \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: Bearer $DEPLOY_TOKEN" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
     "https://api.github.com/repos/${DEPLOY_REPOSITORY}/actions/workflows/${DEPLOY_WORKFLOW}/dispatches" \
-    -d "{\"ref\":\"${DEPLOY_REF}\"}")"
+    -d "{\"ref\":\"${DEPLOY_REF}\",\"inputs\":{\"services\":\"${services}\"}}")"
   if [[ "$status" != "204" ]]; then
     echo "[deploy-images] Workflow dispatch failed (HTTP $status). Token needs the classic 'repo' scope."
     exit 1
   fi
-else
-  echo "[deploy-images] No DEPLOY_TOKEN/GHCR_TOKEN set; skipping workflow dispatch."
 fi
 
 echo "[deploy-images] Done."
