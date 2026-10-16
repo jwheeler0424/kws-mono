@@ -112,4 +112,26 @@ docker push "$DB_IMAGE"
 echo "[deploy-images] Pushing nginx image..."
 docker push "$NGINX_IMAGE"
 
+DEPLOY_REPOSITORY="${DEPLOY_REPOSITORY:-jwheeler0424/kws-mono}"
+DEPLOY_WORKFLOW="${DEPLOY_WORKFLOW:-ghcr-swarm-deploy.yml}"
+DEPLOY_REF="${DEPLOY_REF:-main}"
+DEPLOY_TOKEN="${DEPLOY_TOKEN:-$(read_env_value DEPLOY_TOKEN)}"
+DEPLOY_TOKEN="${DEPLOY_TOKEN:-$GHCR_TOKEN}"
+
+if [[ -n "$DEPLOY_TOKEN" ]]; then
+  echo "[deploy-images] Triggering $DEPLOY_WORKFLOW on $DEPLOY_REPOSITORY@$DEPLOY_REF"
+  status="$(curl -sS -o /dev/null -w '%{http_code}' -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer $DEPLOY_TOKEN" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/${DEPLOY_REPOSITORY}/actions/workflows/${DEPLOY_WORKFLOW}/dispatches" \
+    -d "{\"ref\":\"${DEPLOY_REF}\"}")"
+  if [[ "$status" != "204" ]]; then
+    echo "[deploy-images] Workflow dispatch failed (HTTP $status). Token needs the classic 'repo' scope."
+    exit 1
+  fi
+else
+  echo "[deploy-images] No DEPLOY_TOKEN/GHCR_TOKEN set; skipping workflow dispatch."
+fi
+
 echo "[deploy-images] Done."
