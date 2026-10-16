@@ -3,8 +3,6 @@ name: Deploy GHCR images to Swarm
 on:
   registry_package:
     types: [published, updated]
-  schedule:
-    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 concurrency:
