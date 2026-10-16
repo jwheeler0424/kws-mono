@@ -1,4 +1,6 @@
 name: Deploy GHCR images to Swarm
+run-name: >-
+  Deploy ${{ github.event_name == 'registry_package' && github.event.registry_package.name || inputs.services || 'web mls db' }}
 
 on:
   registry_package:
