@@ -1,7 +1,5 @@
-import { MLS_MEDIA_BACKOFF_DEFAULTS } from '@/lib/constants';
+import { HOUR_MS, MLS_MEDIA_BACKOFF_DEFAULTS } from '@/lib/constants';
 import { mlsLogger } from '@/lib/logger';
-
-import { sleep } from './helpers';
 
 const backoffLogger = mlsLogger.child('media-backoff');
 
@@ -21,6 +19,12 @@ export class MlsMediaBackoff {
 
   private pausedUntilMs = 0;
 
+  private usageHourStartMs = 0;
+
+  private usageDownloads = 0;
+
+  private usageBytes = 0;
+
   constructor(
     private readonly now: () => number = () => Date.now(),
     private readonly config: MediaBackoffConfig = MLS_MEDIA_BACKOFF_DEFAULTS,
@@ -34,8 +38,25 @@ export class MlsMediaBackoff {
     return this.isPaused() ? new Date(this.pausedUntilMs) : null;
   }
 
-  recordSuccess(): void {
+  recordSuccess(bytes = 0): void {
     this.consecutiveMediaRateLimits = 0;
+
+    // Hourly totals let us compare our media traffic against the MLS Grid Usage tab.
+    const hourStartMs = Math.floor(this.now() / HOUR_MS) * HOUR_MS;
+    if (hourStartMs !== this.usageHourStartMs) {
+      if (this.usageDownloads > 0) {
+        backoffLogger.info('MLS media download usage', {
+          hour: new Date(this.usageHourStartMs).toISOString(),
+          downloads: this.usageDownloads,
+          bytes: this.usageBytes,
+        });
+      }
+      this.usageHourStartMs = hourStartMs;
+      this.usageDownloads = 0;
+      this.usageBytes = 0;
+    }
+    this.usageDownloads += 1;
+    this.usageBytes += bytes;
   }
 
   recordRateLimited(source: MlsRateLimitSource): void {
@@ -67,19 +88,3 @@ export class MlsMediaBackoff {
 }
 
 export const mlsMediaBackoff = new MlsMediaBackoff();
-
-let mediaQueue: Promise<void> = Promise.resolve();
-let lastMediaDownloadAtMs = 0;
-
-/** Paces media downloads on their own lane so they don't consume the API throttle. */
-export function throttleMediaDownload(
-  delayMs: number = MLS_MEDIA_BACKOFF_DEFAULTS.downloadDelayMs,
-): Promise<void> {
-  const slot = mediaQueue.then(async () => {
-    const waitMs = lastMediaDownloadAtMs + delayMs - Date.now();
-    if (waitMs > 0) await sleep(waitMs);
-    lastMediaDownloadAtMs = Date.now();
-  });
-  mediaQueue = slot.catch(() => {});
-  return slot;
-}

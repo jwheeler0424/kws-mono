@@ -11,7 +11,7 @@ import path from 'node:path';
 import { MLS_MEDIA_BUDGET_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
 import { mlsLogger } from '@/lib/logger';
-import { mlsMediaBackoff, throttleMediaDownload } from '@/lib/utils/media-backoff';
+import { mlsMediaBackoff } from '@/lib/utils/media-backoff';
 import { downloadMlsMedia, MlsMediaDownloadError } from '@/lib/utils/media-download';
 import {
   downloadQueuedMlsMedia,
@@ -267,10 +267,12 @@ async function resolvePipelineSource(
 
   const budgetedFetch = async (input: string, options: RequestInit): Promise<Response> => {
     const hostname = new URL(input).hostname;
-    // Media host downloads are assumed outside the request limits; mlsMediaBackoff guards that assumption.
-    if (hostname === 'media.mlsgrid.com' || hostname === 'media-demo.mlsgrid.com') {
-      await throttleMediaDownload();
-    } else if (hostname.endsWith('mlsgrid.com')) {
+    // Media host downloads are assumed outside MLS Grid request/data limits; mlsMediaBackoff guards that assumption.
+    if (
+      hostname !== 'media.mlsgrid.com' &&
+      hostname !== 'media-demo.mlsgrid.com' &&
+      hostname.endsWith('mlsgrid.com')
+    ) {
       await throttle();
       mlsQuotaTracker.prepareRequest();
     }
@@ -294,8 +296,7 @@ async function resolvePipelineSource(
     }
     throw error;
   }
-  mlsMediaBackoff.recordSuccess();
-  mlsQuotaTracker.recordResponseBytes(source.size);
+  mlsMediaBackoff.recordSuccess(source.size);
   return {
     source,
     sourceOrigin: 'remote',

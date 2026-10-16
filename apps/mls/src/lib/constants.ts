@@ -46,7 +46,6 @@ export const MLS_MEDIA_BACKOFF_DEFAULTS = {
   maxPauseMs: 6 * HOUR_MS,
   // A new trip within this window after the previous pause ends doubles the pause.
   escalationWindowMs: HOUR_MS,
-  downloadDelayMs: 550,
 } as const;
 
 export const MLS_MEDIA_QUEUE_DEFAULTS = {
