@@ -11,7 +11,7 @@ import { VARIANT_TARGET_WIDTHS } from './types.js';
  *   original dimensions are kept (`withoutEnlargement: true`).
  * - Otherwise the image is scaled down proportionally so width === targetWidth.
  */
-function computeOutputDimensions(
+export function computeOutputDimensions(
   originalWidth: number,
   originalHeight: number,
   targetWidth: number | null,

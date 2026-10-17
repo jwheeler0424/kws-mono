@@ -77,6 +77,37 @@ test('JPEG input produces decodable WebP variants at the expected dimensions', a
   }
 });
 
+test('maxFullWidth downscales the stored full variant for both profiles', async () => {
+  const basePath = await mkdtemp(path.join(tmpdir(), 'mls-image-max-width-'));
+  try {
+    const source = await new Bun.Image(pixel).resize(2400, 1600).jpeg({ quality: 80 }).blob();
+    for (const variantProfile of ['all', 'full-only'] as const) {
+      const result = await processImage({
+        source,
+        filename: `photo-${variantProfile}`,
+        organizationId: 'listing',
+        durableFull: true,
+        maxFullWidth: 1920,
+        webp: { quality: 80 },
+        variantProfile,
+        storage: { provider: 'local', basePath },
+      } as Parameters<typeof processImage>[0]);
+      const full = result.variants.full;
+      const metadata = await new Bun.Image(
+        await Bun.file(full.storagePath).arrayBuffer(),
+      ).metadata();
+
+      expect(full.width).toBe(1920);
+      expect(full.height).toBe(1280);
+      expect(metadata.width).toBe(1920);
+      expect(metadata.height).toBe(1280);
+      expect(result.source.width).toBe(2400);
+    }
+  } finally {
+    await rm(basePath, { recursive: true, force: true });
+  }
+});
+
 test('full-only profile stores no derived variants', async () => {
   const basePath = await mkdtemp(path.join(tmpdir(), 'mls-image-full-only-'));
   try {

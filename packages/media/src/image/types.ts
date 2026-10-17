@@ -104,6 +104,8 @@ export interface ImagePipelineOptions {
   storage: StorageOptions;
   durableFull?: boolean;
   preserveFullWebp?: boolean;
+  /** Downscales the full variant to this width (aspect preserved, never enlarges). */
+  maxFullWidth?: number;
   variantProfile?: 'all';
 }
 

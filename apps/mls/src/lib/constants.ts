@@ -48,6 +48,22 @@ export const MLS_MEDIA_BACKOFF_DEFAULTS = {
   escalationWindowMs: HOUR_MS,
 } as const;
 
+export const MLS_MEDIA_IMAGE_DEFAULTS = {
+  webpQuality: 80,
+  maxFullWidth: 1920,
+} as const;
+
+export const MLS_MEDIA_RECOMPRESS_DEFAULTS = {
+  // Runs inside the media sync job, so it must leave room in the 15-minute slot.
+  maxDurationMs: 4 * 60_000,
+  jobDeadlineMs: 13 * 60_000,
+  minDurationMs: 30_000,
+  batchSize: 200,
+  concurrency: 3,
+  // Re-encoding at the same size saves little and costs generation loss.
+  minSavingsRatio: 0.05,
+} as const;
+
 export const MLS_MEDIA_QUEUE_DEFAULTS = {
   chunkSize: 1000,
   // Queued MLS Grid URLs expire after an hour, so stop issuing more than workers can drain.

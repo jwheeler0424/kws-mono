@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import { MLS_MEDIA_BUDGET_DEFAULTS } from '@/lib/constants';
+import { MLS_MEDIA_BUDGET_DEFAULTS, MLS_MEDIA_IMAGE_DEFAULTS } from '@/lib/constants';
 import { db } from '@/lib/database';
 import { mlsLogger } from '@/lib/logger';
 import { mlsMediaBackoff } from '@/lib/utils/media-backoff';
@@ -393,6 +393,8 @@ async function upsertProcessedMedia(
     filename,
     durableFull: true,
     preserveFullWebp: pipelineSource.sourceOrigin === 'local',
+    webp: { quality: MLS_MEDIA_IMAGE_DEFAULTS.webpQuality },
+    maxFullWidth: MLS_MEDIA_IMAGE_DEFAULTS.maxFullWidth,
     organizationId: candidate.resourceRecordKey,
     storage: {
       provider: 'local' as const,

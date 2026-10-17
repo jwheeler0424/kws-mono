@@ -4,12 +4,29 @@ import type {
   ImagePipelineOptions,
   ImagePipelineResult,
   ImageVariantResult,
+  MappedImageMetadata,
+  RawVariantData,
+  WebPOptions,
 } from './types.js';
 
 import { extractImageMetadata } from './extract-metadata.js';
-import { processVariants } from './process-variants.js';
+import { computeOutputDimensions, processVariants } from './process-variants.js';
 import { resolveImageSource } from './resolve-source.js';
 import { writeVariants } from './storage.js';
+
+async function encodeFullVariant(
+  image: Bun.Image,
+  metadata: MappedImageMetadata,
+  webpOptions: WebPOptions,
+  maxFullWidth: number | undefined,
+): Promise<RawVariantData> {
+  const dimensions = computeOutputDimensions(metadata.width, metadata.height, maxFullWidth ?? null);
+  const pipeline =
+    dimensions.width < metadata.width
+      ? image.resize(dimensions.width, undefined, { fit: 'inside', withoutEnlargement: true })
+      : image;
+  return { variantName: 'full', blob: await pipeline.webp(webpOptions).blob(), ...dimensions };
+}
 
 /**
  * Downloads, processes, and stores an image through the full pipeline:
@@ -76,63 +93,45 @@ export async function processImage(
   // header without fully decoding pixel data.  We need dimensions before we
   // can pre-compute output sizes for the resize variants.
   const metadata = await extractImageMetadata(image);
+  const preservedFull: RawVariantData | undefined =
+    options.preserveFullWebp && metadata.format === 'webp'
+      ? { variantName: 'full', blob, width: metadata.width, height: metadata.height }
+      : undefined;
 
   if (options.variantProfile === 'full-only') {
-    const fullBlob =
-      options.preserveFullWebp && metadata.format === 'webp'
-        ? blob
-        : await image.webp(webpOptions).blob();
-    const [full] = await writeVariants(
-      [
-        {
-          variantName: 'full',
-          blob: fullBlob,
-          width: metadata.width,
-          height: metadata.height,
-        },
-      ],
-      storage,
-      filename,
-      organizationId,
-    );
+    const fullVariant =
+      preservedFull ??
+      (await encodeFullVariant(image, metadata, webpOptions, options.maxFullWidth));
+    const [full] = await writeVariants([fullVariant], storage, filename, organizationId);
 
     return { source: metadata, variants: { full: full! } };
   }
 
-  const fullSource =
-    options.preserveFullWebp && metadata.format === 'webp'
-      ? blob
-      : options.durableFull
-        ? await image.webp(webpOptions).blob()
-        : undefined;
+  const fullVariant =
+    preservedFull ??
+    (options.durableFull || options.maxFullWidth
+      ? await encodeFullVariant(image, metadata, webpOptions, options.maxFullWidth)
+      : undefined);
   const durableFull =
-    options.durableFull && fullSource
-      ? (
-          await writeVariants(
-            [
-              {
-                variantName: 'full',
-                blob: fullSource,
-                width: metadata.width,
-                height: metadata.height,
-              },
-            ],
-            storage,
-            filename,
-            organizationId,
-          )
-        )[0]
+    options.durableFull && fullVariant
+      ? (await writeVariants([fullVariant], storage, filename, organizationId))[0]
       : undefined;
 
   // ── Step 3b: Produce all three variants concurrently ──────────────────────
   // processVariants() fans out three off-thread encode jobs via Promise.all.
   // Dimensions from metadata allow output sizes to be calculated without an
   // extra metadata() call per variant.
-  const rawVariants = await processVariants(
-    image,
-    { width: metadata.width, height: metadata.height },
-    webpOptions,
-    fullSource,
+  const rawVariants = (
+    await processVariants(
+      image,
+      { width: metadata.width, height: metadata.height },
+      webpOptions,
+      fullVariant?.blob,
+    )
+  ).map((variant) =>
+    variant.variantName === 'full' && fullVariant
+      ? { ...variant, width: fullVariant.width, height: fullVariant.height }
+      : variant,
   );
 
   // ── Step 4: Write variants to storage ─────────────────────────────────────

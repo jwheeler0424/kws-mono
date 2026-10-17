@@ -2,7 +2,11 @@ import { env } from '@kws/config';
 
 import type { MlsResource } from '@/types';
 
-import { MLS_RESOURCE_NAMES, MLS_SCHEDULER_DEFAULTS } from '@/lib/constants';
+import {
+  MLS_MEDIA_RECOMPRESS_DEFAULTS,
+  MLS_RESOURCE_NAMES,
+  MLS_SCHEDULER_DEFAULTS,
+} from '@/lib/constants';
 import { pruneExpiredHistory } from '@/lib/history-store';
 import { mlsLogger } from '@/lib/logger';
 
@@ -19,6 +23,7 @@ import { isInitialSeedComplete } from '../repositories/seed-state.repository';
 import { runMlsCleanup } from './cleanup';
 import { refreshMlsMediaQueue } from './media-queue-refresh';
 import { isMlsDeltaResourceName, runDeltaSyncResource } from './orchestrator';
+import { recompressLegacyMlsMedia, resolveMlsMediaRecompressCutoff } from './recompress-media';
 import { runPrioritizedMlsMediaSync } from './seed-media';
 
 const MLS_CLEANUP_HOURLY_SCHEDULE_ID = 'mls.cleanup.hourly';
@@ -183,6 +188,7 @@ async function runScheduledMediaSyncAndCleanup(
   },
 ) {
   if (!(await isSeedCompleteFor(scheduleId))) return;
+  const jobStartedAt = Date.now();
   const mediaQueueRefresh = await refreshMlsMediaQueue({
     originatingSystemName: env.MLS_ORIGINATING_SYSTEM_NAME,
     memberKeys: (env.MLS_MEMBER_ID ?? []).filter((key) => key.length > 0),
@@ -197,6 +203,15 @@ async function runScheduledMediaSyncAndCleanup(
   const deadMlsMediaPurgeSummary = await purgeDeadMlsMedia();
   const prunedEmptyDirectories = await pruneEmptyMlsMediaDirectories();
 
+  const recompressBudgetMs = Math.min(
+    MLS_MEDIA_RECOMPRESS_DEFAULTS.maxDurationMs,
+    jobStartedAt + MLS_MEDIA_RECOMPRESS_DEFAULTS.jobDeadlineMs - Date.now(),
+  );
+  const recompress =
+    recompressBudgetMs >= MLS_MEDIA_RECOMPRESS_DEFAULTS.minDurationMs
+      ? await recompressLegacyMlsMedia(recompressBudgetMs)
+      : null;
+
   syncMlsLogger.info('scheduled MLS media sync + dead media purge completed', {
     scheduleId,
     postSyncCleanup: mediaSummary.postSyncCleanup,
@@ -210,6 +225,7 @@ async function runScheduledMediaSyncAndCleanup(
     mediaQueueRefresh,
     deadMlsMediaPurgeSummary,
     prunedEmptyDirectories,
+    recompress,
   });
 }
 
@@ -361,6 +377,13 @@ export async function registerMlsSyncJobTypes() {
     job.stop();
   }
   registeredMlsCronJobs.length = 0;
+
+  // Must be fixed before this process stores any photo with the new encoding.
+  await resolveMlsMediaRecompressCutoff().catch((error) => {
+    syncMlsLogger.warn('failed to record MLS media recompress cutoff', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
 
   await runScheduledJob(MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID, () =>
     runOrphanedMediaCleanup('startup'),
