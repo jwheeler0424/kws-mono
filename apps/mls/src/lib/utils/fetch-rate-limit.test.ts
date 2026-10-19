@@ -1,7 +1,7 @@
 import { afterAll, afterEach, expect, mock, test } from 'bun:test';
 import { fileURLToPath } from 'node:url';
 
-import { MlsApiError } from './errors';
+import { MlsApiError, mlsErrorDetails } from './errors';
 
 const quotaPath = fileURLToPath(new URL('./quota.ts', import.meta.url));
 const rateLimitPath = fileURLToPath(new URL('./rate-limit.ts', import.meta.url));
@@ -64,4 +64,20 @@ test('client errors are not retried for ordinary requests', async () => {
 
   expect((error as MlsApiError).status).toBe(400);
   expect(requests).toBe(1);
+});
+
+test('database logs expose the root SQLSTATE without SQL parameters or URLs', () => {
+  const postgres = Object.assign(new Error('permission denied for table mls_gallery_requests'), {
+    code: '42501',
+  });
+  const wrapped = new Error('Failed query: select ...\nparams: secret', { cause: postgres });
+  expect(mlsErrorDetails(wrapped)).toEqual({
+    error: 'Error',
+    message: 'permission denied for table mls_gallery_requests',
+    code: '42501',
+  });
+  expect(
+    mlsErrorDetails(new Error('Failure at https://media.mlsgrid.com/token=secret\nparams: secret'))
+      .message,
+  ).toBe('Failure at [redacted URL]');
 });

@@ -58,6 +58,15 @@ CREATE TABLE IF NOT EXISTS public.schema_migrations (
 SQL
 }
 
+ensure_application_schema_privileges() {
+	gosu postgres psql --dbname "$DB_NAME" --set ON_ERROR_STOP=1 \
+		--set=db_user="$DB_USER" <<'SQL'
+GRANT USAGE ON SCHEMA public TO :"db_user";
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO :"db_user";
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO :"db_user";
+SQL
+}
+
 apply_pending_migrations() {
 	if [ ! -d /docker-entrypoint-migrations ]; then
 		echo "[db-entrypoint] No bundled migrations directory found; skipping"
@@ -150,6 +159,7 @@ if [ ! -s "$PGDATA/PG_VERSION" ]; then
 	fi
 
 	apply_pending_migrations
+	ensure_application_schema_privileges
 
 	# Init scripts can create/replace helper functions as postgres; normalize ownership for app migrations.
 	ensure_migration_function_ownership
@@ -163,6 +173,7 @@ else
 	gosu postgres pg_ctl -D "$PGDATA" -o "-c listen_addresses='' -c unix_socket_directories=/var/run/postgresql" -w start
 	trap 'gosu postgres pg_ctl -D "$PGDATA" -m fast -w stop || true' EXIT
 	apply_pending_migrations
+	ensure_application_schema_privileges
 	ensure_migration_function_ownership
 	gosu postgres pg_ctl -D "$PGDATA" -m fast -w stop
 	trap - EXIT

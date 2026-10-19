@@ -9,6 +9,7 @@ import {
 } from '@/lib/constants';
 import { pruneExpiredHistory } from '@/lib/history-store';
 import { mlsLogger } from '@/lib/logger';
+import { mlsErrorDetails } from '@/lib/utils/errors';
 
 import {
   pruneEmptyMlsMediaDirectories,
@@ -150,8 +151,7 @@ async function runScheduledJob(scheduleId: string, run: () => Promise<void>) {
 
     syncMlsLogger.error('scheduled MLS job failed; scheduler will continue', {
       scheduleId,
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
+      ...mlsErrorDetails(error),
     });
   } finally {
     inFlightScheduledJobs.delete(scheduleId);
@@ -392,7 +392,10 @@ export async function registerMlsSyncJobTypes() {
     runOrphanedMediaCleanup('startup'),
   );
 
+  let priorityRetryAt = 0;
+  let priorityFailures = 0;
   setMediaPriorityHandler(async () => {
+    if (Date.now() < priorityRetryAt) return;
     if (
       inFlightScheduledJobs.has(MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID) ||
       inFlightScheduledJobs.has(MLS_CLEANUP_HOURLY_SCHEDULE_ID)
@@ -403,9 +406,14 @@ export async function registerMlsSyncJobTypes() {
     try {
       let more = true;
       while (more) more = await processNextGalleryRequest();
+      priorityFailures = 0;
     } catch (error) {
+      priorityFailures += 1;
+      priorityRetryAt =
+        Date.now() + Math.min(15 * 60_000, 60_000 * 2 ** Math.min(priorityFailures - 1, 4));
       syncMlsLogger.error('on-demand gallery worker failed', {
-        error: error instanceof Error ? error.name : 'UnknownError',
+        ...mlsErrorDetails(error),
+        retryAt: new Date(priorityRetryAt).toISOString(),
       });
     } finally {
       inFlightScheduledJobs.delete('mls.media.on-demand');
@@ -414,7 +422,7 @@ export async function registerMlsSyncJobTypes() {
   const galleryTimer = setInterval(() => {
     void servicePriorityMedia().catch((error) =>
       syncMlsLogger.error('gallery priority service failed', {
-        error: error instanceof Error ? error.name : 'UnknownError',
+        ...mlsErrorDetails(error),
       }),
     );
   }, 2_000);
