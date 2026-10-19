@@ -6,6 +6,8 @@ import { and, eq, gte, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle
 import { db } from '@/lib/database';
 import { MLS_MEDIA_URL_REFRESH_REQUIRED } from '@/lib/utils/media-url';
 
+import { retainedPropertyMediaClause } from './media-retention';
+
 const ACTIVE_PROPERTY_STATUSES: readonly StandardStatus[] = [
   'Active',
   'ActiveUnderContract',
@@ -51,15 +53,16 @@ const rowNeedsUrlRefreshClause = sql`(
   and not ${freshUrlClause}
 )`;
 
-function hasRowNeedingUrlRefresh(parentKey: SQL): SQL {
+function hasRowNeedingUrlRefresh(parentKey: SQL, propertyMedia = false): SQL {
   return sql`exists (
     select 1 from mls_media queued
     where queued.resource_record_key = ${parentKey} and ${rowNeedsUrlRefreshClause}
+      and ${propertyMedia ? retainedPropertyMediaClause({ mediaKey: sql`queued.media_key`, resourceRecordKey: sql`queued.resource_record_key` }) : sql`true`}
   )`;
 }
 
 const listingGalleryIncompleteClause = sql`(
-  ${hasRowNeedingUrlRefresh(sql`${properties.listingKey}`)}
+  ${hasRowNeedingUrlRefresh(sql`${properties.listingKey}`, true)}
   or (
     coalesce(${properties.photosCount}, 0) > 0
     and not exists (
@@ -156,6 +159,7 @@ export async function countPendingFreshMediaUrls(): Promise<number> {
               and parent.deleted_at is null
               and parent.mlg_can_view = true
               and parent.standard_status in ('Active', 'ActiveUnderContract', 'ComingSoon')
+              and ${retainedPropertyMediaClause({ mediaKey: sql`queued.media_key`, resourceRecordKey: sql`queued.resource_record_key` })}
           )
           or exists (
             select 1 from members parent

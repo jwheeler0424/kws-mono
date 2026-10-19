@@ -8,11 +8,21 @@ import {
   historyStorageReportFromCli,
   historyVerifyFromCli,
 } from '@/app/history-maintenance';
+import { cleanupExcessListingMedia } from '@/app/media-retention-cleanup';
+import { pool } from '@/lib/database';
 import { logger } from '@/lib/logger';
 import { mlsQuotaTracker } from '@/lib/utils/quota';
 
 async function run() {
   const [, , command, ...args] = process.argv;
+  if (command === 'media:cleanup') {
+    try {
+      await cleanupExcessListingMedia(args);
+    } finally {
+      await pool.end();
+    }
+    return;
+  }
   if (command === 'contacts:backfill') {
     await backfillContactsFromCli(args);
     return;

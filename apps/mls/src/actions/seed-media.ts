@@ -1004,7 +1004,7 @@ function combineMediaSyncSummaries(
 
 /**
  * Configured office media and its listing galleries first, then configured members and
- * their listing galleries, then complete galleries for all eligible listings newest first.
+ * their listing galleries, then capped galleries for other eligible listings newest first.
  */
 export async function runPrioritizedMlsMediaSync(
   options: Pick<

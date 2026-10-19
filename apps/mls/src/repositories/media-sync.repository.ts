@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { db } from '@/lib/database';
 import { MLS_MEDIA_URL_REFRESH_REQUIRED } from '@/lib/utils/media-url';
 
+import { retainedPropertyMediaClause } from './media-retention';
 import { buildPrimaryMlsMediaClause } from './mls-media-primary';
 
 export type MlsMediaEntityType = 'properties' | 'members' | 'offices';
@@ -492,6 +493,10 @@ export async function listMlsMediaSyncCandidates(
 
   const finalWhereClause = and(
     candidateWhereClause,
+    sql`(${properties.listingKey} is null or ${retainedPropertyMediaClause({
+      mediaKey: sql`${mlsMedia.mediaKey}`,
+      resourceRecordKey: sql`${mlsMedia.resourceRecordKey}`,
+    })})`,
     or(
       and(
         isNotNull(properties.listingKey),
@@ -608,6 +613,10 @@ export async function listUnsyncedMediaForListing(
     .where(
       and(
         eq(mlsMedia.resourceRecordKey, listingKey),
+        retainedPropertyMediaClause({
+          mediaKey: sql`${mlsMedia.mediaKey}`,
+          resourceRecordKey: sql`${mlsMedia.resourceRecordKey}`,
+        }),
         isNull(mlsMedia.deletedAt),
         sql`not (coalesce(${mlsMedia.permission}, '{}'::varchar[]) && ARRAY['Private']::varchar[])`,
         isNotNull(mlsMedia.resourceRecordKey),

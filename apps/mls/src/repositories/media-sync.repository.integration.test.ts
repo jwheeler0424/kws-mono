@@ -1,5 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { PgDialect } from 'drizzle-orm/pg-core';
+import { randomUUID } from 'node:crypto';
+import { mkdtemp, mkdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
 
@@ -324,7 +330,181 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     await pool.query("DELETE FROM properties WHERE listing_key='NWM_PRIMARY_TEST'");
   });
 
-  it('keeps full gallery images but trims non-primary variants on active listings', async () => {
+  it('caps public galleries at ten, preserving preferred photos and every configured association', async () => {
+    const { retainedPropertyMediaClause } = await import('./media-retention');
+    const fields = [
+      'list_agent_key',
+      'list_agent_mls_id',
+      'co_list_agent_key',
+      'co_list_agent_mls_id',
+      'list_office_key',
+      'list_office_mls_id',
+      'co_list_office_key',
+      'co_list_office_mls_id',
+    ];
+    const keys = ['NWM_RET_NORMAL', ...fields.map((_, index) => `NWM_RET_ASSOC_${index}`)];
+    const storedId = randomUUID();
+    try {
+      await pool.query(
+        "INSERT INTO media(id, filename, original_filename, mime_type, file_size, file_extension, storage_path, storage_key, url) VALUES ($1,'ret.webp','ret.jpg','image/webp',1,'webp','/test/ret.webp','ret','/media/ret.webp')",
+        [storedId],
+      );
+      for (const [index, key] of keys.entries()) {
+        const field = fields[index - 1];
+        await pool.query(
+          `INSERT INTO properties(listing_key, listing_id, standard_status, mlg_can_view${field ? `, ${field}` : ''}) VALUES ($1,$1,'Active',true${field ? ', $2' : ''})`,
+          field ? [key, field.includes('office') ? 'NWM_RET_OFFICE' : 'NWM_RET_MEMBER'] : [key],
+        );
+        await pool.query(
+          `INSERT INTO mls_media(media_key,resource_record_key,"order",preferred_photo_yn,permission,deleted_at,media_modification_timestamp)
+          SELECT $1 || '-' || photo, $1, photo, CASE WHEN photo=15 THEN true ELSE null END,
+            CASE WHEN photo=0 THEN ARRAY['Private']::varchar[] ELSE null END,
+            CASE WHEN photo=1 THEN now() ELSE null END, '2026-09-01T00:00:00Z'
+          FROM generate_series(0,15) photo`,
+          [key],
+        );
+      }
+      const policy = retainedPropertyMediaClause(
+        {
+          mediaKey: sql`m.media_key`,
+          resourceRecordKey: sql`m.resource_record_key`,
+        },
+        { memberKeys: ['NWM_RET_MEMBER'], officeKeys: ['NWM_RET_OFFICE'] },
+      );
+      const query = new PgDialect().sqlToQuery(
+        sql`select m.media_key, m.resource_record_key from mls_media m where m.resource_record_key like 'NWM_RET_%' and m.deleted_at is null and not (coalesce(m.permission,'{}'::varchar[]) && ARRAY['Private']::varchar[]) and ${policy}`,
+      );
+      const retained = (await pool.query(query.sql, query.params)).rows;
+      const normalKeys = retained
+        .filter((row) => row.resource_record_key === keys[0])
+        .map((row) => row.media_key);
+      expect(normalKeys).toHaveLength(10);
+      expect(normalKeys).toEqual(
+        expect.arrayContaining(
+          [2, 3, 4, 5, 6, 7, 8, 9, 10, 15].map((index) => `${keys[0]}-${index}`),
+        ),
+      );
+      for (const key of keys.slice(1))
+        expect(retained.filter((row) => row.resource_record_key === key)).toHaveLength(14);
+      const candidates = await listMlsMediaSyncCandidates(200, {
+        filterEntityTypes: ['properties'],
+        enforceEligibilityForNonAssociatedProperties: true,
+      });
+      expect(candidates.filter((row) => row.resourceRecordKey === keys[0])).toHaveLength(10);
+      expect(await listIncompleteActiveListingKeys([keys[0]!])).toEqual(new Set([keys[0]!]));
+      await pool.query('UPDATE mls_media SET media_id=$1 WHERE media_key=ANY($2::varchar[])', [
+        storedId,
+        normalKeys,
+      ]);
+      await pool.query(
+        "UPDATE mls_media SET last_acquisition_error='MLS media URL refresh required' WHERE resource_record_key=$1 AND media_id IS NULL",
+        [keys[0]],
+      );
+      expect(await listIncompleteActiveListingKeys([keys[0]!])).toEqual(new Set());
+      const pendingBefore = await countPendingFreshMediaUrls();
+      await pool.query(
+        'UPDATE mls_media SET media_url=$1 WHERE resource_record_key=$2 AND media_id IS NULL',
+        [
+          `https://media.mlsgrid.com/token=test&expires=${Math.floor(Date.now() / 1000) + 3600}`,
+          keys[0],
+        ],
+      );
+      expect(await countPendingFreshMediaUrls()).toBe(pendingBefore);
+    } finally {
+      await pool.query('DELETE FROM mls_media WHERE resource_record_key=ANY($1::varchar[])', [
+        keys,
+      ]);
+      await pool.query('DELETE FROM properties WHERE listing_key=ANY($1::varchar[])', [keys]);
+      await pool.query('DELETE FROM media WHERE id=$1', [storedId]);
+    }
+  });
+
+  it('previews then removes only excess files, preserving shared media and MLS metadata', async () => {
+    const { cleanupExcessListingMedia } = await import('../app/media-retention-cleanup');
+    const basePath = await mkdtemp(path.join(tmpdir(), 'kws-retention-'));
+    const previousRoot = process.env.MLS_MEDIA_STORE_PATH;
+    process.env.MLS_MEDIA_STORE_PATH = basePath;
+    const listingKey = 'NWM_RET_FILES';
+    const root = path.join(basePath, 'mls', 'properties', listingKey);
+    const mediaIds: string[] = [];
+    try {
+      await mkdir(root, { recursive: true });
+      await pool.query(
+        "INSERT INTO properties(listing_key,listing_id,standard_status,mlg_can_view) VALUES ($1,$1,'Active',true)",
+        [listingKey],
+      );
+      await pool.query(
+        "INSERT INTO members(member_mls_id,mlg_can_view) VALUES ('NWM_RET_SHARED',true)",
+      );
+      for (let index = 0; index < 13; index += 1) {
+        const mediaId = randomUUID();
+        mediaIds.push(mediaId);
+        const storagePath = path.join(root, `${index}_full.webp`);
+        await Bun.write(storagePath, `photo ${index}`);
+        await pool.query(
+          "INSERT INTO media(id,filename,original_filename,mime_type,file_size,file_extension,storage_path,storage_key,url) VALUES ($1,$2::varchar,$2::varchar,'image/webp',10,'webp',$3::text,$2::varchar,$3::text)",
+          [mediaId, `${listingKey}-${index}.webp`, storagePath],
+        );
+        await pool.query(
+          "INSERT INTO media_variants(media_id,variant_name,width,height,file_size,url,storage_path,storage_key) VALUES ($1,'full',1,1,10,$2::text,$2::text,$2::varchar)",
+          [mediaId, storagePath],
+        );
+        await pool.query(
+          'INSERT INTO mls_media(media_key,resource_record_key,media_id,"order") VALUES ($1,$2,$3,$4)',
+          [`${listingKey}-${index}`, listingKey, mediaId, index],
+        );
+      }
+      await pool.query(
+        "INSERT INTO mls_media(media_key,resource_record_key,media_id) VALUES ('ret-shared','NWM_RET_SHARED',$1)",
+        [mediaIds[12]],
+      );
+      await cleanupExcessListingMedia([]);
+      expect(await Bun.file(path.join(root, '10_full.webp')).exists()).toBe(true);
+      const outsidePath = path.join(basePath, 'outside.webp');
+      await Bun.write(outsidePath, 'outside');
+      await pool.query('UPDATE media SET storage_path=$1 WHERE id=$2', [outsidePath, mediaIds[10]]);
+      const failure = await cleanupExcessListingMedia(['--apply']).then(
+        () => null,
+        (error: unknown) => error,
+      );
+      expect(failure).toBeInstanceOf(Error);
+      expect((failure as Error).message).toContain('outside property media');
+      expect(await Bun.file(outsidePath).exists()).toBe(true);
+      await pool.query('UPDATE media SET storage_path=$1 WHERE id=$2', [
+        path.join(root, '10_full.webp'),
+        mediaIds[10],
+      ]);
+      await cleanupExcessListingMedia(['--apply']);
+      for (let index = 0; index < 10; index += 1)
+        expect(await Bun.file(path.join(root, `${index}_full.webp`)).exists()).toBe(true);
+      expect(await Bun.file(path.join(root, '10_full.webp')).exists()).toBe(false);
+      expect(await Bun.file(path.join(root, '11_full.webp')).exists()).toBe(false);
+      expect(await Bun.file(path.join(root, '12_full.webp')).exists()).toBe(true);
+      const rows = (
+        await pool.query('SELECT media_id FROM mls_media WHERE resource_record_key=$1', [
+          listingKey,
+        ])
+      ).rows;
+      expect(rows).toHaveLength(13);
+      expect(rows.filter((row) => row.media_id === null)).toHaveLength(2);
+      await cleanupExcessListingMedia(['--apply']);
+      expect(
+        (await pool.query('SELECT id FROM media WHERE id=ANY($1::uuid[])', [mediaIds])).rows,
+      ).toHaveLength(11);
+    } finally {
+      if (previousRoot === undefined) delete process.env.MLS_MEDIA_STORE_PATH;
+      else process.env.MLS_MEDIA_STORE_PATH = previousRoot;
+      await pool.query('DELETE FROM mls_media WHERE resource_record_key=ANY($1::varchar[])', [
+        [listingKey, 'NWM_RET_SHARED'],
+      ]);
+      await pool.query('DELETE FROM properties WHERE listing_key=$1', [listingKey]);
+      await pool.query("DELETE FROM members WHERE member_mls_id='NWM_RET_SHARED'");
+      await pool.query('DELETE FROM media WHERE id=ANY($1::uuid[])', [mediaIds]);
+      await rm(basePath, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps retained gallery images but trims non-primary variants on active listings', async () => {
     const privateMediaId = '0199aabb-0000-7000-8000-000000000002';
     const primaryMediaId = '0199aabb-0000-7000-8000-000000000003';
     const secondaryMediaId = '0199aabb-0000-7000-8000-000000000004';
@@ -424,11 +604,14 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
 
     expect(summary.linkedRowsDetached).toBe(1);
     expect(summary.mediaDeleted).toBe(1);
-    expect(associations.rows).toEqual([
-      { media_key: 'private-cleanup', media_id: null },
-      { media_key: 'primary-cleanup', media_id: primaryMediaId },
-      { media_key: 'secondary-cleanup', media_id: secondaryMediaId },
-    ]);
+    expect(associations.rows).toHaveLength(3);
+    expect(associations.rows).toEqual(
+      expect.arrayContaining([
+        { media_key: 'private-cleanup', media_id: null },
+        { media_key: 'primary-cleanup', media_id: primaryMediaId },
+        { media_key: 'secondary-cleanup', media_id: secondaryMediaId },
+      ]),
+    );
     expect(remainingMedia.rows).toEqual(
       mediaIds
         .filter((mediaId) => mediaId !== privateMediaId)

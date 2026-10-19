@@ -10,6 +10,7 @@ import path from 'node:path';
 
 import { db } from '@/lib/database';
 
+import { retainedPropertyMediaClause } from './media-retention';
 import { buildPrimaryMlsMediaClause } from './mls-media-primary';
 
 const FILE_DELETE_CHUNK_SIZE = 20;
@@ -447,7 +448,7 @@ function resolveLocalMediaBasePath(): string {
   return path.join(workspaceRoot, 'store', 'media');
 }
 
-function resolveMlsEntityRoot(entityType: MlsMediaStorageEntityType): string {
+export function resolveMlsEntityRoot(entityType: MlsMediaStorageEntityType): string {
   return path.join(resolveLocalMediaBasePath(), 'mls', entityType);
 }
 
@@ -677,7 +678,7 @@ export async function purgeSoftDeletedMlsMedia(
 
 /**
  * Purges linked MLS media that falls outside the desired sync scope:
- * - primary media for active + viewable properties
+ * - up to ten public photos for active + viewable properties
  * - full media for configured associated members/offices
  * - full property media for listings associated to configured members/offices
  */
@@ -697,6 +698,13 @@ export async function purgeScopedMlsMediaBeforeSync(
 
   const propertyActiveViewableMediaClause = and(
     isNotNull(properties.listingKey),
+    retainedPropertyMediaClause(
+      {
+        mediaKey: sql`${mlsMedia.mediaKey}`,
+        resourceRecordKey: sql`${mlsMedia.resourceRecordKey}`,
+      },
+      options,
+    ),
     eq(properties.mlgCanView, true),
     isNotNull(properties.standardStatus),
     inArray(properties.standardStatus, activePropertyStatuses),
@@ -811,7 +819,15 @@ export async function purgeScopedMlsMediaBeforeSync(
     .leftJoin(properties, eq(mlsMedia.resourceRecordKey, properties.listingKey))
     .leftJoin(members, eq(mlsMedia.resourceRecordKey, members.memberMlsId))
     .leftJoin(offices, eq(mlsMedia.resourceRecordKey, offices.officeMlsId))
-    .where(and(isNotNull(mlsMedia.mediaId), isNull(media.deletedAt), secondaryMediaScopeClause));
+    .where(
+      and(
+        isNotNull(mlsMedia.mediaId),
+        isNull(media.deletedAt),
+        secondaryMediaScopeClause,
+        sql`exists (select 1 from media_variants extra where extra.media_id = ${media.id} and extra.variant_name <> 'full')`,
+      ),
+    )
+    .limit(MEDIA_ID_QUERY_CHUNK_SIZE);
   const secondaryMediaIds = [...new Set(secondaryMediaRows.map((row) => row.mediaId))];
   for (let start = 0; start < secondaryMediaIds.length; start += MEDIA_ID_QUERY_CHUNK_SIZE) {
     const chunk = secondaryMediaIds.slice(start, start + MEDIA_ID_QUERY_CHUNK_SIZE);
@@ -846,7 +862,8 @@ export async function purgeScopedMlsMediaBeforeSync(
         isNull(media.deletedAt),
         not(desiredLinkedScopeClauseNonNull as NonNullable<typeof desiredLinkedScopeClauseNonNull>),
       ),
-    );
+    )
+    .limit(MEDIA_ID_QUERY_CHUNK_SIZE);
 
   const linkedRowsScannedResult = await db
     .select({ count: sql<number>`count(*)` })
