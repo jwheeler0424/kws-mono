@@ -87,9 +87,24 @@ if [[ "$REGISTRY" == "ghcr.io" && -n "$GHCR_TOKEN" ]]; then
   echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 fi
 
-if [[ "$(docker info --format '{{.Swarm.LocalNodeState}}')" != "active" ]]; then
-  echo "[prod-up] Initializing Docker Swarm"
-  docker swarm init
+swarm_state="$(docker info --format '{{.Swarm.LocalNodeState}}')"
+case "$swarm_state" in
+  inactive)
+    echo "[prod-up] Initializing Docker Swarm"
+    docker swarm init
+    ;;
+  active)
+    ;;
+  *)
+    echo "[prod-up] Existing Swarm is not ready (state: $swarm_state); refusing to reinitialize it"
+    echo "[prod-up] Inspect with: docker info --format '{{json .Swarm}}'"
+    exit 1
+    ;;
+esac
+
+if [[ "$(docker info --format '{{.Swarm.ControlAvailable}}')" != "true" ]]; then
+  echo "[prod-up] This node does not have Swarm manager control; deploy from a healthy manager"
+  exit 1
 fi
 
 echo "[prod-up] Deploying stack with app services initially scaled to 0"

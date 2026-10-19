@@ -1,6 +1,8 @@
+import type { UUIDv7 } from '@kws/types';
+
 import { env } from '@kws/config';
 import { media, mediaVariants } from '@kws/schema';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
 import { realpath, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -43,13 +45,17 @@ export async function cleanupExcessListingMedia(args: string[]): Promise<void> {
     );
     if (!result.rows[0]?.acquired) throw new Error('Another retention cleanup is running');
 
-    const [preview] = await db
-      .select({
-        mediaRecords: sql<number>`count(*)`,
-        estimatedBytes: sql<string>`coalesce(sum(coalesce((select sum(v.file_size) from media_variants v where v.media_id = ${media.id}), ${media.fileSize})), 0)`,
-      })
-      .from(media)
-      .where(excessMediaClause());
+    const preview = !apply
+      ? (
+          await db
+            .select({
+              mediaRecords: sql<number>`count(*)`,
+              estimatedBytes: sql<string>`coalesce(sum(coalesce((select sum(v.file_size) from media_variants v where v.media_id = ${media.id}), ${media.fileSize})), 0)`,
+            })
+            .from(media)
+            .where(excessMediaClause())
+        )[0]
+      : undefined;
     console.log(
       JSON.stringify({
         mode: apply ? 'apply' : 'preview',
@@ -65,14 +71,16 @@ export async function cleanupExcessListingMedia(args: string[]): Promise<void> {
     let mediaDeleted = 0;
     let filesDeleted = 0;
     let bytesFreed = 0;
+    let afterMediaId: UUIDv7 | null = null;
     while (true) {
+      const batchStartedAt = Date.now();
       const deleted = await db.transaction(async (tx) => {
         const candidates = await tx
           .select({ id: media.id, storagePath: media.storagePath })
           .from(media)
-          .where(excessMediaClause())
+          .where(and(excessMediaClause(), afterMediaId ? gt(media.id, afterMediaId) : undefined))
           .orderBy(asc(media.id))
-          .limit(100)
+          .limit(500)
           .for('update');
         if (!candidates.length) return 0;
         const candidateIds = candidates.map((candidate) => candidate.id);
@@ -130,12 +138,21 @@ export async function cleanupExcessListingMedia(args: string[]): Promise<void> {
               candidates.map((candidate) => candidate.id),
             ),
           );
-        return candidates.length;
+        return { count: candidates.length, lastMediaId: candidates.at(-1)!.id };
       });
-      mediaDeleted += deleted;
-      console.log(JSON.stringify({ mediaDeleted, filesDeleted, bytesFreed }));
       if (!deleted) break;
+      afterMediaId = deleted.lastMediaId;
+      mediaDeleted += deleted.count;
+      console.log(
+        JSON.stringify({
+          mediaDeleted,
+          filesDeleted,
+          bytesFreed,
+          batchDurationMs: Date.now() - batchStartedAt,
+        }),
+      );
     }
+    console.log(JSON.stringify({ completed: true, mediaDeleted, filesDeleted, bytesFreed }));
   } finally {
     await lock.query("SELECT pg_advisory_unlock(hashtext('mls-media-retention-cleanup'))");
     lock.release();

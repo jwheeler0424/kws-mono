@@ -24,6 +24,11 @@ export function retainedPropertyMediaClause(
 
   return sql`(
     exists (
+      select 1 from mls_gallery_requests gallery
+      where gallery.listing_key = ${row.resourceRecordKey} and gallery.status <> 'ineligible'
+    )
+    or
+    exists (
       select 1 from properties retention_parent
       where retention_parent.listing_key = ${row.resourceRecordKey}
         and (

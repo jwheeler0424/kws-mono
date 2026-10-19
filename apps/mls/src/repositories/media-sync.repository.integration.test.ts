@@ -11,6 +11,14 @@ import { Pool } from 'pg';
 
 const connectionString = process.env.MLS_TEST_DATABASE_URL;
 const isolated = connectionString ? new URL(connectionString) : null;
+async function loadWebGalleryQueries(): Promise<{
+  requestListingGallery: (listingKey: string) => Promise<{ status: string }>;
+}> {
+  const modulePath = fileURLToPath(
+    new URL('../../../web/src/features/mls/queries/gallery.ts', import.meta.url),
+  );
+  return import(modulePath);
+}
 if (
   isolated &&
   (isolated.hostname !== '127.0.0.1' || isolated.pathname !== '/mls_compliance_test')
@@ -75,6 +83,10 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
       db: database,
       pool,
     }));
+    await mock.module(
+      fileURLToPath(new URL('../../../web/src/lib/database/index.ts', import.meta.url)),
+      () => ({ db: database, pool }),
+    );
     ({ claimParentMedia, releaseParentMedia, listMlsMediaSyncCandidates } =
       await import('./media-sync.repository'));
     ({ enqueueResourceMediaBatch, reconcileResourceMediaBatch } =
@@ -427,6 +439,7 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     const listingKey = 'NWM_RET_FILES';
     const root = path.join(basePath, 'mls', 'properties', listingKey);
     const mediaIds: string[] = [];
+    const photoCount = 513;
     try {
       await mkdir(root, { recursive: true });
       await pool.query(
@@ -436,7 +449,7 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
       await pool.query(
         "INSERT INTO members(member_mls_id,mlg_can_view) VALUES ('NWM_RET_SHARED',true)",
       );
-      for (let index = 0; index < 13; index += 1) {
+      for (let index = 0; index < photoCount; index += 1) {
         const mediaId = randomUUID();
         mediaIds.push(mediaId);
         const storagePath = path.join(root, `${index}_full.webp`);
@@ -485,8 +498,8 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
           listingKey,
         ])
       ).rows;
-      expect(rows).toHaveLength(13);
-      expect(rows.filter((row) => row.media_id === null)).toHaveLength(2);
+      expect(rows).toHaveLength(photoCount);
+      expect(rows.filter((row) => row.media_id === null)).toHaveLength(photoCount - 11);
       await cleanupExcessListingMedia(['--apply']);
       expect(
         (await pool.query('SELECT id FROM media WHERE id=ANY($1::uuid[])', [mediaIds])).rows,
@@ -501,6 +514,219 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
       await pool.query("DELETE FROM members WHERE member_mls_id='NWM_RET_SHARED'");
       await pool.query('DELETE FROM media WHERE id=ANY($1::uuid[])', [mediaIds]);
       await rm(basePath, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('deduplicates visitor requests and preserves their galleries beyond ten', async () => {
+    const { requestListingGallery } = await loadWebGalleryQueries();
+    const { claimGalleryRequest } = await import('../actions/on-demand-gallery');
+    const key = 'NWM_DEMAND_QUEUE';
+    try {
+      await pool.query(
+        "INSERT INTO properties(listing_key,listing_id,standard_status,mlg_can_view,photos_count) VALUES ($1,$1,'Active',true,12),('NWM_DEMAND_PENDING','NWM12345','Pending',true,12)",
+        [key],
+      );
+      await pool.query(
+        `INSERT INTO mls_media(media_key,resource_record_key,"order") SELECT $1 || '-' || photo,$1,photo FROM generate_series(0,11) photo`,
+        [key],
+      );
+      expect(
+        (
+          await listMlsMediaSyncCandidates(100, {
+            listingKeys: [key],
+            filterEntityTypes: ['properties'],
+          })
+        ).length,
+      ).toBe(10);
+      const visits = await Promise.all(Array.from({ length: 8 }, () => requestListingGallery(key)));
+      expect(visits.every((visit) => visit.status === 'queued')).toBe(true);
+      expect(
+        (await pool.query('SELECT * FROM mls_gallery_requests WHERE listing_key=$1', [key])).rows,
+      ).toHaveLength(1);
+      expect(
+        (
+          await listMlsMediaSyncCandidates(100, {
+            listingKeys: [key],
+            filterEntityTypes: ['properties'],
+          })
+        ).length,
+      ).toBe(12);
+      const claims = await Promise.all([claimGalleryRequest(), claimGalleryRequest()]);
+      expect(claims.filter(Boolean)).toHaveLength(1);
+      await pool.query(
+        "UPDATE mls_gallery_requests SET lease_until=now()-interval '1 second' WHERE listing_key=$1",
+        [key],
+      );
+      expect((await claimGalleryRequest())?.listingKey).toBe(key);
+      expect(await requestListingGallery('NWM_DEMAND_PENDING')).toEqual({ status: 'ineligible' });
+      await pool.query(
+        "UPDATE mls_gallery_requests SET status='complete',run_token=null,lease_until=null WHERE listing_key=$1",
+        [key],
+      );
+      expect(
+        (
+          await listMlsMediaSyncCandidates(100, {
+            listingKeys: [key],
+            filterEntityTypes: ['properties'],
+          })
+        ).length,
+      ).toBe(12);
+    } finally {
+      await pool.query('DELETE FROM mls_media WHERE resource_record_key=$1', [key]);
+      await pool.query('DELETE FROM properties WHERE listing_key=ANY($1::varchar[])', [
+        [key, 'NWM_DEMAND_PENDING'],
+      ]);
+    }
+  });
+
+  it('downloads a requested gallery through the image pipeline and releases it after status cleanup', async () => {
+    const { env } = await import('@kws/config');
+    const { requestListingGallery } = await loadWebGalleryQueries();
+    const { processNextGalleryRequest } = await import('../actions/on-demand-gallery');
+    const { resolveMlsEntityRoot } = await import('./media-cleanup.repository');
+    const key = 'NWM_DEMAND_PIPELINE';
+    const originalFetch = globalThis.fetch;
+    const storedIds: string[] = [];
+    const pixel = new Blob([
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    ]);
+    const image = await new Bun.Image(pixel).jpeg({ quality: 80 }).blob();
+    const hostname =
+      new URL(env.MLS_API_URL).hostname === 'api-demo.mlsgrid.com'
+        ? 'media-demo.mlsgrid.com'
+        : 'media.mlsgrid.com';
+    const payloads = Array.from({ length: 12 }, (_, index) => ({
+      MediaKey: `${key}-${index}`,
+      Order: index,
+      PreferredPhotoYN: index === 0,
+      MediaURL: `https://${hostname}/token=test&expires=${Math.floor(Date.now() / 1000) + 3600}&id=${index}/image.jpeg`,
+      MediaModificationTimestamp: '2026-10-19T00:00:00Z',
+    }));
+    let apiCalls = 0;
+    let photoCalls = 0;
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      if (url.hostname === new URL(env.MLS_API_URL).hostname) {
+        apiCalls += 1;
+        return Response.json({
+          value: [{ ListingKey: key, MlgCanView: true, MlgCanUse: ['IDX'], Media: payloads }],
+        });
+      }
+      if (url.hostname === hostname) {
+        photoCalls += 1;
+        return new Response(image, { headers: { 'content-type': 'image/jpeg' } });
+      }
+      throw new Error('Unexpected network access in gallery test');
+    }) as typeof fetch;
+    try {
+      await pool.query(
+        "INSERT INTO properties(listing_key,listing_id,standard_status,mlg_can_view,photos_count) VALUES ($1,'NWM999991','Active',true,12)",
+        [key],
+      );
+      expect(await requestListingGallery(key)).toEqual({ status: 'queued' });
+      expect(await processNextGalleryRequest()).toBe(true);
+      expect(apiCalls).toBe(1);
+      expect(photoCalls).toBe(12);
+      expect(
+        (await pool.query('SELECT status FROM mls_gallery_requests WHERE listing_key=$1', [key]))
+          .rows[0]?.status,
+      ).toBe('complete');
+      const variants = (
+        await pool.query(
+          "SELECT stored.id, v.storage_path FROM media stored JOIN media_variants v ON v.media_id=stored.id AND v.variant_name='full' JOIN mls_media photo ON photo.media_id=stored.id WHERE photo.resource_record_key=$1",
+          [key],
+        )
+      ).rows;
+      storedIds.push(...variants.map((variant) => variant.id));
+      expect(variants).toHaveLength(12);
+      for (const variant of variants)
+        expect(await Bun.file(variant.storage_path).exists()).toBe(true);
+      expect(await requestListingGallery(key)).toEqual({ status: 'complete' });
+      expect(await processNextGalleryRequest()).toBe(false);
+      expect(apiCalls).toBe(1);
+      await purgeScopedMlsMediaBeforeSync({
+        memberKeys: env.MLS_MEMBER_ID ?? [],
+        officeKeys: env.MLS_OFFICE_ID ?? [],
+      });
+      expect(
+        (
+          await pool.query(
+            'SELECT media_id FROM mls_media WHERE resource_record_key=$1 AND media_id IS NOT NULL',
+            [key],
+          )
+        ).rows,
+      ).toHaveLength(12);
+      await pool.query("UPDATE properties SET standard_status='Closed' WHERE listing_key=$1", [
+        key,
+      ]);
+      await purgeScopedMlsMediaBeforeSync({
+        memberKeys: env.MLS_MEMBER_ID ?? [],
+        officeKeys: env.MLS_OFFICE_ID ?? [],
+      });
+      expect(
+        (
+          await pool.query(
+            'SELECT media_id FROM mls_media WHERE resource_record_key=$1 AND media_id IS NOT NULL',
+            [key],
+          )
+        ).rows,
+      ).toHaveLength(0);
+      expect(
+        (
+          await pool.query('SELECT listing_key FROM mls_gallery_requests WHERE listing_key=$1', [
+            key,
+          ])
+        ).rows,
+      ).toHaveLength(0);
+      expect(await requestListingGallery(key)).toEqual({ status: 'ineligible' });
+    } finally {
+      globalThis.fetch = originalFetch;
+      await pool.query('DELETE FROM mls_media WHERE resource_record_key=$1', [key]);
+      await pool.query('DELETE FROM properties WHERE listing_key=$1', [key]);
+      await pool.query('DELETE FROM media WHERE id=ANY($1::uuid[])', [storedIds]);
+      await rm(path.join(resolveMlsEntityRoot('properties'), key), {
+        recursive: true,
+        force: true,
+      });
+    }
+  }, 30_000);
+
+  it('defers a visitor gallery after an API 429 without an immediate retry loop', async () => {
+    const { requestListingGallery } = await loadWebGalleryQueries();
+    const { processNextGalleryRequest } = await import('../actions/on-demand-gallery');
+    const key = 'NWM_DEMAND_429';
+    const originalFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      return new Response('', { status: 429, headers: { 'retry-after': '3600' } });
+    }) as unknown as typeof fetch;
+    try {
+      await pool.query(
+        "INSERT INTO properties(listing_key,listing_id,standard_status,mlg_can_view,photos_count) VALUES ($1,'NWM999992','Active',true,12)",
+        [key],
+      );
+      await requestListingGallery(key);
+      expect(await processNextGalleryRequest()).toBe(true);
+      const [request] = (
+        await pool.query(
+          'SELECT status,run_token,lease_until,next_attempt_at FROM mls_gallery_requests WHERE listing_key=$1',
+          [key],
+        )
+      ).rows;
+      expect(request.status).toBe('queued');
+      expect(request.run_token).toBeNull();
+      expect(request.lease_until).toBeNull();
+      expect(request.next_attempt_at.getTime()).toBeGreaterThan(Date.now() + 59 * 60_000);
+      expect(calls).toBe(1);
+      expect(await processNextGalleryRequest()).toBe(false);
+      expect(calls).toBe(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await pool.query('DELETE FROM properties WHERE listing_key=$1', [key]);
     }
   });
 

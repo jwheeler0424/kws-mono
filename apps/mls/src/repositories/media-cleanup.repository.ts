@@ -2,7 +2,16 @@ import type { StandardStatus } from '@kws/schema';
 import type { UUIDv7 } from '@kws/types';
 import type { Dirent } from 'node:fs';
 
-import { media, mediaVariants, members, mlsMedia, offices, properties } from '@kws/schema';
+import {
+  galleryListingEligibility,
+  mlsGalleryRequests,
+  media,
+  mediaVariants,
+  members,
+  mlsMedia,
+  offices,
+  properties,
+} from '@kws/schema';
 import { and, eq, inArray, isNotNull, isNull, not, or, sql } from 'drizzle-orm';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
@@ -695,6 +704,11 @@ export async function purgeScopedMlsMediaBeforeSync(
       ).filter(Boolean) as StandardStatus[],
     ),
   ];
+
+  await db.delete(mlsGalleryRequests).where(sql`exists (
+    select 1 from properties where ${properties.listingKey} = ${mlsGalleryRequests.listingKey}
+      and not coalesce(${galleryListingEligibility(memberKeys, officeKeys)}, false)
+  )`);
 
   const propertyActiveViewableMediaClause = and(
     isNotNull(properties.listingKey),

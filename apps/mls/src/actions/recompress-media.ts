@@ -10,6 +10,8 @@ import { MLS_MEDIA_IMAGE_DEFAULTS, MLS_MEDIA_RECOMPRESS_DEFAULTS } from '@/lib/c
 import { db } from '@/lib/database';
 import { mlsLogger } from '@/lib/logger';
 
+import { servicePriorityMedia } from './media-priority';
+
 const recompressLogger = mlsLogger.child('media-recompress');
 const RECOMPRESS_RESOURCE = 'MlsMediaRecompress';
 
@@ -216,6 +218,7 @@ export async function recompressLegacyMlsMedia(
   const { batchSize, concurrency } = MLS_MEDIA_RECOMPRESS_DEFAULTS;
 
   while (Date.now() - startedAt < maxDurationMs) {
+    await servicePriorityMedia();
     const candidates = await listCandidates(cutoff, batchSize);
     if (candidates.length === 0) {
       resumeAfterMediaId = null;

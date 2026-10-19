@@ -10,6 +10,7 @@ export class MlsApiError extends Error {
     public readonly endpoint: string,
     public readonly body: string,
     public readonly bodyPreview: string = getBodyPreview(body, 240),
+    public readonly retryAfterMs: number = 0,
   ) {
     super(`MLS API ${status} at ${endpoint} (body: ${bodyPreview})`);
     this.name = 'MlsApiError';

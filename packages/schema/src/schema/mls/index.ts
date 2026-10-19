@@ -1,5 +1,7 @@
 export * from './lookups.schema';
 export * from './media.schema';
+export * from './gallery-requests.schema';
+export * from './gallery-policy';
 export * from './members.schema';
 export * from './offices.schema';
 export * from './open-houses.schema';

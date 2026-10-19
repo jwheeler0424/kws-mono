@@ -21,7 +21,9 @@ import {
 } from '../repositories/media-cleanup.repository';
 import { isInitialSeedComplete } from '../repositories/seed-state.repository';
 import { runMlsCleanup } from './cleanup';
+import { servicePriorityMedia, setMediaPriorityHandler } from './media-priority';
 import { refreshMlsMediaQueue } from './media-queue-refresh';
+import { processNextGalleryRequest } from './on-demand-gallery';
 import { isMlsDeltaResourceName, runDeltaSyncResource } from './orchestrator';
 import { recompressLegacyMlsMedia, resolveMlsMediaRecompressCutoff } from './recompress-media';
 import { runPrioritizedMlsMediaSync } from './seed-media';
@@ -32,6 +34,7 @@ const MLS_MEDIA_RECONCILE_SCHEDULE_ID = 'mls.media.reconcile';
 const MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID = 'mls.media.orphan-cleanup';
 const MLS_HISTORY_PRUNE_SCHEDULE_ID = 'mls.history.prune';
 const MLS_MEDIA_MUTATION_SCHEDULE_IDS = new Set([
+  'mls.media.on-demand',
   MLS_CLEANUP_HOURLY_SCHEDULE_ID,
   MLS_MEDIA_SYNC_SCHEDULE_ID,
   MLS_MEDIA_RECONCILE_SCHEDULE_ID,
@@ -388,6 +391,35 @@ export async function registerMlsSyncJobTypes() {
   await runScheduledJob(MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID, () =>
     runOrphanedMediaCleanup('startup'),
   );
+
+  setMediaPriorityHandler(async () => {
+    if (
+      inFlightScheduledJobs.has(MLS_MEDIA_ORPHAN_CLEANUP_SCHEDULE_ID) ||
+      inFlightScheduledJobs.has(MLS_CLEANUP_HOURLY_SCHEDULE_ID)
+    )
+      return;
+    if (!(await isInitialSeedComplete(env.MLS_ORIGINATING_SYSTEM_NAME))) return;
+    inFlightScheduledJobs.add('mls.media.on-demand');
+    try {
+      let more = true;
+      while (more) more = await processNextGalleryRequest();
+    } catch (error) {
+      syncMlsLogger.error('on-demand gallery worker failed', {
+        error: error instanceof Error ? error.name : 'UnknownError',
+      });
+    } finally {
+      inFlightScheduledJobs.delete('mls.media.on-demand');
+    }
+  });
+  const galleryTimer = setInterval(() => {
+    void servicePriorityMedia().catch((error) =>
+      syncMlsLogger.error('gallery priority service failed', {
+        error: error instanceof Error ? error.name : 'UnknownError',
+      }),
+    );
+  }, 2_000);
+  galleryTimer.unref();
+  registeredMlsCronJobs.push({ stop: () => clearInterval(galleryTimer) });
 
   const scheduleEntries = resolveMlsDeltaResourceSchedules();
   const cleanupSchedule = resolveMlsCleanupSchedule();

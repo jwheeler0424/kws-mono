@@ -62,7 +62,15 @@ async function run() {
 }
 
 run().catch((error) => {
-  logger.error('An error occurred while running the MLS Grid Application:', error);
+  const message = error instanceof Error ? error.message || error.name : 'Unknown error';
+  const cause = error instanceof Error && error.cause instanceof Error ? error.cause : null;
+  const redact = (value: string) =>
+    value.split('\n')[0]!.replace(/(?:https?|postgres(?:ql)?):\/\/\S+/gi, '[redacted URL]');
+  logger.error('An error occurred while running the MLS Grid Application:', {
+    error: redact(message),
+    cause: cause ? redact(cause.message) : undefined,
+    code: typeof error?.code === 'string' ? error.code : undefined,
+  });
   process.exit(1);
 });
 

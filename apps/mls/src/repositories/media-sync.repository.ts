@@ -95,6 +95,7 @@ export interface MlsMediaSyncCandidate {
 }
 
 export interface ListMlsMediaSyncCandidatesOptions {
+  listingKeys?: string[];
   offset?: number;
   /**
    * Optional ordering hint for property media rows associated with members.
@@ -493,6 +494,7 @@ export async function listMlsMediaSyncCandidates(
 
   const finalWhereClause = and(
     candidateWhereClause,
+    options.listingKeys?.length ? inArray(properties.listingKey, options.listingKeys) : undefined,
     sql`(${properties.listingKey} is null or ${retainedPropertyMediaClause({
       mediaKey: sql`${mlsMedia.mediaKey}`,
       resourceRecordKey: sql`${mlsMedia.resourceRecordKey}`,

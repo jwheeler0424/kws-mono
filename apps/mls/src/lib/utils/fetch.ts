@@ -187,13 +187,14 @@ export async function fetchFreshParentMedia(
   entityType: 'properties' | 'members' | 'offices',
   recordKey: string,
   listingId?: string | null,
+  options: { retryRateLimited?: boolean } = {},
 ): Promise<MlsMediaPayload[]> {
   const page = await fetchPage<{
     ListingKey?: string;
     MlgCanView?: boolean;
     MlgCanUse?: string[];
     Media?: MlsMediaPayload[];
-  }>(buildFreshParentMediaUrl(entityType, recordKey, listingId));
+  }>(buildFreshParentMediaUrl(entityType, recordKey, listingId), options);
   const parent = page.value[0];
   if (
     !parent ||
@@ -374,7 +375,7 @@ export async function fetchPage<T>(
     });
 
     // Omit URL from error message to avoid token leakage in query strings
-    throw new MlsApiError(res.status, endpoint, body, bodyPreview);
+    throw new MlsApiError(res.status, endpoint, body, bodyPreview, retryAfterMs ?? 0);
   }
 }
 

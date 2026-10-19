@@ -1,11 +1,13 @@
 import { mlsSyncCursors } from '@kws/schema';
 import { listingsSearchShapeSchema, mapBoundsSchema } from '@kws/types';
 import { createServerFn } from '@tanstack/react-start';
+import { getRequestHeader } from '@tanstack/react-start/server';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { db } from '@/lib/database';
 
+import { isAutomatedGalleryVisit } from '../gallery-visit';
 import {
   getHydratedListingsPaginated,
   getListingsMapMarkersForViewport,
@@ -13,6 +15,7 @@ import {
   getListingDetailByKey,
   getListingsForSearchAndFilter,
 } from '../queries';
+import { requestListingGallery } from '../queries/gallery';
 
 const listingDetailsParamsSchema = z.object({ listingKey: z.string().min(1) });
 const listingsSearchParamsSchema = listingsSearchShapeSchema.partial();
@@ -49,6 +52,20 @@ export const getPropertiesLastUpdatedServerFn = createServerFn({ method: 'GET' }
 export const getListingDetailsServerFn = createServerFn({ method: 'GET' })
   .validator(listingDetailsParamsSchema)
   .handler(({ data }) => getListingDetailByKey(data));
+
+export const requestListingGalleryServerFn = createServerFn({ method: 'POST' })
+  .validator(z.object({ listingKey: z.string().min(1).max(255) }))
+  .handler(({ data }) => {
+    if (
+      getRequestHeader('sec-fetch-site') === 'cross-site' ||
+      isAutomatedGalleryVisit(
+        getRequestHeader('user-agent') ?? '',
+        `${getRequestHeader('purpose') ?? ''} ${getRequestHeader('sec-purpose') ?? ''}`,
+      )
+    )
+      return { status: 'ignored' };
+    return requestListingGallery(data.listingKey);
+  });
 
 export const getListingsForSearchAndFilterServerFn = createServerFn({ method: 'GET' })
   .validator(listingsSearchParamsSchema)

@@ -6,9 +6,9 @@ import type {
 } from '@kws/schema';
 import type { CursorResult, TListingsSearch } from '@kws/types';
 
-import { type TMlsMedia } from '@kws/schema';
+import { mlsGalleryRequests, type TMlsMedia } from '@kws/schema';
 import { tsquery } from '@kws/schema/plugins';
-import { type SQLWrapper, sql } from 'drizzle-orm';
+import { type SQLWrapper, sql, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 import { db } from '@/lib/database';
@@ -25,6 +25,7 @@ import {
 export type TPropertyWithMedia = Omit<PropertyListing, 'NWM'> & {
   NWM: TPropertyNwmFlags | null;
   media: TMlsMedia[];
+  galleryRequestStatus: string | null;
 };
 
 export async function getListingDetailByKey({
@@ -32,7 +33,7 @@ export async function getListingDetailByKey({
 }: {
   listingKey: string;
 }): Promise<TPropertyWithMedia | null> {
-  const [listing, media] = await Promise.all([
+  const [listing, media, gallery] = await Promise.all([
     db.query.properties.findFirst({
       columns: {
         NWM: false,
@@ -83,6 +84,11 @@ export async function getListingDetailByKey({
       },
       orderBy: (media, { desc }) => [desc(media.preferredPhotoYN), media.order],
     }),
+    db
+      .select({ status: mlsGalleryRequests.status })
+      .from(mlsGalleryRequests)
+      .where(eq(mlsGalleryRequests.listingKey, listingKey))
+      .limit(1),
   ]);
 
   const mediaWithUrl: TMlsMedia[] = media
@@ -92,7 +98,9 @@ export async function getListingDetailByKey({
       mediaURL: m.media?.variants?.[0]?.url ?? null,
     }));
 
-  return listing ? { ...listing, media: mediaWithUrl } : null;
+  return listing
+    ? { ...listing, media: mediaWithUrl, galleryRequestStatus: gallery[0]?.status ?? null }
+    : null;
 }
 
 const listingsForSearchAndFilterColumns = {

@@ -1,14 +1,15 @@
 import { Separator } from '@kws/design/ui/separator';
+import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
-    BathIcon,
-    BedDoubleIcon,
-    CircleCheckBigIcon,
-    HammerIcon,
-    LayersIcon,
-    MapPinnedIcon,
-    RulerDimensionLineIcon,
+  BathIcon,
+  BedDoubleIcon,
+  CircleCheckBigIcon,
+  HammerIcon,
+  LayersIcon,
+  MapPinnedIcon,
+  RulerDimensionLineIcon,
 } from 'lucide-react';
 
 import { Badge } from '@/components/global/badge';
@@ -16,27 +17,46 @@ import { Link } from '@/components/global/link';
 import { ListingAttribution } from '@/components/global/listing-attribution';
 import PropertyMap from '@/components/global/map-wrapper';
 import { PropertySlideshow } from '@/components/global/property-slideshow';
+import { requestListingGalleryServerFn } from '@/features/mls/functions/listings';
+import { isAutomatedGalleryVisit } from '@/features/mls/gallery-visit';
 import { listingDetailOptions } from '@/features/mls/options';
 import { useSeo } from '@/lib/tools';
 import { cn } from '@/lib/utils';
 import {
-    getAddressCityStateZip,
-    getAddressStreet,
-    getBathroomCount,
-    getBedroomCount,
-    getLivingArea,
-    getPropertyLevels,
-    getPropertyStatus,
-    getPropertyStatusClassName,
-    numberFormat,
-    parseNwmBooleanFlag,
+  getAddressCityStateZip,
+  getAddressStreet,
+  getBathroomCount,
+  getBedroomCount,
+  getLivingArea,
+  getPropertyLevels,
+  getPropertyStatus,
+  getPropertyStatusClassName,
+  numberFormat,
+  parseNwmBooleanFlag,
 } from '@/lib/utils/properties';
 
 export const Route = createFileRoute('/listings/$listingKey')({
-  loader: async ({ context, params }) => {
-    const property = await context.queryClient.ensureQueryData(
-      listingDetailOptions({ listingKey: params.listingKey }),
-    );
+  preloadStaleTime: 0,
+  loader: async ({ context, params, preload }) => {
+    const options = listingDetailOptions({ listingKey: params.listingKey });
+    let property = await context.queryClient.query(options);
+    if (
+      property &&
+      !preload &&
+      (typeof navigator === 'undefined' || !isAutomatedGalleryVisit(navigator.userAgent))
+    ) {
+      try {
+        const request = await requestListingGalleryServerFn({
+          data: { listingKey: params.listingKey },
+        });
+        if (request.status !== 'ignored') {
+          property = { ...property, galleryRequestStatus: request.status };
+          context.queryClient.setQueryData(options.queryKey, property);
+        }
+      } catch {
+        // Gallery acquisition must not prevent an existing listing from loading.
+      }
+    }
     return { property, siteConfig: context.siteConfig };
   },
   head: ({ loaderData }) => {
@@ -65,7 +85,14 @@ export const Route = createFileRoute('/listings/$listingKey')({
 });
 
 function RouteComponent() {
-  const { property } = Route.useLoaderData();
+  const loaderData = Route.useLoaderData();
+  const { listingKey } = Route.useParams();
+  const { data: property } = useQuery({
+    ...listingDetailOptions({ listingKey }),
+    initialData: loaderData.property,
+    refetchInterval: (query) =>
+      ['queued', 'running'].includes(query.state.data?.galleryRequestStatus ?? '') ? 2_000 : false,
+  });
 
   if (!property) {
     return <div className='p-6 text-sm text-gray-700'>Property details unavailable.</div>;
@@ -73,6 +100,7 @@ function RouteComponent() {
 
   const propertyStatus = getPropertyStatus(property.standardStatus ?? 'Coming Soon');
   const shouldHidePhotos =
+    property.internetEntireListingDisplayYN === false ||
     parseNwmBooleanFlag(property.NWM?.NWM_IDXMustRemovePhotosYN) ||
     parseNwmBooleanFlag(property.NWM?.NWM_IDXMustRemovePrimaryPhotoYN);
   const livingArea = getLivingArea({ ...property, ...property.NWM });

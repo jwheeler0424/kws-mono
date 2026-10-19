@@ -33,6 +33,7 @@ import {
   type MlsMediaEntityType,
   type MlsMediaSyncCandidate,
 } from '../repositories/media-sync.repository';
+import { servicePriorityMedia } from './media-priority';
 import {
   advanceMediaRepairOffset,
   readMediaRepairOffset,
@@ -45,6 +46,8 @@ const SLOW_CANDIDATE_SELECTION_WARN_MS = 10_000;
 const SLOW_REPAIR_HEALTH_CHECK_WARN_MS = 10_000;
 
 export interface MlsMediaSyncOptions {
+  listingKeys?: string[];
+  priorityRequest?: boolean;
   batchSize?: number;
   maxBatches?: number;
   processConcurrency?: number;
@@ -627,6 +630,7 @@ export async function runMlsMediaSync(
     await Promise.all(
       Array.from({ length: Math.min(processConcurrency, groups.length) }, async () => {
         while (nextGroup < groups.length) {
+          if (!options.priorityRequest) await servicePriorityMedia();
           const group = groups[nextGroup++]!;
           const first = group[0]!;
           if (
@@ -695,9 +699,11 @@ export async function runMlsMediaSync(
   let stalledBatches = 0;
 
   for (let batch = 0; batch < maxBatches; batch += 1) {
+    if (!options.priorityRequest) await servicePriorityMedia();
     const selectionStartedAt = Date.now();
 
     const candidates = await listMlsMediaSyncCandidates(batchSize, {
+      listingKeys: options.listingKeys,
       prioritizeMemberKeys,
       prioritizeOfficeKeys,
       primaryOnlyForNonPrioritizedProperties,
@@ -788,6 +794,7 @@ export async function runMlsMediaSync(
     const repairCursorKey = createHash('sha256')
       .update(
         JSON.stringify({
+          listingKeys: [...(options.listingKeys ?? [])].sort(),
           prioritizeMemberKeys: [...prioritizeMemberKeys].sort(),
           prioritizeOfficeKeys: [...prioritizeOfficeKeys].sort(),
           primaryOnlyForNonPrioritizedProperties,
@@ -808,6 +815,7 @@ export async function runMlsMediaSync(
       const repairSelectionStartedAt = Date.now();
 
       const repairCandidates = await listMlsMediaSyncCandidates(batchSize, {
+        listingKeys: options.listingKeys,
         offset: repairOffset,
         prioritizeMemberKeys,
         prioritizeOfficeKeys,
