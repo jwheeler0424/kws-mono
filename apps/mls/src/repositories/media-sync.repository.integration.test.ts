@@ -342,7 +342,7 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     await pool.query("DELETE FROM properties WHERE listing_key='NWM_PRIMARY_TEST'");
   });
 
-  it('caps public galleries at ten, preserving preferred photos and every configured association', async () => {
+  it('caps public galleries at five, preserving preferred photos and every configured association', async () => {
     const { retainedPropertyMediaClause } = await import('./media-retention');
     const fields = [
       'list_agent_key',
@@ -390,11 +390,9 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
       const normalKeys = retained
         .filter((row) => row.resource_record_key === keys[0])
         .map((row) => row.media_key);
-      expect(normalKeys).toHaveLength(10);
+      expect(normalKeys).toHaveLength(5);
       expect(normalKeys).toEqual(
-        expect.arrayContaining(
-          [2, 3, 4, 5, 6, 7, 8, 9, 10, 15].map((index) => `${keys[0]}-${index}`),
-        ),
+        expect.arrayContaining([2, 3, 4, 5, 15].map((index) => `${keys[0]}-${index}`)),
       );
       for (const key of keys.slice(1))
         expect(retained.filter((row) => row.resource_record_key === key)).toHaveLength(14);
@@ -402,7 +400,7 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
         filterEntityTypes: ['properties'],
         enforceEligibilityForNonAssociatedProperties: true,
       });
-      expect(candidates.filter((row) => row.resourceRecordKey === keys[0])).toHaveLength(10);
+      expect(candidates.filter((row) => row.resourceRecordKey === keys[0])).toHaveLength(5);
       expect(await listIncompleteActiveListingKeys([keys[0]!])).toEqual(new Set([keys[0]!]));
       await pool.query('UPDATE mls_media SET media_id=$1 WHERE media_key=ANY($2::varchar[])', [
         storedId,
@@ -472,10 +470,10 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
         [mediaIds[12]],
       );
       await cleanupExcessListingMedia([]);
-      expect(await Bun.file(path.join(root, '10_full.webp')).exists()).toBe(true);
+      expect(await Bun.file(path.join(root, '5_full.webp')).exists()).toBe(true);
       const outsidePath = path.join(basePath, 'outside.webp');
       await Bun.write(outsidePath, 'outside');
-      await pool.query('UPDATE media SET storage_path=$1 WHERE id=$2', [outsidePath, mediaIds[10]]);
+      await pool.query('UPDATE media SET storage_path=$1 WHERE id=$2', [outsidePath, mediaIds[5]]);
       const failure = await cleanupExcessListingMedia(['--apply']).then(
         () => null,
         (error: unknown) => error,
@@ -484,13 +482,13 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
       expect((failure as Error).message).toContain('outside property media');
       expect(await Bun.file(outsidePath).exists()).toBe(true);
       await pool.query('UPDATE media SET storage_path=$1 WHERE id=$2', [
-        path.join(root, '10_full.webp'),
-        mediaIds[10],
+        path.join(root, '5_full.webp'),
+        mediaIds[5],
       ]);
       await cleanupExcessListingMedia(['--apply']);
-      for (let index = 0; index < 10; index += 1)
+      for (let index = 0; index < 5; index += 1)
         expect(await Bun.file(path.join(root, `${index}_full.webp`)).exists()).toBe(true);
-      expect(await Bun.file(path.join(root, '10_full.webp')).exists()).toBe(false);
+      expect(await Bun.file(path.join(root, '5_full.webp')).exists()).toBe(false);
       expect(await Bun.file(path.join(root, '11_full.webp')).exists()).toBe(false);
       expect(await Bun.file(path.join(root, '12_full.webp')).exists()).toBe(true);
       const rows = (
@@ -499,11 +497,11 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
         ])
       ).rows;
       expect(rows).toHaveLength(photoCount);
-      expect(rows.filter((row) => row.media_id === null)).toHaveLength(photoCount - 11);
+      expect(rows.filter((row) => row.media_id === null)).toHaveLength(photoCount - 6);
       await cleanupExcessListingMedia(['--apply']);
       expect(
         (await pool.query('SELECT id FROM media WHERE id=ANY($1::uuid[])', [mediaIds])).rows,
-      ).toHaveLength(11);
+      ).toHaveLength(6);
     } finally {
       if (previousRoot === undefined) delete process.env.MLS_MEDIA_STORE_PATH;
       else process.env.MLS_MEDIA_STORE_PATH = previousRoot;
@@ -517,7 +515,7 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
     }
   }, 30_000);
 
-  it('deduplicates visitor requests and preserves their galleries beyond ten', async () => {
+  it('deduplicates visitor requests and preserves their galleries beyond five', async () => {
     const { requestListingGallery } = await loadWebGalleryQueries();
     const { claimGalleryRequest } = await import('../actions/on-demand-gallery');
     const key = 'NWM_DEMAND_QUEUE';
@@ -537,7 +535,7 @@ describe.skipIf(!connectionString)('MLS acquisition database contracts', () => {
             filterEntityTypes: ['properties'],
           })
         ).length,
-      ).toBe(10);
+      ).toBe(5);
       const visits = await Promise.all(Array.from({ length: 8 }, () => requestListingGallery(key)));
       expect(visits.every((visit) => visit.status === 'queued')).toBe(true);
       expect(

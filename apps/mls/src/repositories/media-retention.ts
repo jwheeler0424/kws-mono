@@ -1,7 +1,7 @@
 import { env } from '@kws/config';
 import { sql, type SQL } from 'drizzle-orm';
 
-export const MLS_PUBLIC_GALLERY_LIMIT = 10;
+export const MLS_PUBLIC_GALLERY_LIMIT = 5;
 
 export function retainedPropertyMediaClause(
   row: { mediaKey: SQL; resourceRecordKey: SQL },
